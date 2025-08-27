@@ -7,7 +7,7 @@
       <form method="POST" action="{{ route('admin.quizzes.update', $quiz) }}" class="space-y-3">
         @csrf @method('PUT')
         @include('admin.quizzes.partials.form', ['quiz' => $quiz])
-        <button class="px-4 py-2 rounded bg-blue-600 text-white">Lưu</button>
+        <button class="px-4 py-2 rounded bg-red-600 text-white">Lưu</button>
       </form>
     </div>
     <div class="bg-white p-6 rounded shadow">
@@ -20,7 +20,7 @@
           <div class="border rounded p-3">
             <div class="flex justify-between items-center">
               <div class="font-medium">#{{ $q->order }} • {{ $q->type }}</div>
-              <a class="text-blue-600" href="{{ route('admin.questions.edit', $q) }}">Sửa</a>
+              <a class="text-red-600" href="{{ route('admin.questions.edit', $q) }}">Sửa</a>
             </div>
             <div class="mt-2">{{ $q->stem }}</div>
             <ul class="mt-2 text-sm list-disc ml-6">

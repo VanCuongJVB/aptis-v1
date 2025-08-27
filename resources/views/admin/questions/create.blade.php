@@ -6,7 +6,7 @@
     <form method="POST" action="{{ route('admin.questions.store', $quiz) }}" class="space-y-3">
       @csrf
       @include('admin.questions.partials.form', ['question' => null])
-      <button class="px-4 py-2 rounded bg-blue-600 text-white">Lưu</button>
+      <button class="px-4 py-2 rounded bg-red-600 text-white">Lưu</button>
     </form>
   </div>
 @endsection

@@ -15,7 +15,7 @@
           <button class="px-3 py-2 rounded bg-emerald-700 text-white">+90d</button>
         </form>
       </div>
-      <a href="{{ route('admin.students.index') }}" class="inline-block mt-2 text-blue-600">← Quay lại danh sách</a>
+      <a href="{{ route('admin.students.index') }}" class="inline-block mt-2 text-red-600">← Quay lại danh sách</a>
     </form>
   </div>
 @endsection
