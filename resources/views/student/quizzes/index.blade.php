@@ -12,7 +12,7 @@
         <p class="text-sm text-slate-600 mt-2">{{ $quiz->description }}</p>
         <div class="mt-3 flex items-center justify-between">
           <div class="text-sm text-slate-500">Thời lượng: {{ $quiz->duration_minutes }} phút</div>
-          <a class="px-3 py-1 rounded bg-blue-600 text-white" href="{{ route('student.quizzes.show', $quiz) }}">Vào thi</a>
+          <a class="px-3 py-1 rounded bg-red-600 text-white" href="{{ route('student.quizzes.show', $quiz) }}">Vào thi</a>
         </div>
       </div>
     @empty

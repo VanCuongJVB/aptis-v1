@@ -8,7 +8,7 @@
     </div>
     <div class="flex gap-2">
       <a class="px-3 py-2 rounded bg-slate-200" href="{{ route('admin.students.import.form') }}">Import</a>
-      <a class="px-3 py-2 rounded bg-blue-600 text-white" href="{{ route('admin.students.create') }}">+ Thêm học sinh</a>
+      <a class="px-3 py-2 rounded bg-red-600 text-white" href="{{ route('admin.students.create') }}">+ Thêm học sinh</a>
     </div>
   </div>
 

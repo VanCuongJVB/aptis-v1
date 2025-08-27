@@ -3,7 +3,7 @@
 @section('content')
   <div class="flex justify-between items-center mb-3">
     <h1 class="text-xl font-bold">Quizzes</h1>
-    <a class="px-3 py-1 rounded bg-blue-600 text-white" href="{{ route('admin.quizzes.create') }}">+ Tạo quiz</a>
+    <a class="px-3 py-1 rounded bg-red-600 text-white" href="{{ route('admin.quizzes.create') }}">+ Tạo quiz</a>
   </div>
   <div class="bg-white rounded shadow divide-y">
     @foreach($quizzes as $quiz)
