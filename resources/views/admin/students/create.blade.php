@@ -7,7 +7,7 @@
       @csrf
       @include('admin.students.partials.form', ['student' => null])
       <div class="text-sm text-slate-500">Mật khẩu mặc định: <code>123456</code> (không có UI đổi).</div>
-      <button class="px-4 py-2 rounded bg-blue-600 text-white mt-2">Lưu</button>
+      <button class="px-4 py-2 rounded bg-red-600 text-white mt-2">Lưu</button>
     </form>
   </div>
 @endsection
