@@ -13,7 +13,7 @@
         <span class="text-sm">Mật khẩu</span>
         <input type="password" name="password" class="w-full border rounded px-3 py-2" required>
       </label>
-      <button class="px-4 py-2 rounded bg-blue-600 text-white">Đăng nhập</button>
+      <button class="px-4 py-2 rounded bg-red-600 text-white">Đăng nhập</button>
     </form>
     <div class="mt-4 text-sm text-slate-600">
       Demo: <code>admin@example.com</code> / <code>123456</code> • <code>student@example.com</code> / <code>123456</code>

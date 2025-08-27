@@ -6,7 +6,7 @@
     <form method="POST" action="{{ route('admin.questions.update', $question) }}" class="space-y-3">
       @csrf @method('PUT')
       @include('admin.questions.partials.form', ['question' => $question])
-      <button class="px-4 py-2 rounded bg-blue-600 text-white">Lưu</button>
+      <button class="px-4 py-2 rounded bg-red-600 text-white">Lưu</button>
     </form>
   </div>
 @endsection
