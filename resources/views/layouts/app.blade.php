@@ -10,35 +10,35 @@
 </head>
 
 <body class="bg-slate-50 text-slate-800">
-  <nav class="bg-white border-b">
+  <nav class="bg-red-600 text-white">
     <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-      <a href="/" class="font-bold">APTIS Lite</a>
+      <a href="/" class="font-bold text-white">APTIS Lite</a>
       <div class="space-x-2">
         @auth
           @if(auth()->user()->is_admin)
-            <a class="px-3 py-1 rounded border hover:bg-slate-100" href="{{ route('admin.home') }}">Admin</a>
+            <a class="px-3 py-1 rounded hover:bg-red-500" href="{{ route('admin.home') }}">Admin</a>
           @endif
           <span class="text-sm hidden md:inline">Hi, {{ auth()->user()->name ?? auth()->user()->email }}</span>
           <form class="inline" method="POST" action="{{ route('logout') }}">
             @csrf
-            <button class="px-3 py-1 bg-slate-800 text-white rounded">Logout</button>
+            <button class="px-3 py-1 bg-white text-red-600 rounded">Logout</button>
           </form>
         @endauth
         @guest
-          <a class="px-3 py-1 bg-slate-800 text-white rounded" href="{{ route('login') }}">Login</a>
+          <a class="px-3 py-1 bg-white text-red-600 rounded" href="{{ route('login') }}">Login</a>
         @endguest
       </div>
     </div>
 
     @if (request()->is('admin*'))
-      <div class="bg-slate-100 border-t">
+      <div class="bg-red-700">
         <div class="max-w-6xl mx-auto px-4 py-2 flex gap-2 text-sm">
           <a href="{{ route('admin.quizzes.index') }}"
-            class="px-3 py-1 rounded {{ request()->routeIs('admin.quizzes.*') ? 'bg-white border' : 'hover:bg-white/60' }}">Quizzes</a>
+            class="px-3 py-1 rounded text-white {{ request()->routeIs('admin.quizzes.*') ? 'bg-red-600' : 'hover:bg-red-600/60' }}">Quizzes</a>
           <a href="{{ route('admin.students.index') }}"
-            class="px-3 py-1 rounded {{ request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.import.*') ? 'bg-white border' : 'hover:bg-white/60' }}">Students</a>
+            class="px-3 py-1 rounded text-white {{ request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.import.*') ? 'bg-red-600' : 'hover:bg-red-600/60' }}">Students</a>
           <a href="{{ route('admin.students.import.form') }}"
-            class="px-3 py-1 rounded {{ request()->routeIs('admin.students.import.*') ? 'bg-white border' : 'hover:bg-white/60' }}">Import</a>
+            class="px-3 py-1 rounded text-white {{ request()->routeIs('admin.students.import.*') ? 'bg-red-600' : 'hover:bg-red-600/60' }}">Import</a>
         </div>
       </div>
     @endif

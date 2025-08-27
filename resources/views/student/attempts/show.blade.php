@@ -30,7 +30,7 @@
                   <span class="px-2 py-0.5 rounded bg-green-100 border border-green-300">Đáp án đúng</span>
                 @endif
                 @if($selected->contains($opt->id))
-                  <span class="px-2 py-0.5 rounded bg-blue-100 border border-blue-300">Bạn chọn</span>
+                  <span class="px-2 py-0.5 rounded bg-red-100 border border-red-300">Bạn chọn</span>
                 @endif
                 <span class="ml-2">{{ $opt->label }}</span>
               </li>
