@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('title', $quiz->title)
+
 @section('content')
   <div class="bg-white p-4 rounded shadow">
     <h1 class="text-xl font-bold">{{ $quiz->title }}</h1>
@@ -15,47 +16,82 @@
 
     <form method="POST" action="{{ route('student.quizzes.submit', $quiz) }}" id="quizForm" class="space-y-6">
       @csrf
-      @foreach($quiz->questions as $q)
-        <div class="border rounded p-3">
-          <div class="flex justify-between">
-            <div class="font-medium">Câu {{ $loop->iteration }}</div>
-            <div class="text-xs text-slate-500">Loại: {{ $q->type }}</div>
-          </div>
-          <div class="mt-2">{{ $q->stem }}</div>
 
-          @if($q->audio_path)
-            <div class="mt-3">
-              <audio
-                class="quiz-audio"
-                data-plays-allowed="{{ $quiz->listens_allowed }}"
-                data-allow-seek="{{ $quiz->allow_seek ? '1' : '0' }}"
-                controls
-                src="{{ asset($q->audio_path) }}">
-              </audio>
+      {{-- ... header, form mở … --}}
+@foreach($quiz->questions as $q)
+  <div class="border rounded p-3">
+    <div class="flex justify-between">
+      <div class="font-medium">Câu {{ $loop->iteration }}</div>
+      <div class="text-xs text-slate-500">Loại: {{ $q->type }}</div>
+    </div>
+
+    <div class="mt-2 whitespace-pre-wrap">{{ $q->stem }}</div>
+
+    @if($q->type === 'matching')
+      @php
+        $meta     = $q->meta ?? [];
+        $sources  = $meta['sources'] ?? []; // ["titleA", "bodyA", "titleB","bodyB",...]
+        $items    = $meta['items'] ?? [];
+        $pairCnt  = intdiv(count($sources), 2);
+        $labels   = [];
+        for ($i=0;$i<max(1,$pairCnt);$i++) { $labels[] = chr(65+$i); } // A,B,C,...
+      @endphp
+
+      {{-- Nguồn Person A… --}}
+      <div class="grid md:grid-cols-2 gap-3 mt-3">
+        @for($i=0; $i<count($sources); $i+=2)
+          @php
+            $who   = $sources[$i] ?? '';
+            $text  = $sources[$i+1] ?? '';
+            $label = $labels[intdiv($i,2)] ?? '?';
+          @endphp
+          <div class="border rounded p-3">
+            <div class="font-semibold mb-1">Person {{ $label }}</div>
+            @if($who)
+              <div class="text-xs text-slate-500 mb-1">{{ $who }}</div>
+            @endif
+            <div class="text-sm whitespace-pre-wrap">{{ $text }}</div>
+          </div>
+        @endfor
+      </div>
+
+      {{-- Items: chọn A/B/C/D --}}
+      <div class="mt-4 space-y-3">
+        @foreach($items as $idx => $prompt)
+          <div class="flex items-start gap-3">
+            <div class="w-8 shrink-0 font-medium">{{ $idx + 1 }}.</div>
+            <div class="grow">
+              <div class="mb-2">{{ $prompt }}</div>
+              <select
+                name="answers[{{ $q->id }}][{{ $idx+1 }}]"
+                class="border rounded px-2 py-1"
+                required
+              >
+                <option value="">— chọn —</option>
+                @foreach($labels as $L)
+                  @php $oldVal = old("answers.{$q->id}." . ($idx+1)); @endphp
+                  <option value="{{ $L }}" {{ ($oldVal === $L) ? 'selected' : '' }}>
+                    {{ $L }}
+                  </option>
+                @endforeach
+              </select>
             </div>
-          @endif
-
-          <div class="mt-3 space-y-2">
-            @foreach($q->options as $opt)
-              <label class="flex items-start gap-2">
-                @if($q->type === 'single')
-                  <input type="radio" name="answers[{{ $q->id }}][]" value="{{ $opt->id }}">
-                @else
-                  <input type="checkbox" name="answers[{{ $q->id }}][]" value="{{ $opt->id }}">
-                @endif
-                <span>{{ $opt->label }}</span>
-              </label>
-            @endforeach
           </div>
-        </div>
-      @endforeach
+        @endforeach
+      </div>
+
+    @endif
+  </div>
+@endforeach
+{{-- ... nút Nộp bài, đóng form … --}}
+
 
       <button class="px-4 py-2 rounded bg-green-600 text-white">Nộp bài</button>
     </form>
   </div>
 
   <script>
-    (function() {
+    (function () {
       const audios = document.querySelectorAll('audio.quiz-audio');
       audios.forEach(a => {
         let playsAllowed = parseInt(a.dataset.playsAllowed || '1', 10);
@@ -72,6 +108,7 @@
         a.addEventListener('ended', () => {
           playedCount++;
         });
+
         if (!allowSeek) {
           a.addEventListener('timeupdate', () => {
             if (a.currentTime > lastTime) {

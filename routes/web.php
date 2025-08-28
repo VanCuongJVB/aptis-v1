@@ -6,6 +6,8 @@ use App\Http\Controllers\Student\DashboardController as StudentDashboard;
 use App\Http\Controllers\Student\AttemptController as StudentAttempt;
 use App\Http\Controllers\Admin\QuizController as AdminQuiz;
 use App\Http\Controllers\Admin\QuestionController as AdminQuestion;
+use App\Http\Controllers\Admin\QuestionController;
+use App\Http\Controllers\Admin\QuizController;
 use App\Http\Controllers\Admin\StudentController as AdminStudent;
 use App\Http\Middleware\EnsureAccountActive;
 use App\Http\Middleware\EnsureAdmin;
@@ -46,4 +48,13 @@ Route::middleware([\Illuminate\Auth\Middleware\Authenticate::class, EnsureAdmin:
         Route::post('/students/{student}/extend', [AdminStudent::class, 'extend'])->name('students.extend'); // ?days=30
         Route::get('/students-import', [AdminStudent::class, 'importForm'])->name('students.import.form');
         Route::post('/students-import', [AdminStudent::class, 'importStore'])->name('students.import.store');
+
+        Route::resource('quizzes', QuizController::class);
+
+        // Questions nested theo quiz
+        Route::get('quizzes/{quiz}/questions/create', [QuestionController::class, 'create'])->name('questions.create');
+        Route::post('quizzes/{quiz}/questions', [QuestionController::class, 'store'])->name('questions.store');
+        Route::get('questions/{question}/edit', [QuestionController::class, 'edit'])->name('questions.edit');
+        Route::put('questions/{question}', [QuestionController::class, 'update'])->name('questions.update');
+        Route::delete('questions/{question}', [QuestionController::class, 'destroy'])->name('questions.destroy');
     });
