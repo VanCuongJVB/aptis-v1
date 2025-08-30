@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register additional routes
+        if (file_exists(base_path('routes/listening.php'))) {
+            require base_path('routes/listening.php');
+        }
     }
 }

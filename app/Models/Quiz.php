@@ -11,19 +11,31 @@ class Quiz extends Model
 
     protected $fillable = [
         'title',
-        'skill',
+        'type',
+        'part',
         'description',
         'is_published',
         'duration_minutes',
         'allow_seek',
-        'listens_allowed'
+        'listens_allowed',
+        'metadata'
     ];
-    protected $casts = ['is_published' => 'boolean', 'allow_seek' => 'boolean'];
+    protected $casts = [
+        'is_published' => 'boolean',
+        'allow_seek' => 'boolean',
+        'metadata' => 'array'
+    ];
 
     public function questions()
     {
         return $this->hasMany(Question::class)->orderBy('order');
     }
+
+    public function readingParts()
+    {
+        return $this->hasMany(ReadingPart::class)->orderBy('part_number');
+    }
+
     public function attempts()
     {
         return $this->hasMany(Attempt::class);
