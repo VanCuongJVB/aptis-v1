@@ -12,7 +12,7 @@ class EnsureAdmin
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
-        if (!$user || !$user->is_admin) abort(403, 'Chỉ dành cho quản trị viên');
+        if (!$user || $user->role !== 'admin') abort(403, 'Chỉ dành cho quản trị viên');
         return $next($request);
     }
 }

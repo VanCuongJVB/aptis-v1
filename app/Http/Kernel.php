@@ -46,6 +46,8 @@ class Kernel extends HttpKernel
 
     /**
      * The application's middleware aliases.
+     * 
+     * Aliases are now registered in bootstrap/app.php for Laravel 11
      *
      * @var array<string, class-string|string>
      */
@@ -61,7 +63,6 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'admin.check' => \App\Http\Middleware\AdminMiddleware::class,
     ];
 
 }

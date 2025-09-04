@@ -1,55 +1,64 @@
 <?php
 
-use App\Http\Controllers\Admin\ReadingQuestionController;
-use App\Http\Controllers\Reading\DrillController;
-use App\Http\Controllers\Reading\ProgressController;
-use App\Http\Controllers\Reading\TestController;
+use App\Http\Controllers\Reading\ReadingManagerController;
+use App\Http\Controllers\Reading\QuestionController;
+use App\Http\Controllers\Reading\PracticeController;
 use Illuminate\Support\Facades\Route;
 
-// Student routes for Reading Practice
-Route::middleware(['auth'])->group(function () {
-    Route::prefix('reading')->name('reading.')->group(function () {
-        // Part Drill Routes
-        Route::prefix('drill')->name('drill.')->group(function () {
-            Route::get('part/{part}', [DrillController::class, 'index'])->name('part');
-            Route::get('part/{part}/sets', [DrillController::class, 'listSets'])->name('sets');
-            Route::get('set/{quiz}', [DrillController::class, 'startSet'])->name('start');
-            Route::post('answer', [DrillController::class, 'submitAnswer'])->name('answer');
-            Route::get('next/{quiz}/{currentQuestion}', [DrillController::class, 'nextQuestion'])->name('next');
-            Route::get('summary/{quiz}', [DrillController::class, 'summary'])->name('summary');
-            Route::post('flag-question', [DrillController::class, 'flagQuestion'])->name('flag');
-            
-            // Progress tracking for drill mode
-            Route::get('wrong-answers/{part}', [DrillController::class, 'wrongAnswers'])->name('wrong-answers');
-            Route::post('start-wrong-answers/{part}', [DrillController::class, 'startWrongAnswers'])->name('start-wrong-answers');
-        });
+/*
+|--------------------------------------------------------------------------
+| Reading Practice Routes
+|--------------------------------------------------------------------------
+|
+| Đây là nơi định nghĩa các route cho phần luyện tập Reading.
+| 
+*/
 
-        // Test mode routes
-        Route::prefix('test')->name('test.')->group(function () {
-            Route::get('start', [TestController::class, 'start'])->name('start');
-            Route::get('question/{question}', [TestController::class, 'question'])->name('question');
-            Route::post('answer', [TestController::class, 'submitAnswer'])->name('answer');
-            Route::get('summary', [TestController::class, 'summary'])->name('summary');
-        });
-
-        // Progress tracking
-        Route::get('progress', [ProgressController::class, 'index'])->name('progress');
-        Route::get('progress/stats', [ProgressController::class, 'stats'])->name('progress.stats');
-        Route::get('progress/history', [ProgressController::class, 'history'])->name('progress.history');
+// Admin Reading Management Routes
+Route::middleware(['auth', 'admin.role'])->prefix('admin/reading')->name('admin.reading.')->group(function () {
+    // Quản lý Reading
+    Route::get('/', [ReadingManagerController::class, 'index'])->name('index');
+    
+    // Quản lý bộ đề Reading
+    Route::prefix('sets')->name('sets.')->group(function () {
+        Route::get('part/{part}', [ReadingManagerController::class, 'showPart'])->name('part');
+        Route::get('create/{part}', [ReadingManagerController::class, 'create'])->name('create');
+        Route::post('/', [ReadingManagerController::class, 'store'])->name('store');
+        Route::get('{quiz}/edit', [ReadingManagerController::class, 'edit'])->name('edit');
+        Route::put('{quiz}', [ReadingManagerController::class, 'update'])->name('update');
+        Route::delete('{quiz}', [ReadingManagerController::class, 'destroy'])->name('destroy');
+        Route::post('{quiz}/toggle-publish', [ReadingManagerController::class, 'togglePublish'])->name('toggle-publish');
+        Route::post('{quiz}/reorder', [ReadingManagerController::class, 'reorderQuestions'])->name('reorder');
+    });
+    
+    // Quản lý câu hỏi Reading
+    Route::prefix('questions')->name('questions.')->group(function () {
+        Route::get('quiz/{quiz}/create', [QuestionController::class, 'create'])->name('create');
+        Route::post('quiz/{quiz}', [QuestionController::class, 'store'])->name('store');
+        Route::get('{question}/edit', [QuestionController::class, 'edit'])->name('edit');
+        Route::put('{question}', [QuestionController::class, 'update'])->name('update');
+        Route::delete('{question}', [QuestionController::class, 'destroy'])->name('destroy');
     });
 });
 
-// Admin routes
-Route::middleware(['auth', 'admin'])->group(function () {
-    Route::prefix('admin')->name('admin.')->group(function () {
-        // Reading questions
-        Route::get('quizzes/{quiz}/reading/create', [ReadingQuestionController::class, 'create'])
-            ->name('reading.create');
-        Route::post('quizzes/{quiz}/reading', [ReadingQuestionController::class, 'store'])
-            ->name('reading.store');
-        Route::get('quizzes/{quiz}/reading/{question}/edit', [ReadingQuestionController::class, 'edit'])
-            ->name('reading.edit');
-        Route::put('quizzes/{quiz}/reading/{question}', [ReadingQuestionController::class, 'update'])
-            ->name('reading.update');
+// Student Reading Practice Routes
+Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.')->group(function () {
+    // Trang chủ Reading
+    Route::get('/', [PracticeController::class, 'index'])->name('practice.index');
+    
+    // Trang chi tiết phần
+    Route::get('part/{part}', [PracticeController::class, 'partDetail'])->name('practice.part');
+    
+    // Luyện tập bài đọc
+    Route::prefix('practice')->name('practice.')->group(function () {
+        Route::get('quiz/{quiz}/start', [PracticeController::class, 'startQuiz'])->name('start');
+        Route::get('attempt/{attempt}/question/{position}', [PracticeController::class, 'showQuestion'])->name('question');
+        Route::post('attempt/{attempt}/question/{question}', [PracticeController::class, 'submitAnswer'])->name('answer');
+        Route::get('attempt/{attempt}/finish', [PracticeController::class, 'finishAttempt'])->name('finish');
+        Route::get('attempt/{attempt}/result', [PracticeController::class, 'showResult'])->name('result');
     });
+    
+    // Thống kê và lịch sử
+    Route::get('history', [PracticeController::class, 'history'])->name('history');
+    Route::get('progress', [PracticeController::class, 'progress'])->name('progress');
 });

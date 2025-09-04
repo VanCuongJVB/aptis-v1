@@ -51,6 +51,10 @@ class ReadingSetController extends Controller
             ]);
 
             // Redirect to full set creation page
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['quiz' => $quiz], 201);
+            }
+
             return redirect()->route("admin.{$request->type}.sets.create.full", $quiz)
                 ->with('success', 'Full set created successfully. Add questions for each part.');
         }
@@ -76,21 +80,35 @@ class ReadingSetController extends Controller
             default => 'admin.reading.sets.part'
         };
 
-        return redirect()->route($route, $quiz)
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'quiz' => $quiz->loadCount('questions')
+            ], 201);
+        }
+
+        if ($request->type === 'reading' && $request->part == 1) {
+            return redirect()->route('admin.reading.part1.create', ['quiz' => $quiz->id])
+                ->with('success', 'Reading set created. Now add questions.');
+        }
+
+        return redirect()->route('admin.reading.sets.edit', ['quiz' => $quiz, 'part' => $request->part])
             ->with('success', ucfirst($request->type) . ' set created successfully');
     }
 
-    public function edit(Quiz $quiz)
+    public function edit(Quiz $quiz, Request $request)
     {
+        $part = $request->input('part', $quiz->part);
+        
         $questions = $quiz->questions()
             ->with('options')
             ->orderBy('order')
             ->get();
 
-        return view('admin.reading.edit', [
+        return view('admin.reading.sets.edit', [
             'quiz' => $quiz,
             'questions' => $questions,
-            'passage' => $quiz->metadata['passage'] ?? null
+            'passage' => $quiz->metadata['passage'] ?? null,
+            'part' => $part
         ]);
     }
 

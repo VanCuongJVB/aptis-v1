@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Quiz extends Model
 {
@@ -11,59 +11,56 @@ class Quiz extends Model
 
     protected $fillable = [
         'title',
-        'type',
-        'part',
         'description',
+        'skill',
+        'part',
         'is_published',
         'duration_minutes',
-        'allow_seek',
-        'listens_allowed',
-        'metadata'
-    ];
-    protected $casts = [
-        'is_published' => 'boolean',
-        'allow_seek' => 'boolean',
-        'metadata' => 'array'
+        'show_explanation',
+        'metadata',
     ];
 
+    protected $casts = [
+        'is_published' => 'boolean',
+        'show_explanation' => 'boolean',
+        'metadata' => 'array',
+    ];
+
+    // Relationships
     public function questions()
     {
         return $this->hasMany(Question::class)->orderBy('order');
-    }
-
-    public function readingParts()
-    {
-        return $this->hasMany(ReadingPart::class)->orderBy('part_number');
     }
 
     public function attempts()
     {
         return $this->hasMany(Attempt::class);
     }
-    public function scopePublished($q)
+
+    // Helper methods
+    public function isPublished()
     {
-        return $q->where('is_published', true);
-    }
-    public function isListening(): bool
-    {
-        return $this->skill === 'listening';
+        return $this->is_published;
     }
 
-    // === NEW: Fixed 4 parts cấu hình theo skill ===
-    public function partsConfig(): array
+    public function getSkillPartTitle()
     {
-        $cfg = config('aptis.skills.' . $this->skill, []);
-        // đảm bảo có 4 phần
-        return $cfg + [1 => [], 2 => [], 3 => [], 4 => []];
+        return ucfirst($this->skill) . ' Part ' . $this->part;
     }
-    public function allowedTypesForPart(int $part): array
+
+    // Scopes
+    public function scopePublished($query)
     {
-        $cfg = $this->partsConfig();
-        return $cfg[$part]['types'] ?? [];
+        return $query->where('is_published', true);
     }
-    public function partLabel(int $part): string
+
+    public function scopeBySkill($query, $skill)
     {
-        $cfg = $this->partsConfig();
-        return $cfg[$part]['label'] ?? ('Part ' . $part);
+        return $query->where('skill', $skill);
+    }
+
+    public function scopeByPart($query, $part)
+    {
+        return $query->where('part', $part);
     }
 }

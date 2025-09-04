@@ -152,7 +152,7 @@ class QuestionController extends Controller
             }
         }
 
-        return redirect()->route('admin.quizzes.edit', $quiz)->with('ok', 'Đã thêm câu hỏi.');
+        return redirect()->route('admin.reading.sets.edit', ['quiz' => $quiz, 'part' => $question->part])->with('ok', 'Đã thêm câu hỏi.');
     }
 
     public function edit(Question $question)
@@ -277,7 +277,7 @@ class QuestionController extends Controller
             }
         }
 
-        return redirect()->route('admin.quizzes.edit', $quiz)->with('ok', 'Đã lưu câu hỏi.');
+        return redirect()->route('admin.reading.sets.edit', ['quiz' => $quiz, 'part' => $question->part])->with('ok', 'Đã lưu câu hỏi.');
     }
 
     public function destroy(Question $question)
@@ -285,6 +285,52 @@ class QuestionController extends Controller
         $quiz = $question->quiz;
         $question->options()->delete();
         $question->delete();
-        return redirect()->route('admin.quizzes.edit', $quiz)->with('ok', 'Đã xoá câu hỏi.');
+        return redirect()->route('admin.reading.sets.edit', ['quiz' => $quiz, 'part' => $question->part])->with('ok', 'Đã xoá câu hỏi.');
+    }
+
+    // Assign a question to a quiz
+    public function assignQuiz(Request $request, Question $question)
+    {
+        $request->validate([
+            'quiz_id' => 'nullable|exists:quizzes,id'
+        ]);
+
+        $quizId = $request->input('quiz_id');
+        
+        // If assigning to a new quiz, determine the new order
+        if ($quizId) {
+            $quiz = Quiz::findOrFail($quizId);
+            $maxOrder = $quiz->questions()->where('part', $question->part)->max('order') ?? 0;
+            $question->update([
+                'quiz_id' => $quizId,
+                'order' => $maxOrder + 1
+            ]);
+            $message = 'Question assigned to ' . $quiz->title;
+        } else {
+            // Remove from current quiz
+            $question->update([
+                'quiz_id' => null,
+                'order' => 0
+            ]);
+            $message = 'Question removed from set';
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    // List all questions for a specific part across quizzes
+    public function partIndex(Request $request, $part)
+    {
+        $part = (int) $part;
+        abort_unless($part >= 1 && $part <= 7, 404);
+
+        $query = Question::where('part', $part)->with('quiz')->orderBy('created_at', 'desc');
+        $questions = $query->paginate(25);
+
+        return view('admin.reading.questions.index', compact('questions', 'part'));
     }
 }

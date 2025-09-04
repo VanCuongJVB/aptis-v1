@@ -14,7 +14,7 @@ class StudentController extends Controller
 {
     public function index(Request $request)
     {
-        $q = User::query()->where('is_admin', false);
+        $q = User::query()->where('role', 'student');
         $s = $request->get('s');
         $status = $request->get('status'); // all|active|inactive|expiring|expired
 
@@ -67,7 +67,7 @@ class StudentController extends Controller
         $student = new User();
         $student->name = $data['name'] ?? null;
         $student->email = strtolower($data['email']);
-        $student->is_admin = false;
+        $student->role = 'student';
         $student->is_active = $request->boolean('is_active', true);
         $student->access_starts_at = $data['access_starts_at'] ?? null;
         $student->access_ends_at = $data['access_ends_at'] ?? null;
@@ -80,13 +80,13 @@ class StudentController extends Controller
 
     public function edit(User $student)
     {
-        abort_if($student->is_admin, 403);
+        abort_if($student->role === 'admin', 403);
         return view('admin.students.edit', compact('student'));
     }
 
     public function update(Request $request, User $student)
     {
-        abort_if($student->is_admin, 403);
+        abort_if($student->role === 'admin', 403);
         $data = $request->validate([
             'name' => ['nullable', 'string', 'max:191'],
             'email' => ['required', 'email', 'max:191', Rule::unique('users', 'email')->ignore($student->id)],
@@ -107,7 +107,7 @@ class StudentController extends Controller
 
     public function destroy(User $student)
     {
-        abort_if($student->is_admin, 403);
+        abort_if($student->role === 'admin', 403);
         $student->delete();
         AccessLog::log(auth()->id(), 'student_deleted', ['student_id' => $student->id]);
         return redirect()->route('admin.students.index')->with('ok', 'Đã xoá học sinh.');
@@ -115,7 +115,7 @@ class StudentController extends Controller
 
     public function extend(Request $request, User $student)
     {
-        abort_if($student->is_admin, 403);
+        abort_if($student->role === 'admin', 403);
         $days = (int)$request->query('days', 30);
         $now = now();
         $base = ($student->access_ends_at && $student->access_ends_at->gt($now)) ? $student->access_ends_at : $now;
@@ -187,7 +187,7 @@ class StudentController extends Controller
                     $user = new User();
                     $user->email = $email;
                     $user->name = $name;
-                    $user->is_admin = false;
+                    $user->role = 'student';
                     $user->is_active = $is_active;
                     $user->access_starts_at = $start ? \Carbon\Carbon::parse($start) : null;
                     $user->access_ends_at = $end ? \Carbon\Carbon::parse($end) : null;
