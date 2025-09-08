@@ -15,9 +15,8 @@
                     <h2 class="font-semibold">{{ $set->title ?? ("Bộ đề #{$set->id}") }}</h2>
                     <p class="text-sm text-gray-600">{{ $set->description }}</p>
                     <div class="mt-3 flex items-center space-x-2">
-                        <a href="{{ route('reading.sets.show', $set) }}" class="btn btn-primary">Xem</a>
-                        <a href="{{ route('reading.practice.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id, 'mode' => 'learning']) }}" class="btn">Luyện (Learning)</a>
-                        <a href="{{ route('reading.practice.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id, 'mode' => 'exam']) }}" class="btn">Thi (Exam)</a>
+                        {{-- Directly start the quiz for this set; default to exam mode. --}}
+                        <a href="{{ route('reading.practice.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id, 'mode' => 'exam']) }}" class="btn btn btn-primary">Làm bài</a>
                     </div>
                 </div>
             @endforeach

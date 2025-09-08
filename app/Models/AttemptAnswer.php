@@ -40,6 +40,12 @@ class AttemptAnswer extends Model
         return $this->belongsTo(Option::class, 'selected_option_id');
     }
 
+    // Backward-compatible alias
+    public function option()
+    {
+        return $this->selectedOption();
+    }
+
     // Helper methods
     public function isCorrect()
     {

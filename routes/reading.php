@@ -90,7 +90,8 @@ Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.
 
     Route::get('sets/{set}', function (\App\Models\ReadingSet $set) {
         // ensure set is public and belongs to a published reading quiz
-        if (! $set->is_public || ! ($set->quiz && $set->quiz->published)) {
+        // quizzes use the `is_published` boolean column, make sure we check that
+        if (! $set->is_public || ! ($set->quiz && ($set->quiz->is_published ?? false))) {
             abort(404);
         }
 
