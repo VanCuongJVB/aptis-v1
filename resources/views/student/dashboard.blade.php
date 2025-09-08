@@ -79,6 +79,35 @@
                 </div>
             </div>
             
+            <!-- Skills quick access -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6 text-gray-900">
+                    <h3 class="text-lg font-medium mb-4">{{ __('Kỹ năng') }}</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="{{ route('reading.sets.index') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold">{{ __('Reading') }}</h4>
+                                    <p class="text-sm text-gray-500">{{ __('Luyện đọc và bài tập hiểu văn bản') }}</p>
+                                </div>
+                                <div class="text-2xl text-purple-500">📖</div>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('listening.index') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold">{{ __('Listening') }}</h4>
+                                    <p class="text-sm text-gray-500">{{ __('Luyện nghe và trả lời câu hỏi') }}</p>
+                                </div>
+                                <div class="text-2xl text-blue-500">🎧</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Lịch sử làm bài gần đây -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6 text-gray-900">
@@ -175,9 +204,16 @@
                                         </div>
                                         
                                         <div class="mt-4">
-                                            <a href="{{ route('student.quizzes.show', $quiz) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                                                {{ __('Bắt đầu') }}
-                                            </a>
+                                            @php $btnLabel = $quiz->skill === 'reading' ? __('Tham gia') : __('Bắt đầu'); @endphp
+                                            @if($quiz->skill === 'reading')
+                                                <a href="{{ route('reading.sets.index', ['quiz' => $quiz->id]) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                                                    {{ $btnLabel }}
+                                                </a>
+                                            @else
+                                                <a href="{{ route('student.quizzes.show', $quiz) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                                                    {{ $btnLabel }}
+                                                </a>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

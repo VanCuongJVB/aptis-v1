@@ -32,3 +32,18 @@ Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listen
     
     // Add more student listening routes here as they are developed
 });
+
+// Student Listening dashboard
+Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listening.')->group(function () {
+    Route::get('dashboard', function () {
+        $quizzes = \App\Models\Quiz::published()->where('skill', 'listening')->orderBy('id', 'desc')->get();
+        $recentAttempts = \App\Models\Attempt::where('user_id', \Illuminate\Support\Facades\Auth::id())
+            ->whereHas('quiz', function($q) { $q->where('skill','listening'); })
+            ->with('quiz')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return view('student.listening.dashboard', compact('quizzes', 'recentAttempts'));
+    })->name('dashboard');
+});

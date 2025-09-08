@@ -43,8 +43,21 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin/reading')->name('admin.
 
 // Student Reading Practice Routes
 Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.')->group(function () {
-    // Trang chủ Reading
+    // Trang chủ Reading (practice index kept for compatibility)
     Route::get('/', [PracticeController::class, 'index'])->name('practice.index');
+
+    // Student Reading dashboard (quizzes + recent attempts filtered)
+    Route::get('dashboard', function () {
+        $quizzes = \App\Models\Quiz::published()->where('skill', 'reading')->orderBy('id', 'desc')->get();
+        $recentAttempts = \App\Models\Attempt::where('user_id', \Illuminate\Support\Facades\Auth::id())
+            ->whereHas('quiz', function($q) { $q->where('skill','reading'); })
+            ->with('quiz')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return view('student.reading.dashboard', compact('quizzes', 'recentAttempts'));
+    })->name('dashboard');
     
     // Trang chi tiết phần
     Route::get('part/{part}', [PracticeController::class, 'partDetail'])->name('practice.part');
@@ -61,4 +74,26 @@ Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.
     // Thống kê và lịch sử
     Route::get('history', [PracticeController::class, 'history'])->name('history');
     Route::get('progress', [PracticeController::class, 'progress'])->name('progress');
+
+    // Student-facing ReadingSet listing and detail (choose a set before starting)
+    Route::get('sets', function (\Illuminate\Http\Request $request) {
+        $query = \App\Models\ReadingSet::whereHas('quiz', function($q){ $q->where('skill','reading')->published(); })->where('is_public', true);
+
+        if ($request->query('quiz')) {
+            $query->where('quiz_id', $request->query('quiz'));
+        }
+
+        $sets = $query->orderBy('quiz_id')->orderBy('order')->get();
+
+        return view('student.reading.sets.index', compact('sets'));
+    })->name('sets.index');
+
+    Route::get('sets/{set}', function (\App\Models\ReadingSet $set) {
+        // ensure set is public and belongs to a published reading quiz
+        if (! $set->is_public || ! ($set->quiz && $set->quiz->published)) {
+            abort(404);
+        }
+
+        return view('student.reading.sets.show', compact('set'));
+    })->name('sets.show');
 });

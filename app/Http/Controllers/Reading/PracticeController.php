@@ -82,10 +82,8 @@ class PracticeController extends Controller
             ];
         }
         
-        return view('student.reading.index', [
-            'parts' => $parts,
-            'progress' => $progress
-        ]);
+    // Dashboard is canonical for student home — redirect there
+    return redirect()->route('student.dashboard');
     }
     
     /**
@@ -95,7 +93,7 @@ class PracticeController extends Controller
     {
         // Kiểm tra part hợp lệ
         if ($part < 1 || $part > 4) {
-            return redirect()->route('reading.practice.index')
+            return redirect()->route('reading.sets.index')
                 ->with('error', 'Phần không hợp lệ');
         }
         
@@ -133,20 +131,33 @@ class PracticeController extends Controller
     /**
      * Bắt đầu luyện tập một bộ đề
      */
-    public function startQuiz(Quiz $quiz)
+    public function startQuiz(Request $request, Quiz $quiz)
     {
         // Kiểm tra xem quiz có phải reading quiz đã xuất bản không
         if ($quiz->skill !== 'reading' || !$quiz->is_published) {
-            return redirect()->route('reading.practice.index')
+            return redirect()->route('reading.sets.index')
                 ->with('error', 'Bộ đề không hợp lệ hoặc chưa được xuất bản');
         }
-        
+        // Optional: accept a reading set and mode (learning/exam)
+    $setId = $request->query('set_id', null);
+    $mode = $request->query('mode', 'learning');
+
+        $metadata = ['mode' => $mode];
+        if ($setId) {
+            // validate set belongs to quiz
+            $set = \App\Models\ReadingSet::where('id', $setId)->where('quiz_id', $quiz->id)->first();
+            if ($set) {
+                $metadata['reading_set_id'] = $set->id;
+            }
+        }
+
         // Tạo một lượt làm bài mới
         $attempt = Attempt::create([
             'user_id' => Auth::id(),
             'quiz_id' => $quiz->id,
             'started_at' => now(),
-            'status' => 'in_progress'
+            'status' => 'in_progress',
+            'metadata' => $metadata
         ]);
         
         // Chuyển hướng đến câu hỏi đầu tiên

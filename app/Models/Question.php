@@ -11,12 +11,15 @@ class Question extends Model
 
     protected $fillable = [
         'quiz_id',
-        'stem',
+    'title',
+    'reading_set_id',
+    'stem',
         'explanation',
         'skill',
         'part',
         'type',
         'order',
+    'point',
         'audio_path',
         'image_path',
         'metadata',
@@ -30,6 +33,11 @@ class Question extends Model
     public function quiz()
     {
         return $this->belongsTo(Quiz::class);
+    }
+
+    public function readingSet()
+    {
+        return $this->belongsTo(ReadingSet::class, 'reading_set_id');
     }
 
     public function options()

@@ -32,6 +32,11 @@ class Quiz extends Model
         return $this->hasMany(Question::class)->orderBy('order');
     }
 
+    public function sets()
+    {
+        return $this->hasMany(\App\Models\ReadingSet::class)->orderBy('order');
+    }
+
     public function attempts()
     {
         return $this->hasMany(Attempt::class);

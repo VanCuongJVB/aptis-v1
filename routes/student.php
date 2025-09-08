@@ -31,5 +31,8 @@ Route::middleware(['auth', 'student.access'])->group(function () {
             Route::get('/{attempt}/results', [AttemptController::class, 'results'])->name('results');
             Route::get('/history', [AttemptController::class, 'history'])->name('history');
         });
+
+    // Backward compatibility: alias route name used in views
+    Route::post('/quizzes/{quiz}/submit', [AttemptController::class, 'submit'])->name('quizzes.submit');
     });
 });

@@ -18,9 +18,14 @@ class StudentAccessMiddleware
     {
         $user = $request->user();
         
-        // Check if user is authenticated and is a student (not admin)
-        if (!$user || $user->role === 'admin') {
+        // If not authenticated, redirect to login
+        if (!$user) {
             return redirect()->route('login');
+        }
+
+        // Allow admin users to access everything
+        if ($user->role === 'admin') {
+            return $next($request);
         }
         
         // Check if user is active
@@ -41,6 +46,17 @@ class StudentAccessMiddleware
             
             return redirect()->route('login')
                 ->with('error', 'Thời hạn truy cập của bạn đã hết. Vui lòng liên hệ quản trị viên để gia hạn.');
+        }
+
+        // Students should only access test/practice related routes.
+        // If a student tries to open other pages, send them to their dashboard.
+        if ($user->role === 'student') {
+            $route = $request->route();
+            $routeName = $route ? $route->getName() : null;
+
+            if (!$routeName || !preg_match('/(practice|attempt|reading|listening|quiz)/', $routeName)) {
+                return redirect()->route('student.dashboard');
+            }
         }
         
         return $next($request);
