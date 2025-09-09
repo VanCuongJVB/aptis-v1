@@ -58,4 +58,15 @@
         <p class="mb-2">{!! nl2br($rendered) !!}</p>
     @endforeach
 
+    {{-- per-question controls: single check/next for the whole question --}}
+    @php $partVar = $question->part ?? ($question->metadata['part'] ?? null); @endphp
+    <div class="flex items-center space-x-2 mt-3">
+        <button type="button" class="btn btn-primary part1-check" data-qid="{{ $question->id }}">Kiểm tra</button>
+        @if(! in_array($partVar, [1,2,3,4]))
+            <button type="button" class="btn part1-next" data-qid="{{ $question->id }}" disabled>Tiếp theo</button>
+        @endif
+    </div>
+
+    <div class="inline-feedback mt-3 text-sm text-gray-700" data-qid-feedback="{{ $question->id }}"></div>
+
 </div>

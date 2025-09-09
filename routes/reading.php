@@ -66,6 +66,8 @@ Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.
     Route::prefix('practice')->name('practice.')->group(function () {
         Route::get('quiz/{quiz}/start', [PracticeController::class, 'startQuiz'])->name('start');
         Route::get('attempt/{attempt}/question/{position}', [PracticeController::class, 'showQuestion'])->name('question');
+            // Return full-part question metadata as JSON for practice mode (FE can fetch once and self-grade)
+            Route::get('attempt/{attempt}/part-questions', [PracticeController::class, 'partQuestions'])->name('partQuestions');
         Route::post('attempt/{attempt}/question/{question}', [PracticeController::class, 'submitAnswer'])->name('answer');
         Route::get('attempt/{attempt}/finish', [PracticeController::class, 'finishAttempt'])->name('finish');
         Route::get('attempt/{attempt}/result', [PracticeController::class, 'showResult'])->name('result');

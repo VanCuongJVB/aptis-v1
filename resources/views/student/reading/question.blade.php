@@ -14,33 +14,65 @@
         </div>
 
         <div class="mb-4">
-            {{-- Question content --}}
-            <div class="prose">
-                {!! $question->content ?? $question->title !!}
-            </div>
+            {{-- Question content (single question) --}}
+            @if(isset($question))
+                <div class="prose">{!! $question->content ?? $question->title !!}</div>
+            @endif
         </div>
 
-        <form id="answer-form" method="POST" action="{{ route('reading.practice.answer', ['attempt' => $attempt->id, 'question' => $question->id]) }}">
+        @php
+            // defensive defaults to avoid undefined variable errors
+            $allQuestions = $allQuestions ?? null;
+            $previousPosition = $previousPosition ?? null;
+            $nextPosition = $nextPosition ?? null;
+            $answer = $answer ?? null;
+        @endphp
+
+        @php
+            // determine form action: if full-part, post to first question's answer route to leverage existing action=finish handling
+            if (isset($allQuestions) && $allQuestions->isNotEmpty()) {
+                $firstQ = $allQuestions->first();
+                $formAction = route('reading.practice.answer', ['attempt' => $attempt->id, 'question' => $firstQ->id]);
+            } else {
+                $formAction = route('reading.practice.answer', ['attempt' => $attempt->id, 'question' => $question->id]);
+            }
+        @endphp
+
+        <form id="answer-form" method="POST" action="{{ $formAction }}">
             @csrf
             <input type="hidden" name="_method" value="POST">
             <div class="space-y-3 mb-4">
-                @php
-                    $part = $question->part ?? $question->metadata['part'] ?? $quiz->part;
-                @endphp
-
-                @includeWhen(true, 'student.reading.parts.part' . $part, [
-                    'question' => $question,
-                    'answer' => $answer
-                ])
+                @if(isset($allQuestions) && $allQuestions->isNotEmpty())
+                    {{-- Full-part: render every question block --}}
+                    @foreach($allQuestions as $qIdx => $q)
+                        @php $ansForQ = $answersMap->get($q->id) ?? null; @endphp
+                        <div class="mb-6 question-block" data-qid="{{ $q->id }}">
+                            <div class="prose mb-3">{!! $q->content ?? $q->title !!}</div>
+                            @php $part = $q->part ?? $q->metadata['part'] ?? $quiz->part; @endphp
+                            @includeWhen(true, 'student.reading.parts.part' . $part, [
+                                'question' => $q,
+                                'answer' => $ansForQ
+                            ])
+                        </div>
+                    @endforeach
+                @else
+                    @php
+                        $part = $question->part ?? $question->metadata['part'] ?? $quiz->part;
+                    @endphp
+                    @includeWhen(true, 'student.reading.parts.part' . $part, [
+                        'question' => $question,
+                        'answer' => $answer ?? null
+                    ])
+                @endif
             </div>
 
             <div class="flex items-center justify-between">
                 <div class="space-x-2">
-                    @if($previousPosition)
+                    @if(!$allQuestions && $previousPosition)
                         <a href="{{ route('reading.practice.question', ['attempt' => $attempt->id, 'position' => $previousPosition]) }}" class="btn">&larr; Trước</a>
                     @endif
 
-                    @if($nextPosition)
+                    @if(!$allQuestions && $nextPosition)
                         <a href="{{ route('reading.practice.question', ['attempt' => $attempt->id, 'position' => $nextPosition]) }}" class="btn">Tiếp &rarr;</a>
                     @endif
                 </div>
@@ -64,114 +96,64 @@
         const form = document.getElementById('answer-form');
         const finishBtn = document.getElementById('finish-btn');
 
-        // Pass PHP metadata into JS safely
-        const qMeta = {!! json_encode($question->metadata ?? new stdClass) !!};
-        const part = {{ $part ?? ($question->part ?? ($quiz->part ?? 1)) }};
-
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            submitAnswer(false);
-        });
-
         finishBtn && finishBtn.addEventListener('click', function(){
-            submitAnswer(true);
+            submitBulkFinish();
         });
 
-        function evaluateClient(){
-            // returns 1 if client thinks answer is correct, 0 otherwise
-            try{
-                if (part === 1) {
-                    // collect select values for part1_choice[0..]
-                    const selects = Array.from(form.querySelectorAll('select[name^="part1_choice"]'));
-                    const selected = selects.map(s => s.value);
-                    const correct = qMeta['correct_answers'] || qMeta['answers'] || [];
-                    if (!Array.isArray(correct) || correct.length === 0) return 0;
-                    if (selected.length < correct.length) return 0;
-                    for (let i=0;i<correct.length;i++){
-                        if ((selected[i] ?? '') === '') return 0;
-                        if (String(selected[i]) !== String(correct[i])) return 0;
-                    }
-                    return 1;
-                }
+        // collect answers for each .question-block and build a payload keyed by question id
+        function collectAllAnswers() {
+            const blocks = Array.from(document.querySelectorAll('.question-block'));
+            const answers = {};
+            blocks.forEach(block => {
+                const qid = block.getAttribute('data-qid');
+                if (!qid) return;
+                const data = {};
 
-                if (part === 2) {
-                    const txt = (form.querySelector('input[name="part2_order_text"]') || {}).value || '';
-                    const arr = txt.trim() === '' ? [] : txt.split(',').map(s => s.trim());
-                    const correct = qMeta['correct_order'] || qMeta['answers'] || [];
-                    if (!Array.isArray(correct) || arr.length !== correct.length) return 0;
-                    for (let i=0;i<correct.length;i++){
-                        if (String(arr[i]) !== String(correct[i])) return 0;
-                    }
-                    return 1;
-                }
-
-                if (part === 3) {
-                    const items = qMeta['items'] || [];
-                    const correctMap = qMeta['answers'] || qMeta['correct'] || {};
-                    if (!Array.isArray(items) || items.length === 0) return 0;
-                    for (let i=0;i<items.length;i++){
-                        const r = form.querySelector('input[name="part3_answer['+i+']"]:checked');
-                        const val = r ? r.value : '';
-                        const expected = (correctMap && (correctMap[i] !== undefined)) ? String(correctMap[i]) : '';
-                        if (val === '' || String(val) !== String(expected)) return 0;
-                    }
-                    return 1;
-                }
-
-                if (part === 4) {
-                    const correct = qMeta['correct'] || qMeta['correct_answers'] || qMeta['answers'] || [];
-                    if (!Array.isArray(correct) || correct.length === 0) return 0;
-                    for (let i=0;i<correct.length;i++){
-                        const r = form.querySelector('input[name="part4_choice['+i+']"]:checked');
-                        const val = r ? r.value : '';
-                        if (val === '' || String(val) !== String(correct[i])) return 0;
-                    }
-                    return 1;
-                }
-            } catch(e){
-                console.error('evaluateClient error', e);
-            }
-            return 0;
-        }
-
-        function appendClientFlags(fd, isCorrect){
-            fd.append('client_provided', '1');
-            fd.append('client_is_correct', isCorrect ? '1' : '0');
-        }
-
-        function showFeedback(isCorrect){
-            // clear previous highlights
-            const labels = form.querySelectorAll('label');
-            labels.forEach(l => l.classList.remove('bg-green-50','border','border-green-200','bg-red-50','border','border-red-200'));
-            if (part === 1) {
-                const selects = Array.from(form.querySelectorAll('select[name^="part1_choice"]'));
+                // collect selects
+                const selects = Array.from(block.querySelectorAll('select'));
                 selects.forEach(s => {
-                    if (!s.value) return;
-                    if (isCorrect) s.classList.add('bg-green-50','border','border-green-200'); else s.classList.add('bg-red-50','border','border-red-200');
+                    const name = s.name || 'select';
+                    if (!data['selected']) data['selected'] = {};
+                    // append by name to retain structure
+                    data['selected'][name] = s.value;
                 });
-            } else if (part === 2) {
-                const input = form.querySelector('input[name="part2_order_text"]');
-                if (input) {
-                    if (isCorrect) input.classList.add('bg-green-50','border','border-green-200'); else input.classList.add('bg-red-50','border','border-red-200');
-                }
-            } else {
-                const checked = form.querySelectorAll('input:checked');
-                checked.forEach(ch => {
-                    const lab = ch.closest('label');
-                    if (lab) {
-                        if (isCorrect) lab.classList.add('bg-green-50','border','border-green-200'); else lab.classList.add('bg-red-50','border','border-red-200');
+
+                // collect checked radios/checkboxes
+                const inputs = Array.from(block.querySelectorAll('input'));
+                inputs.forEach(inp => {
+                    if (inp.type === 'radio' && !inp.checked) return;
+                    if (inp.type === 'checkbox') {
+                        if (!data['selected']) data['selected'] = {};
+                        if (!data['selected'][inp.name]) data['selected'][inp.name] = [];
+                        if (inp.checked) data['selected'][inp.name].push(inp.value);
+                        return;
+                    }
+                    if (inp.type === 'text' || inp.type === 'hidden') {
+                        if (!data['selected']) data['selected'] = {};
+                        data['selected'][inp.name] = inp.value;
                     }
                 });
-            }
+
+                answers[qid] = { metadata: data, selected_option_id: null };
+            });
+            return answers;
         }
 
-        function submitAnswer(finish){
-            const data = new FormData(form);
-            if (finish) data.append('action','finish');
+        function computeTotals(answers) {
+            // Best-effort: server fallback available. For now compute counts where possible (client-side full-check can be added later)
+            const totals = { total_questions: Object.keys(answers).length, correct_answers: null, score_percentage: null };
+            return totals;
+        }
 
-            // Evaluate client-side and append flags
-            const clientCorrect = evaluateClient();
-            appendClientFlags(data, clientCorrect === 1);
+        function submitBulkFinish(){
+            const answers = collectAllAnswers();
+            const totals = computeTotals(answers);
+
+            const fd = new FormData();
+            fd.append('action','finish');
+            fd.append('client_provided','1');
+            fd.append('client_totals', JSON.stringify(totals));
+            fd.append('answers', JSON.stringify(answers));
 
             fetch(form.action, {
                 method: 'POST',
@@ -179,14 +161,12 @@
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('input[name=_token]').value
                 },
-                body: data
+                body: fd
             }).then(r => r.json()).then(resp => {
                 if (resp.success) {
-                    const displayCorrect = (resp.hasOwnProperty('is_correct')) ? (resp.is_correct ? 1 : 0) : clientCorrect;
-                    showFeedback(displayCorrect === 1);
-                    if (finish && resp.redirect) window.location.href = resp.redirect;
+                    if (resp.redirect) window.location.href = resp.redirect;
                 } else {
-                    alert(resp.message || 'Có lỗi khi lưu đáp án');
+                    alert(resp.message || 'Có lỗi khi nộp bài');
                 }
             }).catch(err => {
                 console.error(err);

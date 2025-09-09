@@ -31,6 +31,14 @@ Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listen
     })->name('index');
     
     // Add more student listening routes here as they are developed
+    // Student practice routes
+    Route::controller(\App\Http\Controllers\Listening\PracticeController::class)->group(function () {
+        Route::get('quiz/{quiz}/start', 'startQuiz')->name('quiz.start');
+        Route::get('attempt/{attempt}/question/{position}', 'showQuestion')->name('practice.question');
+        Route::post('attempt/{attempt}/question/{question}', 'submitAnswer')->name('practice.answer');
+        Route::get('attempt/{attempt}/finish', 'finishAttempt')->name('practice.finish');
+        Route::get('attempt/{attempt}/result', 'showResult')->name('practice.result');
+    });
 });
 
 // Student Listening dashboard

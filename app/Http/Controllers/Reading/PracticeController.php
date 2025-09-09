@@ -178,7 +178,7 @@ class PracticeController extends Controller
     /**
      * Hiển thị một câu hỏi trong bộ đề
      */
-    public function showQuestion(Attempt $attempt, int $position)
+    public function showQuestion(Request $request, Attempt $attempt, int $position)
     {
         // Kiểm tra quyền truy cập
         if ($attempt->user_id !== Auth::id()) {
@@ -190,8 +190,87 @@ class PracticeController extends Controller
             return redirect()->route('reading.practice.result', $attempt);
         }
         
-        // Resolve question by attempt-specific question_order if present
+        // Resolve question(s) by attempt-specific question_order if present
         $order = $attempt->metadata['question_order'] ?? $attempt->quiz->questions()->orderBy('order')->pluck('id')->toArray();
+
+        // Build normalized payload of questions (for FE practice mode)
+        $questionsCollection = Question::whereIn('id', $order)
+            ->with(['options' => function($query) {
+                $query->orderBy('id');
+            }])->get()->keyBy('id');
+
+        $payloadQuestions = collect($order)->map(function($id) use ($questionsCollection) {
+            $q = $questionsCollection->get($id);
+            if (! $q) return null;
+            $meta = $q->metadata ?? [];
+
+            // normalize part 1
+            if (($q->part ?? ($meta['part'] ?? null)) == 1) {
+                $meta = array_merge([
+                    'paragraphs' => $meta['paragraphs'] ?? [$q->content ?? $q->title],
+                    'blank_keys' => $meta['blank_keys'] ?? [],
+                    'choices' => $meta['choices'] ?? ($meta['options'] ?? []),
+                    'correct_answers' => $meta['correct_answers'] ?? ($meta['answers'] ?? [])
+                ], $meta);
+            }
+
+            // normalize part 2
+            if (($q->part ?? ($meta['part'] ?? null)) == 2) {
+                $meta['sentences'] = $meta['sentences'] ?? $meta['items'] ?? [];
+                $meta['correct_order'] = $meta['correct_order'] ?? $meta['correct'] ?? [];
+            }
+
+            return [
+                'id' => $q->id,
+                'part' => $q->part ?? ($meta['part'] ?? null),
+                'type' => $meta['type'] ?? 'unknown',
+                'metadata' => $meta,
+            ];
+        })->filter()->values()->all();
+
+        $payload = ['questions' => $payloadQuestions];
+
+        // If dev requests a dump, show it for inspection
+        if ($request->query('dump')) {
+            dd($payload);
+        }
+
+    // If attempt requests full-part (opt-in), present the full part (all questions)
+    if (!empty($attempt->metadata['full_part']) && $attempt->metadata['full_part']) {
+            $questionsCollection = Question::whereIn('id', $order)
+                ->with(['options' => function($query) {
+                    $query->orderBy('id');
+                }])
+                ->get()
+                ->keyBy('id');
+
+            $questions = collect($order)->map(function($id) use ($questionsCollection) {
+                return $questionsCollection->get($id);
+            })->filter()->values();
+
+            // load any previously saved answers for all questions in the order
+            $answersMap = AttemptAnswer::where('attempt_id', $attempt->id)
+                ->whereIn('question_id', $order)
+                ->get()
+                ->keyBy('question_id');
+
+            $totalQuestions = count($order);
+            $answeredCount = $answersMap->count();
+
+            return view('student.reading.question', [
+                'attempt' => $attempt,
+                'quiz' => $attempt->quiz,
+                'allQuestions' => $questions,
+                'answersMap' => $answersMap,
+                'position' => 1,
+                'total' => $totalQuestions,
+                'answered' => $answeredCount,
+                'previousPosition' => null,
+                'nextPosition' => null
+            ])->with('initialPayload', $payload);
+        }
+
+        // Fallback: single-question view
         $questionId = $order[$position - 1] ?? null;
         if (!$questionId) {
             // no question at this position -> finalize the attempt first
@@ -203,18 +282,18 @@ class PracticeController extends Controller
             // missing question record -> finalize the attempt
             return redirect()->route('reading.practice.finish', $attempt);
         }
-        
+
         // Lấy câu trả lời trước đó nếu có
         $answer = AttemptAnswer::where('attempt_id', $attempt->id)
             ->where('question_id', $question->id)
             ->first();
-        
+
         // Lấy thông tin tổng quan về bài làm (dựa trên question_order của attempt)
         $totalQuestions = count($order);
         $answeredCount = AttemptAnswer::where('attempt_id', $attempt->id)
             ->whereIn('question_id', $order)
             ->count();
-        
+
         return view('student.reading.question', [
             'attempt' => $attempt,
             'quiz' => $attempt->quiz,
@@ -225,7 +304,7 @@ class PracticeController extends Controller
             'answer' => $answer,
             'previousPosition' => $position > 1 ? $position - 1 : null,
             'nextPosition' => $position < $totalQuestions ? $position + 1 : null
-        ]);
+    ])->with('initialPayload', $payload);
     }
     
     /**
@@ -243,9 +322,6 @@ class PracticeController extends Controller
             return redirect()->route('reading.practice.result', $attempt);
         }
         
-    // Trust frontend: FE will send final answer metadata (and optional is_correct/selected_option_id).
-    $clientProvided = $request->boolean('client_provided');
-
     // Accept metadata blob from FE, or build minimal metadata from inputs provided.
     $answerMeta = $request->input('metadata', $request->input('answer_meta', []));
     if (empty($answerMeta)) {
@@ -259,20 +335,87 @@ class PracticeController extends Controller
     }
 
     $selOption = $request->input('selected_option_id', $request->input('option_id', null));
-    $isCorrect = $request->has('is_correct') ? (bool)$request->input('is_correct') : false;
+    $clientProvided = $request->boolean('client_provided');
 
-    // Persist AttemptAnswer exactly as FE sent it (no server-side correctness calculation)
-    AttemptAnswer::updateOrCreate(
-        [
-            'attempt_id' => $attempt->id,
-            'question_id' => $question->id
-        ],
-        [
-            'selected_option_id' => $selOption,
-            'is_correct' => $isCorrect,
-            'metadata' => $answerMeta
-        ]
-    );
+    // If this is an AJAX per-question submit, grade server-side, persist and update attempt counters.
+    if ($request->ajax() && $request->input('action') === 'submit') {
+        // grade using question metadata
+        $meta = $question->metadata ?? [];
+        $grading = $this->gradeAnswer($question, $answerMeta);
+        $isCorrect = $grading['is_correct'];
+        $correctData = $grading['correct_data'];
+
+        // atomic update: persist AttemptAnswer and adjust attempt counters idempotently
+        DB::transaction(function() use ($attempt, $question, $selOption, $answerMeta, $isCorrect) {
+            $existing = AttemptAnswer::where('attempt_id', $attempt->id)->where('question_id', $question->id)->first();
+
+            // create or update the AttemptAnswer
+            AttemptAnswer::updateOrCreate(
+                ['attempt_id' => $attempt->id, 'question_id' => $question->id],
+                ['selected_option_id' => $selOption, 'is_correct' => $isCorrect, 'metadata' => $answerMeta]
+            );
+
+            // maintain simple counts on attempt metadata/columns
+            // Use columns total_questions and correct_answers to reflect progress
+            $total = (int)($attempt->total_questions ?? 0);
+            $correct = (int)($attempt->correct_answers ?? 0);
+
+            if (! $existing) {
+                $total += 1;
+                if ($isCorrect) $correct += 1;
+            } else {
+                // if existed, adjust correct count if correctness changed
+                $prevCorrect = (bool)$existing->is_correct;
+                if ($prevCorrect !== $isCorrect) {
+                    $correct += $isCorrect ? 1 : -1;
+                    if ($correct < 0) $correct = 0;
+                }
+            }
+
+            // update attempt counters (do not finalize here yet)
+            $attempt->total_questions = $total;
+            $attempt->correct_answers = $correct;
+            $attempt->save();
+        });
+
+        // determine if attempt is complete (all questions answered)
+        $order = $attempt->metadata['question_order'] ?? $attempt->quiz->questions()->orderBy('order')->pluck('id')->toArray();
+        $totalQuestions = count($order);
+        $answeredCount = AttemptAnswer::where('attempt_id', $attempt->id)
+            ->whereIn('question_id', $order)
+            ->count();
+
+    $response = ['success' => true, 'is_correct' => $isCorrect, 'correct' => $correctData];
+
+        if ($answeredCount >= $totalQuestions) {
+            // finalize attempt
+            $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)
+                ->whereIn('question_id', $order)
+                ->where('is_correct', true)
+                ->count();
+
+            $scorePercentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
+
+            $attempt->update([
+                'status' => 'submitted',
+                'submitted_at' => now(),
+                'total_questions' => $totalQuestions,
+                'correct_answers' => $correctAnswers,
+                'score_percentage' => $scorePercentage,
+                'score_points' => $correctAnswers
+            ]);
+
+            $response['submitted'] = true;
+            $response['redirect'] = route('reading.practice.result', $attempt);
+        } else {
+            // return next position for UI convenience
+            $posIndex = array_search($question->id, $order);
+            $nextPosition = $posIndex === false ? null : $posIndex + 2; // 1-based
+            $response['next_position'] = $nextPosition;
+        }
+
+        return response()->json($response);
+    }
         
         // Nếu là request Ajax, trả về JSON response. Nếu action=finish, hoàn tất bài làm và trả về redirect URL
         if ($request->ajax()) {
@@ -298,7 +441,7 @@ class PracticeController extends Controller
                     // otherwise fall through to finalize
                 }
 
-                // If the frontend computed correctness (practice mode), accept client totals/answers
+                        // If the frontend computed correctness (practice mode), accept client totals/answers
                 if ($clientProvided && $request->has('client_totals')) {
                     $totals = $request->input('client_totals', []);
                     $totalQuestions = $totals['total_questions'] ?? count($order);
@@ -337,6 +480,10 @@ class PracticeController extends Controller
                     if ($scorePercentage === null) {
                         $scorePercentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
                     }
+                    // Ensure scorePoints is set (use client-provided or fallback to correctAnswers)
+                    if (!isset($scorePoints) || $scorePoints === null) {
+                        $scorePoints = $correctAnswers ?? 0;
+                    }
 
                 } else {
                     // Default: server recompute (kept as fallback)
@@ -369,8 +516,7 @@ class PracticeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Đã lưu câu trả lời',
-                'is_correct' => (bool)$isCorrect
+                'message' => 'Đã lưu câu trả lời'
             ]);
         }
         
@@ -416,6 +562,7 @@ class PracticeController extends Controller
             $correctAnswers = $totals['correct_answers'] ?? ($attempt->correct_answers ?? 0);
             $scorePercentage = $totals['score_percentage'] ?? ($totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0);
             $scorePoints = $totals['score_points'] ?? $correctAnswers;
+            if ($scorePoints === null) $scorePoints = $correctAnswers ?? 0;
         } else {
             $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)
                 ->whereIn('question_id', $order)
@@ -606,4 +753,104 @@ class PracticeController extends Controller
             'chartData' => $chartData
         ]);
     }
+
+    /**
+     * Lấy danh sách câu hỏi trong một phần của bộ đề
+     */
+    public function partQuestions(Attempt $attempt)
+    {
+        // chỉ dành cho chế độ học hoặc khi được yêu cầu là toàn bộ phần
+        if (($attempt->metadata['mode'] ?? 'learning') !== 'learning') {
+            abort(403);
+        }
+
+        $order = $attempt->metadata['question_order'] ?? [];
+        $questions = \App\Models\Question::whereIn('id', $order)
+            ->orderByRaw("FIELD(id, " . implode(',', $order) . ")")
+            ->get();
+
+        $payload = $questions->map(function($q){
+            $meta = $q->metadata ?? [];
+
+            // chuẩn hóa cho phần 1
+            if (($q->part ?? ($meta['part'] ?? null)) == 1) {
+                $meta = array_merge([
+                    'paragraphs' => $meta['paragraphs'] ?? [$q->content ?? $q->title],
+                    'blank_keys' => $meta['blank_keys'] ?? ($meta['blank_keys'] ?? []),
+                    'choices' => $meta['choices'] ?? ($meta['options'] ?? []),
+                    'correct_answers' => $meta['correct_answers'] ?? ($meta['answers'] ?? [])
+                ], $meta);
+            }
+
+            // đảm bảo các phần khác có các khóa mong đợi (ví dụ)
+            if (($q->part ?? ($meta['part'] ?? null)) == 2) {
+                $meta['sentences'] = $meta['sentences'] ?? $meta['items'] ?? [];
+                $meta['correct_order'] = $meta['correct_order'] ?? $meta['correct'] ?? [];
+            }
+
+            return [
+                'id' => $q->id,
+                'part' => $q->part ?? ($meta['part'] ?? null),
+                'type' => $meta['type'] ?? 'unknown',
+                'metadata' => $meta,
+            ];
+        });
+
+        return response()->json(['questions' => $payload]);
+    }
+
+    /**
+     * Grade an answer using question metadata. Returns ['is_correct' => bool, 'correct_data' => mixed]
+     */
+    private function gradeAnswer(Question $question, $answerMeta)
+    {
+        $meta = $question->metadata ?? [];
+        $part = $question->part ?? ($meta['part'] ?? null);
+        $result = ['is_correct' => false, 'correct_data' => null];
+
+        try {
+            if ($part == 1) {
+                $correct = $meta['correct_answers'] ?? ($meta['answers'] ?? []);
+                $selected = $answerMeta['selected'] ?? $answerMeta ?? [];
+                $vals = is_array($selected) ? array_values($selected) : [$selected];
+                $result['is_correct'] = json_encode(array_values($vals)) === json_encode(array_values($correct));
+                $result['correct_data'] = $correct;
+                return $result;
+            }
+
+            if ($part == 2) {
+                $correctOrder = $meta['correct_order'] ?? $meta['correct'] ?? [];
+                $selected = $answerMeta['selected']['order'] ?? $answerMeta['selected'] ?? $answerMeta ?? [];
+                $result['is_correct'] = json_encode(array_values($selected)) === json_encode(array_values($correctOrder));
+                $result['correct_data'] = $correctOrder;
+                return $result;
+            }
+
+            if ($part == 3) {
+                $correct = $meta['answers'] ?? $meta['correct'] ?? [];
+                $selected = $answerMeta['selected'] ?? $answerMeta ?? [];
+                $vals = is_array($selected) ? array_values($selected) : [$selected];
+                $result['is_correct'] = json_encode(array_values($vals)) === json_encode(array_values($correct));
+                $result['correct_data'] = $correct;
+                return $result;
+            }
+
+            if ($part == 4) {
+                $correct = $meta['correct'] ?? [];
+                $selected = $answerMeta['selected'] ?? $answerMeta ?? [];
+                $vals = is_array($selected) ? array_values($selected) : [$selected];
+                sort($vals);
+                $expected = is_array($correct) ? $correct : [$correct];
+                sort($expected);
+                $result['is_correct'] = json_encode($vals) === json_encode($expected);
+                $result['correct_data'] = $correct;
+                return $result;
+            }
+        } catch (\Throwable $e) {
+            // ignore and return false
+        }
+
+        return $result;
+    }
+
 }

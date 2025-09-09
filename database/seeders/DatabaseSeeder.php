@@ -57,6 +57,6 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $this->call([\Database\Seeders\ReadingSetSeeder::class]);
+    $this->call([\Database\Seeders\ReadingSetSeeder::class, \Database\Seeders\ListeningSetSeeder::class]);
     }
 }

@@ -95,7 +95,7 @@
                             </div>
                         </a>
 
-                        <a href="{{ route('listening.index') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
+                        <a href="{{ route('listening.dashboard') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold">{{ __('Listening') }}</h4>

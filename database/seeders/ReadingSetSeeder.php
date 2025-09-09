@@ -83,6 +83,34 @@ class ReadingSetSeeder extends Seeder
                     ],
                 ]);
 
+                // Extra sample for Part 1
+                Question::create([
+                    'quiz_id' => $quiz->id,
+                    'reading_set_id' => $set->id,
+                    'title' => null,
+                    'stem' => 'Holiday letter (Gap fill) - sample 2',
+                    'explanation' => null,
+                    'skill' => 'reading',
+                    'part' => 1,
+                    'type' => 'reading_gap_filling',
+                    'order' => 2,
+                    'metadata' => [
+                        'paragraphs' => [
+                            "Hi Tom,",
+                            "We visited the old town and I saw a beautiful [BLANK1].",
+                            "The museum was full of interesting [BLANK2].",
+                            "I bought a small [BLANK3] for you.",
+                        ],
+                        'choices' => [
+                            ['statue','garden','view'],
+                            ['paintings','buildings','books'],
+                            ['gift','souvenir','postcard']
+                        ],
+                        'correct_answers' => ['view','paintings','souvenir'],
+                        'blank_keys' => ['BLANK1','BLANK2','BLANK3']
+                    ],
+                ]);
+
             } elseif ($part === 2) {
                 // Part 2: ordering (students will reorder 5 sentences)
                 $stem = "Assignments submitting.";
@@ -108,6 +136,29 @@ class ReadingSetSeeder extends Seeder
                     'metadata' => [
                         'sentences' => $sentences,
                         'correct_order' => [0,1,2,3,4] // 0-based indexes representing the proper sequence
+                    ],
+                ]);
+
+                // Extra sample for Part 2
+                Question::create([
+                    'quiz_id' => $quiz->id,
+                    'reading_set_id' => $set->id,
+                    'title' => null,
+                    'stem' => 'Procedure ordering - sample 2',
+                    'explanation' => null,
+                    'skill' => 'reading',
+                    'part' => 2,
+                    'type' => 'reading_notice_matching',
+                    'order' => 2,
+                    'metadata' => [
+                        'sentences' => [
+                            'Open the box and remove all components.',
+                            'Plug the power cable into the wall socket.',
+                            'Attach the antenna to the back of the unit.',
+                            'Turn on the power and wait for the green light.',
+                            'Follow the on-screen setup instructions.'
+                        ],
+                        'correct_order' => [0,2,1,3,4]
                     ],
                 ]);
 
@@ -146,6 +197,36 @@ class ReadingSetSeeder extends Seeder
                         'people' => $people,
                         'items' => array_map(fn($i) => $i['text'], $questions),
                         'answers' => array_map(fn($i) => $i['answer'], $questions),
+                    ],
+                ]);
+
+                // Extra sample for Part 3
+                $people2 = [
+                    ['id' => 'A', 'name' => 'Liam', 'text' => 'I think starting work early gives you a head start.'],
+                    ['id' => 'B', 'name' => 'Maya', 'text' => 'Sometimes practical experience is more valuable than theory.'],
+                    ['id' => 'C', 'name' => 'Noah', 'text' => 'Studying part-time while working can be a smart option.'],
+                    ['id' => 'D', 'name' => 'Zoe', 'text' => 'Online courses are a good way to learn without debt.'],
+                ];
+                $questions2 = [
+                    ['text' => 'Who recommends starting work early?', 'answer' => 'A'],
+                    ['text' => 'Who prefers practical experience?', 'answer' => 'B'],
+                    ['text' => 'Who suggests part-time study?', 'answer' => 'C'],
+                ];
+
+                Question::create([
+                    'quiz_id' => $quiz->id,
+                    'reading_set_id' => $set->id,
+                    'title' => null,
+                    'stem' => $stem,
+                    'explanation' => null,
+                    'skill' => 'reading',
+                    'part' => 3,
+                    'type' => 'reading_sentence_matching',
+                    'order' => 2,
+                    'metadata' => [
+                        'people' => $people2,
+                        'items' => array_map(fn($i) => $i['text'], $questions2),
+                        'answers' => array_map(fn($i) => $i['answer'], $questions2),
                     ],
                 ]);
 
@@ -188,6 +269,35 @@ class ReadingSetSeeder extends Seeder
                         'paragraphs' => $paragraphs,
                         'options' => $options,
                         'correct' => [0,1,2,3,4,5,6] // indicate which of the 8 options are correct for the 7 questions (example)
+                    ],
+                ]);
+
+                // Extra sample for Part 4
+                $paragraphs2 = [
+                    'A team of researchers tested plants in a controlled environment.',
+                    'The experiment showed how crops respond to changes in light and temperature.',
+                    'Further trials are planned to measure long-term effects.'
+                ];
+                $options2 = [
+                    'Researchers used a greenhouse for experiments.',
+                    'The study focused on light and temperature.',
+                    'Long-term trials are unnecessary.'
+                ];
+
+                Question::create([
+                    'quiz_id' => $quiz->id,
+                    'reading_set_id' => $set->id,
+                    'title' => null,
+                    'stem' => 'Plant trials - sample',
+                    'explanation' => null,
+                    'skill' => 'reading',
+                    'part' => 4,
+                    'type' => 'reading_long_text',
+                    'order' => 2,
+                    'metadata' => [
+                        'paragraphs' => $paragraphs2,
+                        'options' => $options2,
+                        'correct' => [0,1]
                     ],
                 ]);
             }
