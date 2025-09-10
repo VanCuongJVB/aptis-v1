@@ -8,8 +8,8 @@
     <p class="text-gray-700 mb-4">{{ $set->description }}</p>
 
     <div class="space-x-2">
-        <a href="{{ route('reading.practice.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id, 'mode' => 'learning']) }}" class="btn btn-primary">Luyện (Learning)</a>
-        <a href="{{ route('reading.practice.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id, 'mode' => 'exam']) }}" class="btn">Thi (Exam)</a>
+    <a href="{{ route('reading.practice.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id, 'mode' => 'learning']) }}" class="btn-base btn-primary">Luyện (Learning)</a>
+    <a href="{{ route('reading.practice.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id, 'mode' => 'exam']) }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Thi (Exam)</a>
     </div>
 
     <hr class="my-6">

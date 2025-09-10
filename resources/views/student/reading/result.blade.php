@@ -269,9 +269,17 @@
         @endforeach
 
         <div class="flex justify-between mt-6">
-            <a href="{{ route('reading.sets.index') }}" class="btn">Quay lại bộ đề</a>
+            <a href="{{ route('student.reading.sets.index') }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Quay lại bộ đề</a>
             {{-- <a href="{{ route('student.attempts.history') }}" class="btn">Lịch sử</a> --}}
         </div>
     </div>
 </div>
 @endsection
+
+    @push('scripts')
+    <script>
+        (function(){
+            try { localStorage.removeItem('attempt_answers_{{ $attempt->id }}'); } catch (e) {}
+        })();
+    </script>
+    @endpush

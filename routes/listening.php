@@ -23,6 +23,19 @@ Route::middleware(['auth', 'admin.role'])->group(function () {
     });
 });
 
+// Student listing of listening sets and per-set questions
+Route::middleware(['auth', 'student.access'])->prefix('student/listening')->name('student.listening.')->controller(\App\Http\Controllers\Student\ListeningSetController::class)->group(function () {
+    Route::get('sets', 'index')->name('sets.index');
+    Route::get('sets/{set}', 'show')->name('sets.show');
+});
+
+// Also expose the same student-facing sets pages under the public 'listening' prefix
+// so route patterns match Reading (`listening/sets`), keep controller reuse for parity.
+Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listening.')->controller(\App\Http\Controllers\Student\ListeningSetController::class)->group(function () {
+    Route::get('sets', 'index')->name('sets.index');
+    Route::get('sets/{set}', 'show')->name('sets.show');
+});
+
 // Student Listening Practice Routes
 Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listening.')->group(function () {
     // Index route (placeholder)
@@ -35,23 +48,14 @@ Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listen
     Route::controller(\App\Http\Controllers\Listening\PracticeController::class)->group(function () {
         Route::get('quiz/{quiz}/start', 'startQuiz')->name('quiz.start');
         Route::get('attempt/{attempt}/question/{position}', 'showQuestion')->name('practice.question');
-        Route::post('attempt/{attempt}/question/{question}', 'submitAnswer')->name('practice.answer');
+        	Route::post('attempt/{attempt}/question/{question}', 'submitAnswer')->name('practice.answer');
+            Route::post('attempt/{attempt}/batch-submit', 'batchSubmit')->name('practice.batchSubmit');
         Route::get('attempt/{attempt}/finish', 'finishAttempt')->name('practice.finish');
         Route::get('attempt/{attempt}/result', 'showResult')->name('practice.result');
     });
 });
 
 // Student Listening dashboard
-Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listening.')->group(function () {
-    Route::get('dashboard', function () {
-        $quizzes = \App\Models\Quiz::published()->where('skill', 'listening')->orderBy('id', 'desc')->get();
-        $recentAttempts = \App\Models\Attempt::where('user_id', \Illuminate\Support\Facades\Auth::id())
-            ->whereHas('quiz', function($q) { $q->where('skill','listening'); })
-            ->with('quiz')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-
-        return view('student.listening.dashboard', compact('quizzes', 'recentAttempts'));
-    })->name('dashboard');
+Route::middleware(['auth', 'student.access'])->prefix('listening')->name('student.listening.')->group(function () {
+    Route::get('dashboard', [\App\Http\Controllers\Student\ListeningController::class, 'dashboard'])->name('dashboard');
 });

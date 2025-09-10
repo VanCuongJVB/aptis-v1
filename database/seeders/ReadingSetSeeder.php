@@ -32,9 +32,9 @@ class ReadingSetSeeder extends Seeder
                 'quiz_id' => $quiz->id,
                 'title' => "Default Set for Part $part"
             ], [
+                'skill' => 'reading',
                 'description' => "Auto generated default set for part $part",
                 'is_public' => true,
-                'question_limit' => 7,
                 'order' => 1,
             ]);
 

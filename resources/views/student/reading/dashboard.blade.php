@@ -22,18 +22,16 @@
                                         </div>
 
                                         <div class="flex items-center justify-between mb-2">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                                {{ ucfirst($quiz->skill) }} - Part {{ $quiz->part }}
-                                            </span>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{{ ucfirst($quiz->skill) }} - Part {{ $quiz->part }}</span>
 
                                             <span class="text-xs text-gray-500">{{ $quiz->duration_minutes }} {{ __('phút') }}</span>
                                         </div>
 
                                         <div class="mt-4">
                                             @if($quiz->skill === 'reading')
-                                                <a href="{{ route('reading.sets.index', ['quiz' => $quiz->id]) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">{{ __('Tham gia') }}</a>
+                                                <a href="{{ route('student.reading.sets.index', ['quiz' => $quiz->id]) }}" class="btn-base btn-primary block text-center w-full">{{ __('Bắt đầu') }}</a>
                                             @else
-                                                <a href="{{ route('student.quizzes.show', $quiz) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">{{ __('Tham gia') }}</a>
+                                                <a href="{{ route('student.quizzes.show', $quiz) }}" class="btn-base btn-primary block text-center w-full">{{ __('Bắt đầu') }}</a>
                                             @endif
                                         </div>
                                     </div>

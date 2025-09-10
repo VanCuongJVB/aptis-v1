@@ -65,34 +65,60 @@
 <script>
 function submitListeningAnswer(questionId) {
     const selected = document.querySelector(`input[name="selected_option_id"]:checked`);
+    const feedback = document.getElementById(`feedback-${questionId}`);
+    // reset feedback
+    feedback.className = 'mt-4 hidden';
+
     if (!selected) {
-        alert("Vui lòng chọn một đáp án trước khi kiểm tra.");
+        feedback.className = 'mt-4 bg-yellow-50 border border-yellow-300 p-3 rounded text-yellow-800';
+        feedback.innerHTML = `<p class="font-medium">Vui lòng chọn một đáp án trước khi kiểm tra.</p>`;
         return;
     }
 
-    fetch("{{ route('student.listening.submit', $question->id) }}", {
-        method: "POST",
-        headers: {
-            "X-CSRF-TOKEN": "{{ csrf_token() }}",
-            "X-Requested-With": "XMLHttpRequest",
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            action: "submit",
-            selected_option_id: selected.value
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        const feedback = document.getElementById(`feedback-${questionId}`);
-        feedback.classList.remove("hidden");
-        if (data.is_correct) {
-            feedback.innerHTML = `<p class="text-green-600 font-semibold">Chính xác!</p>`;
+    // Grade locally using metadata (no server call)
+    try {
+        const meta = @json($question->metadata);
+        const selectedIndex = parseInt(selected.value, 10);
+        const result = (function grade(meta, sel) {
+            // Multiple choice with single correct_index
+            if (meta.hasOwnProperty('correct_index')) {
+                const correct = parseInt(meta.correct_index, 10);
+                return { is_correct: sel === correct, correct: correct };
+            }
+
+            // If metadata has 'correct' as an array of correct indexes
+            if (meta.hasOwnProperty('correct')) {
+                const correctArr = Array.isArray(meta.correct) ? meta.correct.map(Number) : [Number(meta.correct)];
+                return { is_correct: correctArr.includes(sel), correct: correctArr };
+            }
+
+            // Fallback: not enough metadata
+            return { is_correct: false, correct: null };
+        })(meta, selectedIndex);
+
+        feedback.classList.remove('hidden');
+        if (result.is_correct) {
+            feedback.className = 'mt-4 bg-green-50 border border-green-300 p-3 rounded text-green-800';
+            feedback.innerHTML = `<p class="font-semibold">Chính xác!</p>`;
         } else {
-            feedback.innerHTML = `<p class="text-red-600 font-semibold">Sai. Đáp án đúng là: ${data.correct}</p>`;
+            feedback.className = 'mt-4 bg-red-50 border border-red-300 p-3 rounded text-red-800';
+            let correct = result.correct ?? '—';
+            if (Array.isArray(correct)) correct = correct.join(', ');
+            feedback.innerHTML = `<p class="font-semibold">Sai.</p><p class="text-sm mt-1">Đáp án đúng: ${correct}</p>`;
         }
+
         document.getElementById(`next-btn-${questionId}`).disabled = false;
-    })
-    .catch(err => console.error(err));
+
+        // store answer locally (to be submitted in one batch at the end)
+        try {
+            window.attemptAnswers = window.attemptAnswers || {};
+            window.attemptAnswers[questionId] = { selected: selectedIndex, is_correct: result.is_correct };
+            console.log('stored local answer', window.attemptAnswers[questionId]);
+        } catch(e) { console.warn(e); }
+    } catch (e) {
+        console.error(e);
+        feedback.className = 'mt-4 bg-red-50 border border-red-300 p-3 rounded text-red-800';
+        feedback.innerHTML = `<p class="font-semibold">Có lỗi xảy ra. Vui lòng thử lại.</p>`;
+    }
 }
 </script>

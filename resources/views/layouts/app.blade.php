@@ -11,8 +11,39 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <!-- Scripts/CSS: prefer pre-built assets in public/build (no npm run dev required) -->
+        @php
+            $manifestPath = public_path('build/manifest.json');
+            $cssFile = null; $jsFile = null;
+            if (file_exists($manifestPath)) {
+                $manifest = json_decode(file_get_contents($manifestPath), true);
+                if (!empty($manifest['resources/css/app.css']['file'])) {
+                    $cssFile = '/build/' . $manifest['resources/css/app.css']['file'];
+                }
+                if (!empty($manifest['resources/js/app.js']['file'])) {
+                    $jsFile = '/build/' . $manifest['resources/js/app.js']['file'];
+                }
+            }
+        @endphp
+
+        @if($cssFile)
+            <link rel="stylesheet" href="{{ asset($cssFile) }}">
+        @else
+            @vite(['resources/css/app.css'])
+        @endif
+
+        @if($jsFile)
+            <script defer src="{{ asset($jsFile) }}"></script>
+        @else
+            @vite(['resources/js/app.js'])
+        @endif
+
+        <style>
+            /* Minimal fallback button styles (kept for safety) */
+            .btn-base{display:flex;align-items:center;justify-content: center; padding:0.5rem 0.75rem;border-radius:0.375rem;font-size:0.875rem;font-weight:500;border:1px solid #d1d5db}
+            .btn-primary{background-color:#23085a;color:#fff;border-color:transparent}
+            .btn-primary:hover{background-color:#19043f}
+        </style>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">

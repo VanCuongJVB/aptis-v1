@@ -69,110 +69,183 @@
             <div class="flex items-center justify-between">
                 <div class="space-x-2">
                     @if(!$allQuestions && $previousPosition)
-                        <a href="{{ route('reading.practice.question', ['attempt' => $attempt->id, 'position' => $previousPosition]) }}" class="btn">&larr; Trước</a>
+                        <a href="{{ route('reading.practice.question', ['attempt' => $attempt->id, 'position' => $previousPosition]) }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">&larr; Trước</a>
                     @endif
 
                     @if(!$allQuestions && $nextPosition)
-                        <a href="{{ route('reading.practice.question', ['attempt' => $attempt->id, 'position' => $nextPosition]) }}" class="btn">Tiếp &rarr;</a>
+                        <a href="{{ route('reading.practice.question', ['attempt' => $attempt->id, 'position' => $nextPosition]) }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Tiếp &rarr;</a>
                     @endif
                 </div>
 
-                <div class="flex items-center space-x-2">
-                    @if($attempt->isInProgress())
-                        <button type="button" id="finish-btn" class="btn btn-danger">Nộp bài</button>
-                    @else
-                        <a href="" class="btn">Xem kết quả</a>
-                    @endif
-                </div>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" id="save-local-btn" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Lưu</button>
+                        <button type="button" id="final-submit-btn" class="btn-base btn-primary">Nộp bài (Cuối)</button>
+                    </div>
             </div>
         </form>
     </div>
 </div>
+
+    <div id="inline-feedback" class="hidden"></div>
 
 @if($attempt->metadata['mode'] ?? 'learning' === 'learning')
     @push('scripts')
     <script>
     (function(){
         const form = document.getElementById('answer-form');
-        const finishBtn = document.getElementById('finish-btn');
 
-        finishBtn && finishBtn.addEventListener('click', function(){
-            submitBulkFinish();
-        });
+        function collectMeta() {
+            const fd = {};
+            const opt = form.querySelector('input[type=radio]:checked');
+            if (opt) fd.selected = opt.value;
 
-        // collect answers for each .question-block and build a payload keyed by question id
-        function collectAllAnswers() {
-            const blocks = Array.from(document.querySelectorAll('.question-block'));
-            const answers = {};
-            blocks.forEach(block => {
-                const qid = block.getAttribute('data-qid');
-                if (!qid) return;
-                const data = {};
-
-                // collect selects
-                const selects = Array.from(block.querySelectorAll('select'));
-                selects.forEach(s => {
-                    const name = s.name || 'select';
-                    if (!data['selected']) data['selected'] = {};
-                    // append by name to retain structure
-                    data['selected'][name] = s.value;
-                });
-
-                // collect checked radios/checkboxes
-                const inputs = Array.from(block.querySelectorAll('input'));
-                inputs.forEach(inp => {
-                    if (inp.type === 'radio' && !inp.checked) return;
-                    if (inp.type === 'checkbox') {
-                        if (!data['selected']) data['selected'] = {};
-                        if (!data['selected'][inp.name]) data['selected'][inp.name] = [];
-                        if (inp.checked) data['selected'][inp.name].push(inp.value);
-                        return;
-                    }
-                    if (inp.type === 'text' || inp.type === 'hidden') {
-                        if (!data['selected']) data['selected'] = {};
-                        data['selected'][inp.name] = inp.value;
-                    }
-                });
-
-                answers[qid] = { metadata: data, selected_option_id: null };
-            });
-            return answers;
+            const selects = form.querySelectorAll('select[name^="metadata[selected]"]');
+            if (selects && selects.length) {
+                fd.selected = {};
+                selects.forEach((s, idx) => { fd.selected[idx] = s.value; });
+            }
+            return fd;
         }
 
-        function computeTotals(answers) {
-            // Best-effort: server fallback available. For now compute counts where possible (client-side full-check can be added later)
-            const totals = { total_questions: Object.keys(answers).length, correct_answers: null, score_percentage: null };
-            return totals;
-        }
-
-        function submitBulkFinish(){
-            const answers = collectAllAnswers();
-            const totals = computeTotals(answers);
-
-            const fd = new FormData();
-            fd.append('action','finish');
-            fd.append('client_provided','1');
-            fd.append('client_totals', JSON.stringify(totals));
-            fd.append('answers', JSON.stringify(answers));
-
-            fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('input[name=_token]').value
-                },
-                body: fd
-            }).then(r => r.json()).then(resp => {
-                if (resp.success) {
-                    if (resp.redirect) window.location.href = resp.redirect;
-                } else {
-                    alert(resp.message || 'Có lỗi khi nộp bài');
+        function gradeLocal(selected, meta) {
+            try {
+                const part = meta.part || null;
+                if (([1,16,17].includes(part)) || meta.type === 'mc' || Array.isArray(meta.options)) {
+                    const correctIndex = meta.correct_index ?? meta.correct ?? null;
+                    const sel = selected;
+                    const isCorrect = (correctIndex !== null) && (String(sel) === String(correctIndex));
+                    return { is_correct: isCorrect, correct: correctIndex };
                 }
-            }).catch(err => {
-                console.error(err);
-                alert('Lỗi mạng, thử lại');
-            });
+
+                if (part === 14 || meta.type === 'speakers' || meta.type === 'listening_speakers_complete') {
+                    const correct = meta.answers || [];
+                    const sel = selected || {};
+                    const isCorrect = JSON.stringify(Object.values(sel)) === JSON.stringify(Object.values(correct));
+                    return { is_correct: isCorrect, correct };
+                }
+
+                if (part === 15 || meta.type === 'who_expresses') {
+                    const correct = meta.answers || [];
+                    const sel = selected || {};
+                    const isCorrect = JSON.stringify(Object.values(sel)) === JSON.stringify(Object.values(correct));
+                    return { is_correct: isCorrect, correct };
+                }
+            } catch (e) {}
+            return { is_correct: false, correct: null };
         }
+
+        window.attemptAnswers = window.attemptAnswers || {};
+        try {
+            const saved = localStorage.getItem('attempt_answers_{{ $attempt->id }}');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object') {
+                    window.attemptAnswers = Object.assign({}, parsed, window.attemptAnswers);
+                }
+            }
+        } catch (e) {}
+
+        const questionId = {{ $question->id ?? 'null' }};
+        const qMeta = {!! json_encode($question->metadata ?? []) !!};
+
+        const saveLocalBtn = document.getElementById('save-local-btn');
+        const finalSubmitBtn = document.getElementById('final-submit-btn');
+
+        // Restore saved answers from window.attemptAnswers into inputs
+        function restoreSavedAnswers() {
+            try {
+                if (!window.attemptAnswers) return;
+                // If full-part, populate each .question-block
+                const blocks = Array.from(document.querySelectorAll('.question-block'));
+                if (blocks.length) {
+                    blocks.forEach(block => {
+                        const qid = block.getAttribute('data-qid');
+                        const saved = window.attemptAnswers[qid];
+                        if (!saved) return;
+                        // handle radio
+                        if (saved.selected !== undefined && saved.selected !== null) {
+                            const radio = block.querySelector('input[type=radio][value="' + saved.selected + '"]');
+                            if (radio) radio.checked = true;
+                        }
+                        // handle selects
+                        const selects = block.querySelectorAll('select');
+                        selects.forEach((s, idx) => {
+                            const nameKey = s.name || ('selected_' + idx);
+                            if (saved.selected && typeof saved.selected === 'object') {
+                                const v = saved.selected[idx] ?? saved.selected[nameKey] ?? null;
+                                if (v !== null && v !== undefined) s.value = v;
+                            }
+                        });
+                    });
+                    return;
+                }
+
+                // Single-question mode
+                if (questionId && window.attemptAnswers[questionId]) {
+                    const saved = window.attemptAnswers[questionId];
+                    if (saved.selected !== undefined && saved.selected !== null) {
+                        const radio = document.querySelector('input[type=radio][value="' + saved.selected + '"]');
+                        if (radio) radio.checked = true;
+                        const sel = document.querySelector('select');
+                        if (sel && (sel.name && typeof saved.selected === 'object')) {
+                            // try mapping by index
+                            Object.keys(saved.selected).forEach(k => {
+                                const s = document.querySelector('select[name="metadata[selected][' + k + ']"]');
+                                if (s) s.value = saved.selected[k];
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('restoreSavedAnswers error', e);
+            }
+        }
+
+        // Immediately restore on load
+        restoreSavedAnswers();
+
+        function saveLocal() {
+            const meta = collectMeta();
+            const grading = gradeLocal(meta.selected ?? meta.selected_option_id ?? meta.selected, qMeta);
+            if (questionId) {
+                window.attemptAnswers[questionId] = { selected: meta.selected ?? meta.selected_option_id ?? meta.option_id ?? null, is_correct: grading.is_correct };
+            }
+            try { localStorage.setItem('attempt_answers_{{ $attempt->id }}', JSON.stringify(window.attemptAnswers)); } catch (e) {}
+
+            const fb = document.getElementById('inline-feedback');
+            fb.classList.remove('hidden');
+            fb.classList.remove('bg-green-50','border-green-200','text-green-800','bg-red-50','border-red-200','text-red-800');
+            if (grading.is_correct) {
+                fb.classList.add('bg-green-50','border','border-green-200','text-green-800');
+                fb.innerText = 'Đã lưu (Đúng)';
+            } else {
+                fb.classList.add('bg-red-50','border','border-red-200','text-red-800');
+                fb.innerText = 'Đã lưu (Sai)';
+            }
+        }
+
+        saveLocalBtn && saveLocalBtn.addEventListener('click', function(){ saveLocal(); });
+
+        finalSubmitBtn && finalSubmitBtn.addEventListener('click', function(){
+            if (!confirm('Bạn chắc chắn muốn nộp bài? Sau khi nộp sẽ không thể thay đổi.')) return;
+            finalSubmitBtn.disabled = true;
+            const batchUrl = '{{ route('reading.practice.batchSubmit', $attempt->id) }}';
+            try { localStorage.setItem('attempt_answers_{{ $attempt->id }}', JSON.stringify(window.attemptAnswers)); } catch (e) {}
+
+            fetch(batchUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('input[name=_token]').value },
+                body: JSON.stringify({ answers: window.attemptAnswers, final: true })
+            }).then(r => r.json()).then(resp => {
+                finalSubmitBtn.disabled = false;
+                if (resp.success) {
+                    try { localStorage.removeItem('attempt_answers_{{ $attempt->id }}'); } catch (e) {}
+                    if (resp.redirect) window.location.href = resp.redirect; else alert('Đã nộp.');
+                } else {
+                    alert(resp.message || 'Lỗi khi nộp bài');
+                }
+            }).catch(err => { console.error(err); finalSubmitBtn.disabled = false; alert('Lỗi mạng'); });
+        });
     })();
     </script>
     @endpush

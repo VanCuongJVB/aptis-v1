@@ -47,20 +47,13 @@ Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.
     Route::get('/', [PracticeController::class, 'index'])->name('practice.index');
 
     // Student Reading dashboard (quizzes + recent attempts filtered)
-    Route::get('dashboard', function () {
-        $quizzes = \App\Models\Quiz::published()->where('skill', 'reading')->orderBy('id', 'desc')->get();
-        $recentAttempts = \App\Models\Attempt::where('user_id', \Illuminate\Support\Facades\Auth::id())
-            ->whereHas('quiz', function($q) { $q->where('skill','reading'); })
-            ->with('quiz')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-
-        return view('student.reading.dashboard', compact('quizzes', 'recentAttempts'));
-    })->name('dashboard');
+    Route::get('dashboard', [\App\Http\Controllers\Student\ReadingSetController::class, 'index'])->name('dashboard');
     
     // Trang chi tiết phần
     Route::get('part/{part}', [PracticeController::class, 'partDetail'])->name('practice.part');
+
+    // Start quiz route (mirror listening naming: reading.quiz.start)
+    Route::get('quiz/{quiz}/start', [PracticeController::class, 'startQuiz'])->name('quiz.start');
     
     // Luyện tập bài đọc
     Route::prefix('practice')->name('practice.')->group(function () {
@@ -69,6 +62,7 @@ Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.
             // Return full-part question metadata as JSON for practice mode (FE can fetch once and self-grade)
             Route::get('attempt/{attempt}/part-questions', [PracticeController::class, 'partQuestions'])->name('partQuestions');
         Route::post('attempt/{attempt}/question/{question}', [PracticeController::class, 'submitAnswer'])->name('answer');
+    Route::post('attempt/{attempt}/batch-submit', [PracticeController::class, 'batchSubmit'])->name('practice.batchSubmit');
         Route::get('attempt/{attempt}/finish', [PracticeController::class, 'finishAttempt'])->name('finish');
         Route::get('attempt/{attempt}/result', [PracticeController::class, 'showResult'])->name('result');
     });
@@ -78,25 +72,19 @@ Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.
     Route::get('progress', [PracticeController::class, 'progress'])->name('progress');
 
     // Student-facing ReadingSet listing and detail (choose a set before starting)
-    Route::get('sets', function (\Illuminate\Http\Request $request) {
-        $query = \App\Models\ReadingSet::whereHas('quiz', function($q){ $q->where('skill','reading')->published(); })->where('is_public', true);
+    // Note: sets are exposed under student-prefixed routes for parity with Listening.
+    // Also expose sets under the public 'reading' prefix (same controller) so both
+    // /reading/sets and /student/reading/sets work, mirroring listening behavior.
+    Route::get('sets', [\App\Http\Controllers\Student\ReadingSetController::class, 'index'])->name('sets.index');
+    Route::get('sets/{set}', [\App\Http\Controllers\Student\ReadingSetController::class, 'show'])->name('sets.show');
+});
 
-        if ($request->query('quiz')) {
-            $query->where('quiz_id', $request->query('quiz'));
-        }
-
-        $sets = $query->orderBy('quiz_id')->orderBy('order')->get();
-
-        return view('student.reading.sets.index', compact('sets'));
-    })->name('sets.index');
-
-    Route::get('sets/{set}', function (\App\Models\ReadingSet $set) {
-        // ensure set is public and belongs to a published reading quiz
-        // quizzes use the `is_published` boolean column, make sure we check that
-        if (! $set->is_public || ! ($set->quiz && ($set->quiz->is_published ?? false))) {
-            abort(404);
-        }
-
-        return view('student.reading.sets.show', compact('set'));
-    })->name('sets.show');
+// Also expose the same student-facing reading pages under the 'student/reading' prefix
+// so URLs match the listening pattern (e.g. /student/reading/sets?quiz=5)
+// Also expose the same student-facing reading pages under the 'student/reading' prefix
+// so URLs match the listening pattern (e.g. /student/reading/sets?quiz=5)
+Route::middleware(['auth', 'student.access'])->prefix('reading')->name('student.reading.')->group(function () {
+    Route::get('dashboard', [\App\Http\Controllers\Student\ReadingController::class, 'dashboard'])->name('dashboard');
+    Route::get('sets', [\App\Http\Controllers\Student\ReadingSetController::class, 'index'])->name('sets.index');
+    Route::get('sets/{set}', [\App\Http\Controllers\Student\ReadingSetController::class, 'show'])->name('sets.show');
 });

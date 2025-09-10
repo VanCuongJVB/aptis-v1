@@ -9,12 +9,14 @@ class ReadingSet extends Model
 {
     use HasFactory;
 
+    protected $table = 'sets';
+
     protected $fillable = [
         'quiz_id',
+    'skill',
         'title',
         'description',
         'is_public',
-        'question_limit',
         'order',
         'metadata',
     ];

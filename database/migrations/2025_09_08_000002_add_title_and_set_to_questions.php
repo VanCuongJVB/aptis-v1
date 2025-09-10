@@ -13,7 +13,7 @@ return new class extends Migration
                 $table->string('title')->nullable()->after('id');
             }
             if (!Schema::hasColumn('questions', 'reading_set_id')) {
-                $table->foreignId('reading_set_id')->nullable()->after('quiz_id')->constrained('reading_sets')->nullOnDelete();
+                $table->foreignId('reading_set_id')->nullable()->after('quiz_id')->constrained('sets')->nullOnDelete();
             }
         });
     }

@@ -85,7 +85,7 @@
                     <h3 class="text-lg font-medium mb-4">{{ __('Kỹ năng') }}</h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <a href="{{ route('reading.sets.index') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
+                        <a href="{{ route('student.reading.sets.index') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold">{{ __('Reading') }}</h4>
@@ -95,7 +95,7 @@
                             </div>
                         </a>
 
-                        <a href="{{ route('listening.dashboard') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
+                        <a href="{{ route('student.listening.dashboard') }}" class="block p-4 border border-gray-200 rounded-lg hover:shadow-md transition-colors">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h4 class="font-semibold">{{ __('Listening') }}</h4>

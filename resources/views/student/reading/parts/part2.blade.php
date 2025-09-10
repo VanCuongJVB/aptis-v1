@@ -33,8 +33,8 @@
     </div>
 
     <div class="mt-3 flex items-center gap-2">
-        <button type="button" id="shuffle-btn" class="btn">Xáo câu</button>
-        <button type="button" id="clear-btn" class="btn">Xóa</button>
+    <button type="button" id="shuffle-btn" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Xáo câu</button>
+    <button type="button" id="clear-btn" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Xóa</button>
         <p class="text-sm text-gray-600 ml-4">Khi sắp xếp xong, nhấn Nộp bài để lưu.</p>
     </div>
 

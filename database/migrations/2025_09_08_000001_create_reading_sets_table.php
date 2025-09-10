@@ -8,13 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('reading_sets', function (Blueprint $table) {
+        Schema::create('sets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('quiz_id')->constrained('quizzes')->cascadeOnDelete();
             $table->string('title');
+            $table->string('skill')->default('reading');
             $table->text('description')->nullable();
             $table->boolean('is_public')->default(false);
-            $table->integer('question_limit')->default(5);
             $table->integer('order')->default(0);
             $table->json('metadata')->nullable();
             $table->timestamps();
@@ -25,6 +25,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('reading_sets');
+    Schema::dropIfExists('sets');
     }
 };

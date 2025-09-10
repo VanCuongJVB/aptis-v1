@@ -31,7 +31,7 @@
         @endif
 
         <div class="mt-6">
-            <a href="{{ route('reading.dashboard') }}" class="btn">Quay lại</a>
+            <a href="{{ route('student.reading.dashboard') }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Quay lại</a>
         </div>
     </div>
 </div>

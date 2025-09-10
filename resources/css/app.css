@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+	.btn-base {
+		@apply inline-flex items-center px-3 py-2 border rounded-md text-sm font-medium;
+	}
+
+	.btn-primary {
+		background-color: #23085a;
+		color: #ffffff;
+		border-color: transparent;
+	}
+
+	.btn-primary:hover {
+		background-color: #19043f;
+	}
+}

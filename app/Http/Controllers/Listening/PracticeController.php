@@ -152,15 +152,20 @@ class PracticeController extends Controller
     {
         if ($attempt->user_id !== Auth::id()) abort(403);
         if ($attempt->isSubmitted()) return redirect()->route('listening.practice.result', $attempt);
-
         $answerMeta = $request->input('metadata', $request->input('answer_meta', []));
+        // Accept selected_option_id from frontend (compatibility with templates)
+        if ($request->has('selected_option_id')) {
+            if (!is_array($answerMeta)) $answerMeta = [];
+            // prefer structured selected metadata
+            $answerMeta['selected'] = ['option_id' => $request->input('selected_option_id')];
+        }
         if (empty($answerMeta)) {
             $answerMeta = [];
             if ($request->has('option_id')) { $answerMeta['selected'] = ['option_id' => $request->input('option_id')]; }
             if ($request->has('selected')) { $answerMeta['selected'] = $request->input('selected'); }
         }
 
-        $selOption = $request->input('selected_option_id', $request->input('option_id', null));
+    $selOption = $request->input('selected_option_id', $request->input('option_id', null));
 
         if ($request->ajax() && $request->input('action') === 'submit') {
             $grading = $this->gradeAnswer($question, $answerMeta);
@@ -279,6 +284,73 @@ class PracticeController extends Controller
         ]);
 
         return redirect()->route('listening.practice.result', $attempt);
+    }
+
+    /**
+     * Persist a batch of answers for an attempt and finalize scoring.
+     * Expects JSON: { answers: { questionId: { selected: <index|value>, is_correct: bool } } }
+     */
+    public function batchSubmit(Request $request, Attempt $attempt)
+    {
+        if ($attempt->user_id !== Auth::id()) abort(403);
+
+        $payload = $request->input('answers', []);
+        $final = $request->boolean('final', false);
+
+        DB::transaction(function() use ($attempt, $payload, $final, &$total, &$correct) {
+            $total = 0;
+            $correct = 0;
+
+            foreach ($payload as $questionId => $entry) {
+                $questionId = (int)$questionId;
+                $selected = $entry['selected'] ?? null;
+                // if frontend didn't compute is_correct, attempt to grade server-side
+                $isCorrect = isset($entry['is_correct']) ? (bool)$entry['is_correct'] : null;
+
+                // try to grade when missing - keep simple: compare against question metadata
+                if (is_null($isCorrect)) {
+                    try {
+                        $q = Question::find($questionId);
+                        $g = $this->gradeAnswer($q, ['selected' => $selected]);
+                        $isCorrect = $g['is_correct'] ?? false;
+                    } catch (\Exception $e) {
+                        $isCorrect = false;
+                    }
+                }
+
+                AttemptAnswer::updateOrCreate(
+                    ['attempt_id' => $attempt->id, 'question_id' => $questionId],
+                    ['selected_option_id' => $selected, 'is_correct' => $isCorrect, 'metadata' => $entry]
+                );
+
+                $total += 1;
+                if ($isCorrect) $correct += 1;
+            }
+
+            $scorePercentage = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
+
+            // update totals, only finalize when final flag is true
+            $updateData = [
+                'total_questions' => $total,
+                'correct_answers' => $correct,
+                'score_percentage' => $scorePercentage,
+                'score_points' => $correct
+            ];
+
+            if ($final) {
+                $updateData['status'] = 'submitted';
+                $updateData['submitted_at'] = now();
+            }
+
+            $attempt->update($updateData);
+        });
+
+        $response = ['success' => true, 'message' => 'Batch saved', 'submitted' => (bool)$final, 'total' => $total ?? 0, 'correct' => $correct ?? 0];
+        if ($final) {
+            $response['redirect'] = route('listening.practice.result', $attempt);
+        }
+
+        return response()->json($response);
     }
 
     public function showResult(Attempt $attempt)

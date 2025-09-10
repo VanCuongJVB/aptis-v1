@@ -27,11 +27,11 @@
                             <x-dropdown-link :href="route('student.dashboard')">
                                 {{ __('Bảng điều khiển') }}
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('reading.sets.index')">
+                            <x-dropdown-link :href="route('student.reading.dashboard')">
                                 {{ __('Luyện tập Reading') }}
                             </x-dropdown-link>
-                            @if(Route::has('listening.dashboard'))
-                                <x-dropdown-link :href="route('listening.dashboard')">
+                            @if(Route::has('student.listening.dashboard'))
+                                <x-dropdown-link :href="route('student.listening.dashboard')">
                                     {{ __('Luyện tập Listening') }}
                                 </x-dropdown-link>
                             @endif
@@ -131,11 +131,14 @@
             <x-responsive-nav-link :href="route('student.dashboard')" :active="request()->routeIs('student.dashboard')">
                 {{ __('Bảng điều khiển') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('reading.sets.index')" :active="request()->routeIs('reading.*')">
+            <x-responsive-nav-link :href="route('student.reading.dashboard')" :active="request()->routeIs('reading.dashboard')">
+                {{ __('Bảng điều khiển Reading') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('student.reading.sets.index')" :active="request()->routeIs('student.reading.*')">
                 {{ __('Luyện tập Reading') }}
             </x-responsive-nav-link>
-            @if(Route::has('listening.dashboard'))
-                <x-responsive-nav-link :href="route('listening.dashboard')" :active="request()->routeIs('listening.*')">
+            @if(Route::has('student.listening.dashboard'))
+                <x-responsive-nav-link :href="route('student.listening.dashboard')" :active="request()->routeIs('student.listening.*')">
                     {{ __('Luyện tập Listening') }}
                 </x-responsive-nav-link>
             @endif

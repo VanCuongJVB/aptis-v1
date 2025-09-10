@@ -93,7 +93,7 @@ class PracticeController extends Controller
     {
         // Kiểm tra part hợp lệ
         if ($part < 1 || $part > 4) {
-            return redirect()->route('reading.sets.index')
+            return redirect()->route('student.reading.sets.index')
                 ->with('error', 'Phần không hợp lệ');
         }
         
@@ -135,7 +135,7 @@ class PracticeController extends Controller
     {
         // Kiểm tra xem quiz có phải reading quiz đã xuất bản không
         if ($quiz->skill !== 'reading' || !$quiz->is_published) {
-            return redirect()->route('reading.sets.index')
+            return redirect()->route('student.reading.sets.index')
                 ->with('error', 'Bộ đề không hợp lệ hoặc chưa được xuất bản');
         }
         // Optional: accept a reading set and mode (learning/exam)
@@ -797,6 +797,70 @@ class PracticeController extends Controller
         });
 
         return response()->json(['questions' => $payload]);
+    }
+
+    /**
+     * Persist a batch of answers for a reading attempt and optionally finalize scoring.
+     * Expects JSON: { answers: { questionId: { selected: <index|value>, is_correct: bool } }, final: bool }
+     */
+    public function batchSubmit(Request $request, Attempt $attempt)
+    {
+        if ($attempt->user_id !== Auth::id()) abort(403);
+
+        $payload = $request->input('answers', []);
+        $final = $request->boolean('final', false);
+
+        DB::transaction(function() use ($attempt, $payload, $final, &$total, &$correct) {
+            $total = 0;
+            $correct = 0;
+
+            foreach ($payload as $questionId => $entry) {
+                $questionId = (int)$questionId;
+                $selected = $entry['selected'] ?? null;
+                $isCorrect = isset($entry['is_correct']) ? (bool)$entry['is_correct'] : null;
+
+                if (is_null($isCorrect)) {
+                    try {
+                        $q = Question::find($questionId);
+                        $g = $this->gradeAnswer($q, ['selected' => $selected]);
+                        $isCorrect = $g['is_correct'] ?? false;
+                    } catch (\Exception $e) {
+                        $isCorrect = false;
+                    }
+                }
+
+                AttemptAnswer::updateOrCreate(
+                    ['attempt_id' => $attempt->id, 'question_id' => $questionId],
+                    ['selected_option_id' => $selected, 'is_correct' => $isCorrect, 'metadata' => $entry]
+                );
+
+                $total += 1;
+                if ($isCorrect) $correct += 1;
+            }
+
+            $scorePercentage = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
+
+            $updateData = [
+                'total_questions' => $total,
+                'correct_answers' => $correct,
+                'score_percentage' => $scorePercentage,
+                'score_points' => $correct
+            ];
+
+            if ($final) {
+                $updateData['status'] = 'submitted';
+                $updateData['submitted_at'] = now();
+            }
+
+            $attempt->update($updateData);
+        });
+
+        $response = ['success' => true, 'message' => 'Batch saved', 'submitted' => (bool)$final, 'total' => $total ?? 0, 'correct' => $correct ?? 0];
+        if ($final) {
+            $response['redirect'] = route('reading.practice.result', $attempt);
+        }
+
+        return response()->json($response);
     }
 
     /**

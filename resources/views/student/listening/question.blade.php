@@ -37,7 +37,7 @@
             @endif
         </div>
 
-        <form id="answer-form" method="POST" action="{{ route('listening.practice.answer', ['attempt' => $attempt->id, 'question' => $question->id]) }}">
+    <form id="answer-form" method="POST" action="{{ route('listening.practice.answer', ['attempt' => $attempt->id, 'question' => $question->id]) }}">
             @csrf
             <div class="prose mb-4">{!! $question->content ?? $question->title !!}</div>
 
@@ -74,19 +74,22 @@
                 @endif
             </div>
 
+            <div id="inline-feedback" class="mt-3 p-3 rounded hidden"></div>
+
             <div class="flex items-center justify-between mt-6">
                 <div class="space-x-2">
-                    @if($previousPosition)
-                        <a href="{{ route('listening.practice.question', ['attempt' => $attempt->id, 'position' => $previousPosition]) }}" class="btn">&larr; Trước</a>
+                        @if($previousPosition)
+                        <a href="{{ route('listening.practice.question', ['attempt' => $attempt->id, 'position' => $previousPosition]) }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">&larr; Trước</a>
                     @endif
 
                     @if($nextPosition)
-                        <a href="{{ route('listening.practice.question', ['attempt' => $attempt->id, 'position' => $nextPosition]) }}" class="btn">Tiếp &rarr;</a>
+                        <a href="{{ route('listening.practice.question', ['attempt' => $attempt->id, 'position' => $nextPosition]) }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Tiếp &rarr;</a>
                     @endif
                 </div>
 
-                <div>
-                    <button type="button" id="submit-btn" class="btn btn-primary">Nộp</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-local-btn" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Lưu</button>
+                    <button type="button" id="final-submit-btn" class="btn-base btn-primary">Nộp bài (Cuối)</button>
                 </div>
             </div>
         </form>
@@ -113,33 +116,101 @@
         }
         return fd;
     }
-
-    submitBtn && submitBtn.addEventListener('click', function(){
-        submitBtn.disabled = true;
-        const meta = collectMeta();
-        const body = new FormData();
-        body.append('action','submit');
-        body.append('metadata', JSON.stringify(meta));
-
-        fetch(form.action, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': document.querySelector('input[name=_token]').value }, body })
-        .then(r => r.json())
-        .then(resp => {
-            submitBtn.disabled = false;
-            if (resp.success) {
-                // show inline feedback
-                if (resp.is_correct) {
-                    alert('Đúng');
-                } else {
-                    alert('Sai. Đáp án: ' + JSON.stringify(resp.correct));
-                }
-
-                if (resp.redirect) {
-                    window.location.href = resp.redirect;
-                }
-            } else {
-                alert(resp.message || 'Lỗi khi nộp câu trả lời');
+    // Basic client-side grader for this question. It mirrors the server's gradeAnswer for common types.
+    function gradeLocal(selected, meta) {
+        try {
+            const part = meta.part || null;
+            // MC questions
+            if (([1,16,17].includes(part)) || meta.type === 'mc' || Array.isArray(meta.options)) {
+                const correctIndex = meta.correct_index ?? meta.correct ?? null;
+                const sel = selected;
+                const isCorrect = (correctIndex !== null) && (String(sel) === String(correctIndex));
+                return { is_correct: isCorrect, correct: correctIndex };
             }
-        }).catch(err => { console.error(err); submitBtn.disabled = false; alert('Lỗi mạng'); });
+
+            // speaker/list mapping
+            if (part === 14 || meta.type === 'speakers' || meta.type === 'listening_speakers_complete') {
+                const correct = meta.answers || [];
+                const sel = selected || {};
+                const isCorrect = JSON.stringify(Object.values(sel)) === JSON.stringify(Object.values(correct));
+                return { is_correct: isCorrect, correct };
+            }
+
+            if (part === 15 || meta.type === 'who_expresses') {
+                const correct = meta.answers || [];
+                const sel = selected || {};
+                const isCorrect = JSON.stringify(Object.values(sel)) === JSON.stringify(Object.values(correct));
+                return { is_correct: isCorrect, correct };
+            }
+        } catch (e) {
+            // fallthrough
+        }
+        return { is_correct: false, correct: null };
+    }
+
+    // ensure global answer store and try to restore from localStorage
+    window.attemptAnswers = window.attemptAnswers || {};
+    try {
+        const saved = localStorage.getItem('attempt_answers_{{ $attempt->id }}');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                window.attemptAnswers = Object.assign({}, parsed, window.attemptAnswers);
+            }
+        }
+    } catch (e) { /* ignore parse errors */ }
+
+    const questionId = {{ $question->id }};
+    const qMeta = {!! json_encode($question->metadata ?? []) !!};
+
+    const saveLocalBtn = document.getElementById('save-local-btn');
+    const finalSubmitBtn = document.getElementById('final-submit-btn');
+
+    function saveLocal() {
+        const meta = collectMeta();
+        const grading = gradeLocal(meta.selected ?? meta.selected_option_id ?? meta.selected, qMeta);
+        window.attemptAnswers[questionId] = { selected: meta.selected ?? meta.selected_option_id ?? meta.option_id ?? null, is_correct: grading.is_correct };
+
+    // persist to localStorage keyed by attempt id so it survives navigation
+    try { localStorage.setItem('attempt_answers_{{ $attempt->id }}', JSON.stringify(window.attemptAnswers)); } catch (e) { /* ignore */ }
+
+        const fb = document.getElementById('inline-feedback');
+        fb.classList.remove('hidden');
+        fb.classList.remove('bg-green-50','border-green-200','text-green-800','bg-red-50','border-red-200','text-red-800');
+        if (grading.is_correct) {
+            fb.classList.add('bg-green-50','border','border-green-200','text-green-800');
+            fb.innerText = 'Đã lưu (Đúng)';
+        } else {
+            fb.classList.add('bg-red-50','border','border-red-200','text-red-800');
+            fb.innerText = 'Đã lưu (Sai)';
+        }
+    }
+
+    saveLocalBtn && saveLocalBtn.addEventListener('click', function(){ saveLocal(); });
+
+    // summary feature removed
+
+    finalSubmitBtn && finalSubmitBtn.addEventListener('click', function(){
+        if (!confirm('Bạn chắc chắn muốn nộp bài? Sau khi nộp sẽ không thể thay đổi.')) return;
+        finalSubmitBtn.disabled = true;
+        const batchUrl = '{{ route('listening.practice.batchSubmit', $attempt->id) }}';
+    // ensure latest saved locally
+    try { localStorage.setItem('attempt_answers_{{ $attempt->id }}', JSON.stringify(window.attemptAnswers)); } catch (e) {}
+
+    fetch(batchUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('input[name=_token]').value },
+            body: JSON.stringify({ answers: window.attemptAnswers, final: true })
+        }).then(r => r.json()).then(resp => {
+            finalSubmitBtn.disabled = false;
+            if (resp.success) {
+        // clear local storage on final submit success
+        try { localStorage.removeItem('attempt_answers_{{ $attempt->id }}'); } catch (e) {}
+        if (resp.redirect) window.location.href = resp.redirect; else alert('Đã nộp.');
+            } else {
+                alert(resp.message || 'Lỗi khi nộp bài');
+            }
+        }).catch(err => { console.error(err); finalSubmitBtn.disabled = false; alert('Lỗi mạng'); });
     });
 
 })();

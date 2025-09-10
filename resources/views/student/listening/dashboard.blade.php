@@ -26,7 +26,7 @@
                                         </div>
 
                                         <div class="mt-4">
-                                            <a href="{{ route('student.quizzes.show', $quiz) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">{{ __('Bắt đầu') }}</a>
+                                            <a href="{{ route('student.listening.sets.index', ['quiz' => $quiz->id]) }}" class="btn-base btn-primary block text-center w-full">{{ __('Bắt đầu') }}</a>
                                         </div>
                                     </div>
                                 </div>
