@@ -54,9 +54,30 @@
 
 <script>
     (function () {
+        // one-time init guard to avoid double event bindings when scripts are re-run
+        if (window.__aptis_footer_initted) return; window.__aptis_footer_initted = true;
+
         const fnext = document.getElementById('footer-next-btn');
         const spinner = document.getElementById('footer-next-spinner');
         const mainSelector = '.container.mx-auto';
+
+        // Ensure global singletons for shared state so SPA replaces don't wipe them
+        window.attemptAnswers = window.attemptAnswers || {};
+        window.__aptis_feedbackShownForQid = window.__aptis_feedbackShownForQid || {};
+
+        // Debounced persistence to reduce main-thread pauses caused by JSON.stringify
+        let __aptis_persist_timer = null;
+        function persistAttemptAnswersNow() {
+            try {
+                if (!window.currentAttemptId) return;
+                localStorage.setItem('attempt_answers_' + window.currentAttemptId, JSON.stringify(window.attemptAnswers));
+            } catch (e) { /* ignore */ }
+        }
+        function schedulePersistAttemptAnswers(delay = 300) {
+            if (__aptis_persist_timer) clearTimeout(__aptis_persist_timer);
+            __aptis_persist_timer = setTimeout(() => { __aptis_persist_timer = null; persistAttemptAnswersNow(); }, delay);
+        }
+        window.addEventListener('beforeunload', () => { if (__aptis_persist_timer) clearTimeout(__aptis_persist_timer); persistAttemptAnswersNow(); });
 
         const footer = {
             setLoading(on) { spinner?.classList.toggle('hidden', !on); fnext.disabled = on; },
@@ -73,10 +94,31 @@
                     return { part: 'part2', order, texts };
                 }
 
+                // listening: part2 selects have class .part2-select
+                const part2Els = root.querySelectorAll('.part2-select');
+                if (part2Els.length) {
+                    const order = [], texts = [];
+                    part2Els.forEach(s => {
+                        const v = s.value === '' ? null : s.value;
+                        order.push(v === null ? null : Number(v));
+                        texts.push(v === null ? null : s.options[s.selectedIndex].text);
+                    });
+                    return { part: 'part2', order, texts };
+                }
+
                 const checked = root.querySelectorAll('input:checked');
                 if (checked.length) return { part: 'choice', value: Array.from(checked).map(i => i.value) };
 
+                // detect part3 selects (named select-<idx>) used in listening part3
+                const part3Els = root.querySelectorAll('select[name^="select-"]');
+                if (part3Els.length) return { part: 'part3', value: Array.from(part3Els).map(s => s.value) };
+
+                // detect part3 selects (named select-<idx>) used in listening part3
+                const part3Els = root.querySelectorAll('select[name^="select-"]');
+                if (part3Els.length) return { part: 'part3', value: Array.from(part3Els).map(s => s.value) };
+
                 // detect multiple selects (Part 1 style: multiple dropdowns for blanks)
+                // detect multiple selects (Part 4 style) and return array of values (TruongCuong)
                 const selEls = root.querySelectorAll('select');
                 if (selEls.length > 1) {
                     // treat as part1 so renderPart1 is used (it queries selects by qid)
@@ -92,7 +134,8 @@
                 if (!qid) return;
                 window.attemptAnswers = window.attemptAnswers || {};
                 window.attemptAnswers[qid] = payload;
-                try { localStorage.setItem('attempt_answers_' + window.currentAttemptId, JSON.stringify(window.attemptAnswers)); } catch (e) { }
+                // schedule a debounced persist to avoid blocking the main thread frequently
+                if (typeof schedulePersistAttemptAnswers === 'function') schedulePersistAttemptAnswers();
             },
             showFeedback(qid, payload) {
                 if (!payload) return;
@@ -156,6 +199,41 @@
                     }
                 };
 
+                // Lightweight fallback for inlineFeedback if template not included on page
+                if (!window.inlineFeedback) {
+                    window.inlineFeedback = {
+                        show: function (qid, userAnswer, correctAnswer, statsText) {
+                            const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
+                            if (!target) return;
+                            const container = document.createElement('div');
+                            container.className = 'w-full';
+                            container.innerHTML = `
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="font-medium text-sm">Đã lưu</div>
+                                    <div class="text-xs font-semibold px-2 py-0.5 rounded-full text-gray-700 bg-gray-100">${statsText}</div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mt-2">
+                                    <div>
+                                        <div class="text-xs text-gray-500">Bạn chọn</div>
+                                        <div class="text-sm text-gray-700 mt-1">${userAnswer}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-gray-500">Đáp án</div>
+                                        <div class="text-sm text-gray-700 mt-1">${correctAnswer}</div>
+                                    </div>
+                                </div>
+                            `;
+                            target.innerHTML = '';
+                            target.appendChild(container);
+                            target.classList.remove('hidden');
+                        },
+                        hide: function (qid) {
+                            const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
+                            if (target) { target.innerHTML = ''; target.classList.add('hidden'); }
+                        }
+                    };
+                }
+
                 function renderPart1(qid, payload) {
                     const selEls = [...document.querySelectorAll(`.question-block[data-qid="${qid}"] select`)];
                     // fallback to payload.value (collected earlier) when DOM query doesn't find selects
@@ -194,10 +272,23 @@
                 }
 
                 function renderPart3(qid, payload) {
-                    if (window.inlineFeedback?.show) {
-                        const userText = JSON.stringify(payload.selected ?? payload.value ?? '(Chưa có đáp án)');
-                        window.inlineFeedback.show(qid, userText, '', '');
-                    }
+                    const meta = window.currentQuestionMeta ?? {};
+                    const items = Array.isArray(meta.items) ? meta.items : [];
+                    const options = Array.isArray(meta.options) ? meta.options : [];
+                    const answers = Array.isArray(meta.answers) ? meta.answers.map(v => (isNaN(v) ? v : Number(v))) : [];
+                    const userArr = payload?.values ?? payload?.selected ?? payload?.value ?? [];
+
+                    let correctCount = 0;
+                    const rows = items.map((it, i) => {
+                        const raw = (userArr && typeof userArr[i] !== 'undefined') ? userArr[i] : null;
+                        const userText = (raw !== null && options[raw] !== undefined) ? options[raw] : (raw !== null ? String(raw) : '(chưa)');
+                        const corrRaw = (typeof answers[i] !== 'undefined') ? answers[i] : null;
+                        const corrText = (corrRaw !== null && options[corrRaw] !== undefined) ? options[corrRaw] : (corrRaw !== null ? String(corrRaw) : '(---)');
+                        const ok = (raw !== null && corrRaw !== null && String(raw) === String(corrRaw));
+                        if (ok) correctCount++;
+                        return { userText, correctText: corrText, ok };
+                    });
+                    renderFeedback(qid, `Đúng ${correctCount} / ${items.length}`, rows, rowBuilders.twoCols);
                 }
 
                 function renderPart4(qid, payload) {
@@ -221,15 +312,47 @@
                     renderFeedback(qid, `Đúng ${correctCount} / ${paragraphs.length}`, rows, rowBuilders.paragraph, 'space-y-4');
                 }
 
+                // --- Listening-specific renderers ---
+                function listeningRenderPart1(qid, payload) {
+                    const meta = window.currentQuestionMeta ?? {};
+                    const options = Array.isArray(meta.options) ? meta.options : [];
+                    
+                    let raw = null;
+                    if (payload && (typeof payload.value !== 'undefined') && payload.value !== null && payload.value !== '') raw = payload.value;
+                    else if (payload && (typeof payload.selected !== 'undefined') && payload.selected !== null) raw = payload.selected;
+                    else {
+                        const radio = document.querySelector(`.question-block[data-qid="${qid}"] input[name="selected_option_id"]:checked`);
+                        if (radio) raw = radio.value;
+                    }
+
+                    const userText = (raw !== null && options[raw] !== undefined) ? options[raw] : (raw !== null ? String(raw) : '(chưa)');
+                    const corrRaw = (typeof meta.correct_index !== 'undefined' && meta.correct_index !== null) ? meta.correct_index : (Array.isArray(meta.correct) ? meta.correct[0] : null);
+                    const corrText = (corrRaw !== null && options[corrRaw] !== undefined) ? options[corrRaw] : (corrRaw !== null ? String(corrRaw) : '(---)');
+                    const ok = raw !== null && corrRaw !== null && String(raw) === String(corrRaw);
+                    renderFeedback(qid, `Đúng ${ok ? 1 : 0} / 1`, [{ userText, correctText: corrText, ok }], rowBuilders.twoCols);
+                }
+
+                const listeningRenderers = { part1: listeningRenderPart1, part2: renderPart2, part3: renderPart3, part4: renderPart4 };
+
                 const renderers = { part1: renderPart1, part2: renderPart2, part3: renderPart3, part4: renderPart4 };
                 const rootEl = document.querySelector(`.question-block[data-qid="${qid}"]`);
                 const selEls = rootEl ? [...rootEl.querySelectorAll('select')] : [];
-                const looksLikePart1 = payload?.part === 'part1' || (payload?.part === 'select' && selEls.length > 1);
-                if (looksLikePart1) return renderPart1(qid, payload);
 
-                const p = payload?.part || payload?.__part;
-                // renderer dispatch - debug suppressed
-                return renderers[p] ? renderers[p](qid, payload) : (
+                const skill = (window.currentQuestionMeta && window.currentQuestionMeta.skill) ? window.currentQuestionMeta.skill : (payload && payload.skill ? payload.skill : null);
+                const useListening = skill === 'listening';
+
+                const looksLikePart1 = payload?.part === 'part1' || (payload?.part === 'select' && selEls.length > 1);
+                if (!useListening && looksLikePart1) return renderPart1(qid, payload);
+
+                let p = payload?.part || payload?.__part;
+                // if listening and payload is a generic 'choice' (checked inputs), map it to the listening part number
+                if (useListening && p === 'choice') {
+                    const partNum = (window.currentQuestionMeta && window.currentQuestionMeta.part) ? window.currentQuestionMeta.part : (payload?.__part ?? 1);
+                    p = 'part' + partNum;
+                }
+                const dispatcher = useListening ? listeningRenderers : renderers;
+                // renderer dispatch - prefer mapped renderer else fallback to inlineFeedback
+                return dispatcher[p] ? dispatcher[p](qid, payload) : (
                     window.inlineFeedback?.show && window.inlineFeedback.show(qid, JSON.stringify(payload.value ?? '(Chưa có đáp án)'), '', '')
                 );
             },
@@ -237,24 +360,29 @@
                 if (!url) return;
                 this.setLoading(true);
                 try {
+                    // flush pending attemptAnswers to localStorage to avoid losing state
+                    if (typeof schedulePersistAttemptAnswers === 'function') schedulePersistAttemptAnswers(0);
+
                     const res = await fetch(url, { credentials: 'same-origin' });
                     if (!res.ok) throw new Error();
                     const html = await res.text();
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     const newMain = doc.querySelector(mainSelector);
                     const oldMain = document.querySelector(mainSelector);
-                    if (newMain && oldMain) oldMain.replaceWith(newMain);
+                    if (newMain && oldMain) {
+                        oldMain.replaceWith(newMain);
+                        // keep global feedbackShownForQid across pages (do not reinit); if we must reset for fresh attempts do it explicitly
+                    }
                     history.pushState({}, '', url);
-                    doc.querySelectorAll('script:not([src])').forEach(s => {
-                        const ns = document.createElement('script');
-                        ns.textContent = s.textContent; document.body.appendChild(ns);
-                    });
+                    // dispatch a light-weight event so page-specific JS can init without re-executing inline scripts
+                    window.dispatchEvent(new CustomEvent('aptis:container:replace', { detail: { url } }));
                 } catch (e) { location.href = url; }
                 finally { this.setLoading(false); }
             }
         };
 
-        let feedbackShownForQid = {};
+    // use global feedback map so state survives container replaces
+    window.__aptis_feedbackShownForQid = window.__aptis_feedbackShownForQid || {};
 
         fnext?.addEventListener('click', async e => {
             e.preventDefault();
@@ -264,13 +392,62 @@
             const payload = footer.collect(root);
             footer.save(qid, payload);
 
-            const bladeNext = @json($nextUrl ?? null);
-            const nextUrl = window.nextUrl || bladeNext;
-            const finalUrl = '{{ route('reading.practice.result', ['attempt' => $attempt->id]) }}';
-            const isFinal = !nextUrl;
+            function hasAnswer(p) {
+                if (!p) return false;
+                const part = p.part;
+                if (part === 'part2') {
+                    return Array.isArray(p.order) && p.order.some(v => v !== null && v !== undefined && String(v).trim() !== '');
+                }
+                if (part === 'part3') {
+                    const arr = p.value || p.values || p.selected || [];
+                    return Array.isArray(arr) && arr.some(v => v !== null && v !== undefined && String(v).trim() !== '');
+                }
+                if (part === 'part4') {
+                    const arr = Array.isArray(p.value) ? p.value : [];
+                    return arr.some(v => v !== null && v !== undefined && String(v).trim() !== '');
+                }
+                if (part === 'select' || part === 'choice') {
+                    const v = p.value;
+                    if (Array.isArray(v)) return v.some(x => x !== null && x !== undefined && String(x).trim() !== '');
+                    return v !== null && v !== undefined && String(v).trim() !== '';
+                }
+                if (part === 'text') return p.value && String(p.value).trim() !== '';
+                // fallback: inspect common shapes
+                if (Array.isArray(p.value)) return p.value.some(v => v !== null && v !== undefined && String(v).trim() !== '');
+                if (p.value) return String(p.value).trim() !== '';
+                return false;
+            }
+
             const lbl = document.getElementById('footer-next-label');
 
-            const alreadyShown = feedbackShownForQid[qid] === true;
+            // Require an answer before showing feedback / navigating
+            if (!hasAnswer(payload)) {
+                // brief visual hint and focus first control
+                const prevText = lbl ? lbl.textContent : null;
+                if (lbl) {
+                    lbl.textContent = 'Vui lòng chọn đáp án';
+                    lbl.classList.add('text-red-600', 'font-bold');
+                }
+                if (root) {
+                    const firstCtl = root.querySelector('input, select, textarea');
+                    if (firstCtl) { firstCtl.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { firstCtl.focus(); } catch(e){} }
+                    root.classList.add('ring-2', 'ring-red-400');
+                    setTimeout(() => root.classList.remove('ring-2', 'ring-red-400'), 1500);
+                }
+                setTimeout(() => { if (lbl) { lbl.textContent = prevText; lbl.classList.remove('text-red-600'); } }, 1600);
+                return;
+            }
+
+            const bladeNext = @json($nextUrl ?? null);
+            // prefer blade-provided nextUrl, then data attributes on the main container (written by page), then any legacy window.nextUrl
+            const mainElForNext = document.querySelector(mainSelector);
+            const datasetNext = mainElForNext?.dataset?.nextUrl || null;
+            const datasetFinal = mainElForNext?.dataset?.finalUrl || null;
+            const nextUrl = bladeNext || datasetNext || window.nextUrl || null;
+            const finalUrl = datasetFinal || '{{ route('reading.practice.result', ['attempt' => $attempt->id]) }}';
+            const isFinal = !nextUrl;
+
+            const alreadyShown = window.__aptis_feedbackShownForQid[qid] === true;
 
             if (!alreadyShown) {
                 footer.showFeedback(qid, payload);
@@ -310,17 +487,15 @@
                     }
                 } catch (e) {}
                 if (lbl) lbl.textContent = isFinal ? 'Hoàn thành' : 'Next';
-                return; // ✅ lần đầu chỉ show feedback, không đi đâu cả
+                return; // lần đầu chỉ show feedback
             }
 
-            // ✅ lần 2 mới đi tiếp
+            // lần 2 mới đi tiếp
             if (isFinal) {
                 location.href = finalUrl;
             } else {
                 footer.navigate(nextUrl);
             }
-
-
         });
 
         window.addEventListener('popstate', () => location.reload());
