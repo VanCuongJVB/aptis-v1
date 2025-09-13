@@ -79,7 +79,7 @@
             (function () {
                 // Initialize function to set up drag and drop
                 function initPart2DragDrop() {
-                    const pool = document.getElementById('pool');
+                    let pool = document.getElementById('pool');
                     const slots = document.getElementById('slot-container');
                     const inputOrder = document.getElementById('part2_order');
                     const inputTexts = document.getElementById('part2_selected_texts');
@@ -128,7 +128,9 @@
                                 const src = pool.querySelector(`.draggable-item[data-index="${idx}"]`);
                                 const slot = slots.querySelector(`.slot[data-slot-index="${pos}"]`);
                                 if (src && slot) {
-                                    if (slot.firstChild) pool.appendChild(slot.firstChild);
+                                    // If the slot already contains a draggable item, move that back to the pool.
+                                    const existing = slot.querySelector('.draggable-item');
+                                    if (existing) pool.appendChild(existing);
                                     slot.innerHTML = '';
                                     slot.appendChild(src);
                                 }
@@ -161,7 +163,9 @@
                             const idx = e.dataTransfer.getData('text/plain');
                             const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
                             if (src) {
-                                if (newSlot.firstChild) pool.appendChild(newSlot.firstChild);
+                                // Move any existing draggable in the slot back to the pool
+                                const existing = newSlot.querySelector('.draggable-item');
+                                if (existing) pool.appendChild(existing);
                                 newSlot.innerHTML = '';
                                 newSlot.appendChild(src);
                                 collect();
@@ -174,14 +178,16 @@
                         const newPool = pool.cloneNode(false);
                         Array.from(pool.children).forEach(child => newPool.appendChild(child));
                         pool.parentNode.replaceChild(newPool, pool);
-                        
+                        // reassign pool variable to the live node
+                        pool = newPool;
+
                         // pool drop
-                        newPool.addEventListener('dragover', e => e.preventDefault());
-                        newPool.addEventListener('drop', e => {
+                        pool.addEventListener('dragover', e => e.preventDefault());
+                        pool.addEventListener('drop', e => {
                             e.preventDefault();
                             const idx = e.dataTransfer.getData('text/plain');
                             const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
-                            if (src) newPool.appendChild(src);
+                            if (src) pool.appendChild(src);
                             collect();
                         });
                     }
