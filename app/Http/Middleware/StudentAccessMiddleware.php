@@ -54,7 +54,7 @@ class StudentAccessMiddleware
             $route = $request->route();
             $routeName = $route ? $route->getName() : null;
 
-            if (!$routeName || !preg_match('/(practice|attempt|reading|listening|quiz)/', $routeName)) {
+            if (!$routeName || (!preg_match('/(practice|attempt|reading|listening|quiz)/', $routeName) && strpos($routeName, 'student.') !== 0)) {
                 return redirect()->route('student.dashboard');
             }
         }

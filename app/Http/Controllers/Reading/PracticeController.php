@@ -11,6 +11,7 @@ use App\Models\Option;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PracticeController extends Controller
 {
@@ -266,7 +267,8 @@ class PracticeController extends Controller
                 'total' => $totalQuestions,
                 'answered' => $answeredCount,
                 'previousPosition' => null,
-                'nextPosition' => null
+                'nextPosition' => null,
+                'batchSubmitUrl' => route('reading.practice.batchSubmit', $attempt->id),
             ])->with('initialPayload', $payload);
         }
 
@@ -294,16 +296,17 @@ class PracticeController extends Controller
             ->whereIn('question_id', $order)
             ->count();
 
-        return view('student.reading.question', [
-            'attempt' => $attempt,
-            'quiz' => $attempt->quiz,
-            'question' => $question,
-            'position' => $position,
-            'total' => $totalQuestions,
-            'answered' => $answeredCount,
-            'answer' => $answer,
-            'previousPosition' => $position > 1 ? $position - 1 : null,
-            'nextPosition' => $position < $totalQuestions ? $position + 1 : null
+    return view('student.reading.question', [
+        'attempt' => $attempt,
+        'quiz' => $attempt->quiz,
+        'question' => $question,
+        'position' => $position,
+        'total' => $totalQuestions,
+        'answered' => $answeredCount,
+        'answer' => $answer,
+        'previousPosition' => $position > 1 ? $position - 1 : null,
+        'nextPosition' => $position < $totalQuestions ? $position + 1 : null,
+        'batchSubmitUrl' => route('reading.practice.batchSubmit', $attempt->id),
     ])->with('initialPayload', $payload);
     }
     
@@ -810,50 +813,75 @@ class PracticeController extends Controller
         $payload = $request->input('answers', []);
         $final = $request->boolean('final', false);
 
-        DB::transaction(function() use ($attempt, $payload, $final, &$total, &$correct) {
-            $total = 0;
-            $correct = 0;
+        // initialize totals in case of early failure
+        $total = 0;
+        $correct = 0;
 
-            foreach ($payload as $questionId => $entry) {
-                $questionId = (int)$questionId;
-                $selected = $entry['selected'] ?? null;
-                $isCorrect = isset($entry['is_correct']) ? (bool)$entry['is_correct'] : null;
+        // defensive: ensure payload is an array
+        if (!is_array($payload)) {
+            return response()->json(['success' => false, 'message' => 'Invalid payload'], 422);
+        }
 
-                if (is_null($isCorrect)) {
-                    try {
-                        $q = Question::find($questionId);
-                        $g = $this->gradeAnswer($q, ['selected' => $selected]);
-                        $isCorrect = $g['is_correct'] ?? false;
-                    } catch (\Exception $e) {
-                        $isCorrect = false;
+        try {
+            DB::transaction(function() use ($attempt, $payload, $final, &$total, &$correct) {
+                $total = 0;
+                $correct = 0;
+
+                foreach ($payload as $questionId => $entry) {
+                    $questionId = (int)$questionId;
+                    // normalize entry
+                    $entry = is_array($entry) ? $entry : ['selected' => $entry];
+                    $selected = $entry['selected'] ?? null;
+                    $isCorrect = array_key_exists('is_correct', $entry) ? (bool)$entry['is_correct'] : null;
+
+                    if (is_null($isCorrect)) {
+                        try {
+                            $q = Question::find($questionId);
+                            $g = $this->gradeAnswer($q, ['selected' => $selected]);
+                            $isCorrect = $g['is_correct'] ?? false;
+                        } catch (\Exception $e) {
+                            $isCorrect = false;
+                        }
                     }
+
+                    // selected_option_id should be integer or null; store other selected data inside metadata
+                    $selectedOptionId = null;
+                    if (is_scalar($selected) && is_numeric($selected)) {
+                        $selectedOptionId = (int)$selected;
+                    }
+
+                    $metaToStore = $entry;
+                    // ensure metadata does not include big objects for DB int fields
+                    AttemptAnswer::updateOrCreate(
+                        ['attempt_id' => $attempt->id, 'question_id' => $questionId],
+                        ['selected_option_id' => $selectedOptionId, 'is_correct' => $isCorrect, 'metadata' => $metaToStore]
+                    );
+
+                    $total += 1;
+                    if ($isCorrect) $correct += 1;
                 }
 
-                AttemptAnswer::updateOrCreate(
-                    ['attempt_id' => $attempt->id, 'question_id' => $questionId],
-                    ['selected_option_id' => $selected, 'is_correct' => $isCorrect, 'metadata' => $entry]
-                );
+                $scorePercentage = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
 
-                $total += 1;
-                if ($isCorrect) $correct += 1;
-            }
+                $updateData = [
+                    'total_questions' => $total,
+                    'correct_answers' => $correct,
+                    'score_percentage' => $scorePercentage,
+                    'score_points' => $correct
+                ];
 
-            $scorePercentage = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
+                if ($final) {
+                    $updateData['status'] = 'submitted';
+                    $updateData['submitted_at'] = now();
+                }
 
-            $updateData = [
-                'total_questions' => $total,
-                'correct_answers' => $correct,
-                'score_percentage' => $scorePercentage,
-                'score_points' => $correct
-            ];
-
-            if ($final) {
-                $updateData['status'] = 'submitted';
-                $updateData['submitted_at'] = now();
-            }
-
-            $attempt->update($updateData);
-        });
+                $attempt->update($updateData);
+            });
+        } catch (\Throwable $e) {
+            // Log and return JSON error to avoid HTML error page
+            Log::error('batchSubmit failed for attempt ' . $attempt->id . ': ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['success' => false, 'message' => 'Server error while saving answers'], 500);
+        }
 
         $response = ['success' => true, 'message' => 'Batch saved', 'submitted' => (bool)$final, 'total' => $total ?? 0, 'correct' => $correct ?? 0];
         if ($final) {

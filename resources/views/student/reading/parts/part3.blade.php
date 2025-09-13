@@ -28,7 +28,7 @@
 
     {{-- Questions --}}
     <div>
-        <h4 class="text-lg font-semibold mb-3">Questions</h4>
+    <h4 class="text-lg font-semibold mb-3">Questions</h4>
         <div class="space-y-4">
             @foreach($items as $i => $it)
                 @php
@@ -65,4 +65,10 @@
             @endforeach
         </div>
     </div>
+
+    @includeWhen(true, 'student.reading.parts._check_helper')
 </div>
+
+
+<div class="inline-feedback mt-3 text-sm text-gray-700" data-qid-feedback="{{ $question->id }}"></div>
+

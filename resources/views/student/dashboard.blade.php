@@ -45,7 +45,7 @@
                                 <div class="text-sm font-medium text-gray-500">{{ __('Thời hạn truy cập:') }}</div>
                                 <div>
                                     @if($accessInfo['expires_at'])
-                                        {{ $accessInfo['expires_at']->format('d/m/Y') }}
+                                        {{ $accessInfo['expires_at'] }}
                                         <span class="text-sm text-gray-500">
                                             ({{ $accessInfo['days_left'] > 0 
                                                 ? __('Còn :days ngày', ['days' => $accessInfo['days_left']]) 
@@ -206,7 +206,7 @@
                                         <div class="mt-4">
                                             @php $btnLabel = $quiz->skill === 'reading' ? __('Tham gia') : __('Bắt đầu'); @endphp
                                             @if($quiz->skill === 'reading')
-                                                <a href="{{ route('reading.sets.index', ['quiz' => $quiz->id]) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                                                <a href="{{ route('student.reading.sets.index', ['quiz' => $quiz->id]) }}" class="block text-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                                                     {{ $btnLabel }}
                                                 </a>
                                             @else

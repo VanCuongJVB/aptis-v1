@@ -23,6 +23,8 @@
         </div>
 
         <hr class="my-4">
+    {{-- include helper so result page can render inline-feedback exactly like the practice view --}}
+    @includeIf('student.reading.parts._check_helper')
 
         @foreach($questions as $idx => $question)
             @php
@@ -225,7 +227,7 @@
                 };
             @endphp
 
-            <div class="mb-4 p-4 border rounded {{ $partClass }}">
+            <div class="mb-4 p-4 border rounded {{ $partClass }} question-block" data-qid="{{ $question->id }}">
                 <div class="flex items-start justify-between">
                     <div class="font-semibold flex items-center gap-2">
                         <span class="text-sm font-medium">Câu {{ $num }}</span>
@@ -262,6 +264,7 @@
                 </div>
 
                 <div class="prose mt-2">{!! $question->content ?? $question->title !!}</div>
+                <div data-meta-json='@json($meta)' style="display:none"></div>
 
                 @php $partToInclude = $partNum ?? ($quiz->part ?? 1); @endphp
                 @includeIf('student.reading.result_parts.part' . $partToInclude)
@@ -279,7 +282,119 @@
     @push('scripts')
     <script>
         (function(){
-            try { localStorage.removeItem('attempt_answers_{{ $attempt->id }}'); } catch (e) {}
+            try {
+                var key = 'attempt_answers_{{ $attempt->id }}';
+                var raw = null;
+                try { raw = localStorage.getItem(key); } catch(e) { raw = null; }
+                var answers = null;
+                if (raw) {
+                    try { answers = JSON.parse(raw); } catch(e) { answers = null; }
+                }
+                
+                if (!answers && typeof window.attemptAnswers !== 'undefined') answers = window.attemptAnswers;
+
+                // debug toggle
+                var DEBUG_RESULT_RENDER = true;
+
+                // helper: try to derive payload from DOM when persisted answers are not available
+                function derivePayloadFromDom(qEl) {
+                    if (!qEl) return null;
+
+                    // Part2: hidden inputs or slot state
+                    var inOrder = qEl.querySelector('#part2_order, input[name="part2_order"]');
+                    var inTexts = qEl.querySelector('#part2_selected_texts, input[name="part2_selected_texts"]');
+                    if (inOrder && (inOrder.value || (inTexts && inTexts.value))) {
+                        var raw = inOrder.value || '';
+                        var order = null;
+                        try { order = JSON.parse(raw); } catch(e) {
+                            if (raw) order = raw.split(',').map(function(s){ return s.trim(); });
+                        }
+                        var texts = null;
+                        if (inTexts && inTexts.value) {
+                            try { texts = JSON.parse(inTexts.value); } catch(e) { texts = inTexts.value.split(',').map(function(s){ return s.trim(); }); }
+                        }
+                        var p = { part: 'part2', order: order, texts: texts };
+                        if (DEBUG_RESULT_RENDER) console.debug('[result] derived part2 from hidden inputs', qEl.getAttribute('data-qid'), p);
+                        return p;
+                    }
+
+                    // slot-based fallback (if hidden inputs absent)
+                    var slots = qEl.querySelectorAll('.slot');
+                        if (slots && slots.length) {
+                        var order = [];
+                        var texts = [];
+                        slots.forEach(function(s){
+                            var it = s.querySelector('.draggable-item');
+                            if (it) { order.push(it.dataset.index); texts.push(it.innerText.trim()); }
+                            else order.push(null);
+                        });
+                        // if any non-null entry, return as part2
+                        if (order.some(function(v){ return v !== null && typeof v !== 'undefined'; })) {
+                            var p = { part: 'part2', order: order, texts: texts };
+                            if (DEBUG_RESULT_RENDER) console.debug('[result] derived part2 from slots', qEl.getAttribute('data-qid'), p);
+                            return p;
+                        }
+                    }
+
+                    // choices
+                    var checked = qEl.querySelectorAll('input[type=radio]:checked, input[type=checkbox]:checked');
+                    if (checked && checked.length) return { part: 'choice', value: Array.from(checked).map(function(i){ return i.value; }) };
+
+                    // select
+                    var sel = qEl.querySelector('select'); if (sel) return { part: 'select', value: sel.value };
+                    // textarea
+                    var ta = qEl.querySelector('textarea'); if (ta) return { part: 'text', value: ta.value };
+
+                    return null;
+                }
+
+                // Collect qids from the DOM so we can render all feedback even when storage is empty
+                if (DEBUG_RESULT_RENDER) console.info('[result] key=', 'attempt_answers_{{ $attempt->id }}', 'raw=', raw);
+                var qEls = Array.from(document.querySelectorAll('.question-block[data-qid]'));
+                if (DEBUG_RESULT_RENDER) console.info('[result] answersParsed=', !!answers, 'answersKeys=', answers ? Object.keys(answers).length : 0, 'questionBlocks=', qEls.length);
+                qEls.forEach(function(qEl){
+                    try {
+                        var qid = qEl.getAttribute('data-qid');
+                        var saved = (answers && answers[qid]) ? answers[qid] : null;
+
+                        // if no saved data, try to derive from DOM
+                        if (!saved) {
+                            var derived = derivePayloadFromDom(qEl);
+                            if (derived) saved = { selected: derived, is_correct: null, metadata: null };
+                        }
+
+                        if (!saved) return;
+
+                        var payload = saved.selected ?? saved.metadata ?? saved;
+                        var is_correct = (typeof saved.is_correct !== 'undefined') ? saved.is_correct : null;
+
+                        var metaEl = qEl ? qEl.querySelector('[data-meta-json]') : null;
+                        var meta = null;
+                        if (metaEl) {
+                            try { meta = JSON.parse(metaEl.getAttribute('data-meta-json')); } catch(e) { meta = null; }
+                        }
+
+                        // Save into helper's memory/store so other helpers can reuse it
+                        if (window.readingPartHelper && window.readingPartHelper.saveAnswer) {
+                            try { window.readingPartHelper.saveAnswer(qid, payload, { is_correct: is_correct }, {{ $attempt->id }}); } catch(e){}
+                        }
+
+                        // Try to show feedback. Different helper signatures may exist, so attempt
+                        // a couple of variants then fall back to inlineFeedback.
+                        var shown = false;
+                        if (window.readingPartHelper && window.readingPartHelper.showFeedback) {
+                            try { window.readingPartHelper.showFeedback(qid, payload); shown = true; } catch(e) {
+                                try { window.readingPartHelper.showFeedback(qid, is_correct, meta || (saved.metadata || {})); shown = true; } catch(e) { shown = false; }
+                            }
+                        }
+
+                        if (!shown && window.inlineFeedback && qEl) {
+                            try { window.inlineFeedback.show(qid, JSON.stringify(payload ?? '(Chưa có đáp án)'), '', ''); } catch(e){}
+                        }
+                    } catch(e){}
+                });
+
+            } catch(e){}
         })();
     </script>
     @endpush

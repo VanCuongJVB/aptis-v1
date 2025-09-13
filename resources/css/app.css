@@ -7,6 +7,30 @@
 		@apply inline-flex items-center px-3 py-2 border rounded-md text-sm font-medium;
 	}
 
+	:root { --btn-large-size: 56px; }
+
+	.btn-base-large {
+		display: inline-flex;
+		align-items: center;
+		border-width: 1px;
+		border-style: solid;
+		font-weight: 500;
+		height: var(--btn-large-size);
+		padding: 20px 8px !important; 
+		box-sizing: border-box;
+	}
+
+	.btn-square {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: var(--btn-large-size);
+		width: var(--btn-large-size) !important;
+		padding: 0 !important;
+		box-sizing: border-box;
+		border-radius: .375rem;
+	}
+
 	.btn-primary {
 		background-color: #23085a;
 		color: #ffffff;
