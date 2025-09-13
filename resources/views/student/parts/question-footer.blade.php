@@ -54,69 +54,64 @@
 
 <script>
     (function () {
-        // one-time init guard to avoid double event bindings when scripts are re-run
         if (window.__aptis_footer_initted) return; window.__aptis_footer_initted = true;
 
         const fnext = document.getElementById('footer-next-btn');
         const spinner = document.getElementById('footer-next-spinner');
         const mainSelector = '.container.mx-auto';
 
-        // Ensure global singletons for shared state so SPA replaces don't wipe them
         window.attemptAnswers = window.attemptAnswers || {};
         window.__aptis_feedbackShownForQid = window.__aptis_feedbackShownForQid || {};
 
-        // Debounced persistence to reduce main-thread pauses caused by JSON.stringify
         let __aptis_persist_timer = null;
-        function persistAttemptAnswersNow() {
+        function persistAnswersNow() {
             try {
                 if (!window.currentAttemptId) return;
                 localStorage.setItem('attempt_answers_' + window.currentAttemptId, JSON.stringify(window.attemptAnswers));
-            } catch (e) { /* ignore */ }
+            } catch (e) { }
         }
-        function schedulePersistAttemptAnswers(delay = 300) {
+        function schedulePersistAnswers(delay = 300) {
             if (__aptis_persist_timer) clearTimeout(__aptis_persist_timer);
-            __aptis_persist_timer = setTimeout(() => { __aptis_persist_timer = null; persistAttemptAnswersNow(); }, delay);
+            __aptis_persist_timer = setTimeout(() => { __aptis_persist_timer = null; persistAnswersNow(); }, delay);
         }
-        window.addEventListener('beforeunload', () => { if (__aptis_persist_timer) clearTimeout(__aptis_persist_timer); persistAttemptAnswersNow(); });
+        window.addEventListener('beforeunload', () => { if (__aptis_persist_timer) clearTimeout(__aptis_persist_timer); persistAnswersNow(); });
 
         const footer = {
             setLoading(on) { spinner?.classList.toggle('hidden', !on); fnext.disabled = on; },
-            // Find the most visible question block (useful when multiple blocks are present)
-            _activeBlock() {
+            getActiveBlock() {
                 const blocks = [...document.querySelectorAll('.question-block')];
                 if (!blocks.length) return null;
                 if (blocks.length === 1) return blocks[0];
-                
-                // Find the most visible block in the viewport
+
+
                 let bestBlock = blocks[0];
                 let bestVisibility = 0;
-                
+
                 blocks.forEach(block => {
                     const rect = block.getBoundingClientRect();
-                    // Calculate how much of the element is in the viewport
+
                     const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
                     const visibleWidth = Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0);
                     const visibleArea = visibleHeight * visibleWidth;
-                    
+
                     if (visibleArea > bestVisibility) {
                         bestVisibility = visibleArea;
                         bestBlock = block;
                     }
                 });
-                
+
                 return bestBlock;
             },
-            qid() { 
-                // Get the ID from the most visible question block
-                const activeBlock = this._activeBlock();
+            getQid() {
+                const activeBlock = this.getActiveBlock();
                 return activeBlock?.dataset.qid || null;
             },
-            collect(root) {
+            collectAnswers(root) {
                 if (!root) {
-                    // If no root is provided, use the active block
-                    root = this._activeBlock();
+                    root = this.getActiveBlock();
                     if (!root) return null;
                 }
+
                 if (root.querySelector('.slot')) {
                     const order = [], texts = [];
                     root.querySelectorAll('.slot').forEach(s => {
@@ -127,58 +122,68 @@
                     return { part: 'part2', order, texts };
                 }
 
-                // listening: part2 selects have class .part2-select
                 const part2Els = root.querySelectorAll('.part2-select');
                 if (part2Els.length) {
-                    const order = [], texts = [];
+                    const order = [], texts = [], originalIndices = [];
                     part2Els.forEach(s => {
                         const v = s.value === '' ? null : s.value;
                         order.push(v === null ? null : Number(v));
                         texts.push(v === null ? null : s.options[s.selectedIndex].text);
+
+
+                        if (v !== null && s.options[s.selectedIndex].hasAttribute('data-original-index')) {
+                            originalIndices.push(Number(s.options[s.selectedIndex].getAttribute('data-original-index')));
+                        } else {
+                            originalIndices.push(v === null ? null : Number(v));
+                        }
                     });
-                    return { part: 'part2', order, texts };
+                    return { part: 'part2', order, texts, originalIndices };
                 }
 
                 const checked = root.querySelectorAll('input:checked');
-                if (checked.length) return { part: 'choice', value: Array.from(checked).map(i => i.value) };
+                if (checked.length) {
+                    return { part: 'choice', value: Array.from(checked).map(i => i.value) };
+                }
 
-                // detect part3 selects (named select-<idx>) used in listening part3
+
                 const part3Els = root.querySelectorAll('select[name^="select-"]');
-                if (part3Els.length) return { part: 'part3', value: Array.from(part3Els).map(s => s.value) };
+                if (part3Els.length) {
+                    return { part: 'part3', value: Array.from(part3Els).map(s => s.value) };
+                }
 
-                // detect multiple selects (Part 4 style) and return array of values
+
                 const selEls = root.querySelectorAll('select');
                 if (selEls.length > 1) {
-                    // treat as part1 so renderPart1 is used (it queries selects by qid)
                     return { part: 'part1', value: Array.from(selEls).map(s => s.value) };
                 }
 
-                if (selEls.length === 1) return { part: 'select', value: selEls[0].value };
+                if (selEls.length === 1) {
+                    return { part: 'select', value: selEls[0].value };
+                }
 
-                const ta = root.querySelector('textarea'); if (ta) return { part: 'text', value: ta.value };
+                const ta = root.querySelector('textarea');
+                if (ta) {
+                    return { part: 'text', value: ta.value };
+                }
+
                 return null;
             },
-            save(qid, payload) {
+            saveAnswer(qid, payload) {
                 if (!qid) return;
                 window.attemptAnswers = window.attemptAnswers || {};
                 window.attemptAnswers[qid] = payload;
-                // schedule a debounced persist to avoid blocking the main thread frequently
-                if (typeof schedulePersistAttemptAnswers === 'function') schedulePersistAttemptAnswers();
+                if (typeof schedulePersistAnswers === 'function') schedulePersistAnswers();
             },
-            showFeedback(qid, payload) {
+            displayFeedback(qid, payload) {
                 if (!payload) return;
-                // debug logging removed in production
 
                 function renderFeedback(qid, stats, rows, rowRenderer, space = 'space-y-2') {
                     const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
                     if (!target) return;
-                    
-                    // Add a guard to prevent multiple rendering of the same feedback
-                    if (target.hasAttribute('data-feedback-rendered')) {
-                        return; // Skip if feedback was already rendered for this target
-                    }
+
+                    if (target.hasAttribute('data-feedback-rendered')) return;
                     target.setAttribute('data-feedback-rendered', 'true');
-                    
+
                     const container = document.createElement('div');
                     container.className = 'w-full';
                     container.innerHTML = `
@@ -234,19 +239,16 @@
                     }
                 };
 
-                // Lightweight fallback for inlineFeedback if template not included on page
+
                 if (!window.inlineFeedback) {
                     window.inlineFeedback = {
                         show: function (qid, userAnswer, correctAnswer, statsText) {
                             const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
                             if (!target) return;
-                            
-                            // Add a guard to prevent multiple rendering of the same feedback
-                            if (target.hasAttribute('data-feedback-rendered')) {
-                                return; // Skip if feedback was already rendered for this target
-                            }
+
+                            if (target.hasAttribute('data-feedback-rendered')) return;
                             target.setAttribute('data-feedback-rendered', 'true');
-                            
+
                             const container = document.createElement('div');
                             container.className = 'w-full';
                             container.innerHTML = `
@@ -271,8 +273,8 @@
                         },
                         hide: function (qid) {
                             const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
-                            if (target) { 
-                                target.innerHTML = ''; 
+                            if (target) {
+                                target.innerHTML = '';
                                 target.classList.add('hidden');
                                 target.removeAttribute('data-feedback-rendered');
                             }
@@ -281,25 +283,25 @@
                 }
 
                 function renderPart1(qid, payload) {
-                    // Get the specific question block for this qid
+
                     const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
                     const selEls = questionBlock ? [...questionBlock.querySelectorAll('select')] : [];
-                    // fallback to payload.value (collected earlier) when DOM query doesn't find selects
+
                     const userValsFromDom = selEls.length ? selEls.map(s => s.value || null) : null;
                     const userVals = userValsFromDom ?? (payload?.value ? Array.from(payload.value) : []);
 
-                    // Get question-specific metadata if available
+
                     let meta = null;
                     try {
-                        // Try to get metadata from the DOM (via data attributes) first
+
                         if (questionBlock && questionBlock.dataset.metadata) {
                             meta = JSON.parse(questionBlock.dataset.metadata);
                         }
-                    } catch (e) {}
-                    
-                    // Fall back to window.currentQuestionMeta
+                    } catch (e) { }
+
+
                     meta = meta || window.currentQuestionMeta || {};
-                    
+
                     let expected = meta.correct_answers || meta.correctAnswers || meta.answers || meta.key || meta.correct || [];
                     expected = expected.map(e => typeof e === 'object' ? (e.text ?? e.label ?? e.value) : e);
                     let correctCount = 0;
@@ -313,21 +315,21 @@
                 }
 
                 function renderPart2(qid, payload) {
-                    // Get the specific question block for this qid
+
                     const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
-                    
-                    // Get question-specific metadata if available
+
+
                     let meta = null;
                     try {
-                        // Try to get metadata from the DOM (via data attributes) first
+
                         if (questionBlock && questionBlock.dataset.metadata) {
                             meta = JSON.parse(questionBlock.dataset.metadata);
                         }
-                    } catch (e) {}
-                    
-                    // Fall back to window.currentQuestionMeta
+                    } catch (e) { }
+
+
                     meta = meta || window.currentQuestionMeta || {};
-                    
+
                     const sentences = meta.sentences || [];
                     const corr = meta.correct_order || [];
                     const rawOrder = payload.order || [];
@@ -385,27 +387,243 @@
                     renderFeedback(qid, `Đúng ${correctCount} / ${paragraphs.length}`, rows, rowBuilders.paragraph, 'space-y-4');
                 }
 
-                // --- Listening-specific renderers ---
-                function listeningRenderPart1(qid, payload) {
-                    const meta = window.currentQuestionMeta ?? {};
-                    const options = Array.isArray(meta.options) ? meta.options : [];
-                    
-                    let raw = null;
-                    if (payload && (typeof payload.value !== 'undefined') && payload.value !== null && payload.value !== '') raw = payload.value;
-                    else if (payload && (typeof payload.selected !== 'undefined') && payload.selected !== null) raw = payload.selected;
-                    else {
-                        const radio = document.querySelector(`.question-block[data-qid="${qid}"] input[name="selected_option_id"]:checked`);
-                        if (radio) raw = radio.value;
+                function renderListeningPart1(qid, payload) {
+
+                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+
+
+                    let meta = null;
+                    try {
+
+                        if (questionBlock && questionBlock.dataset.metadata) {
+                            meta = JSON.parse(questionBlock.dataset.metadata);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing metadata:', e);
                     }
 
-                    const userText = (raw !== null && options[raw] !== undefined) ? options[raw] : (raw !== null ? String(raw) : '(chưa)');
-                    const corrRaw = (typeof meta.correct_index !== 'undefined' && meta.correct_index !== null) ? meta.correct_index : (Array.isArray(meta.correct) ? meta.correct[0] : null);
-                    const corrText = (corrRaw !== null && options[corrRaw] !== undefined) ? options[corrRaw] : (corrRaw !== null ? String(corrRaw) : '(---)');
-                    const ok = raw !== null && corrRaw !== null && String(raw) === String(corrRaw);
-                    renderFeedback(qid, `Đúng ${ok ? 1 : 0} / 1`, [{ userText, correctText: corrText, ok }], rowBuilders.twoCols);
+
+                    meta = meta || window.currentQuestionMeta || {};
+
+                    const options = Array.isArray(meta.options) ? meta.options : [];
+                    const optionMapping = meta.optionMapping || {};
+
+
+                    let selectedDisplayIdx = null;
+                    if (payload && (typeof payload.value !== 'undefined') && payload.value !== null && payload.value !== '') {
+                        selectedDisplayIdx = payload.value;
+                    } else if (payload && (typeof payload.selected !== 'undefined') && payload.selected !== null) {
+                        selectedDisplayIdx = payload.selected;
+                    } else {
+                        const radio = questionBlock ? questionBlock.querySelector('input[name="selected_option_id"]:checked') : null;
+                        if (radio) selectedDisplayIdx = radio.value;
+                    }
+
+
+                    const selectedOriginalIdx = selectedDisplayIdx !== null && optionMapping[selectedDisplayIdx] !== undefined
+                        ? optionMapping[selectedDisplayIdx]
+                        : selectedDisplayIdx;
+
+
+
+                    const userText = (selectedOriginalIdx !== null && options[selectedOriginalIdx] !== undefined)
+                        ? options[selectedOriginalIdx]
+                        : (selectedDisplayIdx !== null ? String(selectedDisplayIdx) : '(chưa)');
+
+                    const corrRaw = (typeof meta.correct_index !== 'undefined' && meta.correct_index !== null)
+                        ? meta.correct_index
+                        : (Array.isArray(meta.correct) ? meta.correct[0] : null);
+
+                    const corrText = (corrRaw !== null && options[corrRaw] !== undefined)
+                        ? options[corrRaw]
+                        : (corrRaw !== null ? String(corrRaw) : '(---)');
+
+
+                    const ok = selectedOriginalIdx !== null && corrRaw !== null && String(selectedOriginalIdx) === String(corrRaw);
+                    const stem = meta.stem || questionBlock?.querySelector('.prose')?.textContent || '';
+                    const rows = [{ para: stem, userText: userText, corrText: corrText, ok }];
+                    renderFeedback(qid, `Đúng ${ok ? 1 : 0} / 1`, rows, rowBuilders.paragraph, 'space-y-4');
                 }
 
-                const listeningRenderers = { part1: listeningRenderPart1, part2: renderPart2, part3: renderPart3, part4: renderPart4 };
+                function renderListeningPart2(qid, payload) {
+                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+
+
+                    let meta = null;
+                    try {
+                        if (questionBlock && questionBlock.dataset.metadata) {
+                            meta = JSON.parse(questionBlock.dataset.metadata);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing metadata:', e);
+                    }
+
+                    meta = meta || window.currentQuestionMeta || {};
+
+                    const speakers = meta.speakers || [];
+                    const options = meta.options || [];
+                    const answers = meta.answers || {};
+                    const rawOrder = payload.order || [];
+                    const optionMapping = meta.optionMapping || {};
+
+
+                    let correctCount = 0;
+                    const rows = [];
+
+
+                    speakers.forEach((speaker, idx) => {
+
+                        if (!answers.hasOwnProperty(idx)) return;
+
+                        const speakerLabel = speaker.label || `Speaker ${speaker.id || (idx + 1)}`;
+
+
+                        const selectedDisplayIdx = idx < rawOrder.length ? rawOrder[idx] : null;
+
+
+                        const selectedOriginalIdx = selectedDisplayIdx !== null && Object.keys(optionMapping).length > 0
+                            ? optionMapping[selectedDisplayIdx]
+                            : selectedDisplayIdx;
+
+
+                        const userText = selectedDisplayIdx !== null && options[selectedOriginalIdx] !== undefined
+                            ? `${speakerLabel}: ${options[selectedOriginalIdx]}`
+                            : `${speakerLabel}: (chưa chọn)`;
+
+                        const corrIdx = answers[idx];
+                        const corrText = corrIdx !== null && options[corrIdx] !== undefined
+                            ? `${speakerLabel}: ${options[corrIdx]}`
+                            : `${speakerLabel}: (---)`;
+
+
+                        const ok = selectedOriginalIdx !== null && corrIdx !== null && Number(selectedOriginalIdx) === Number(corrIdx);
+                        if (ok) correctCount++;
+
+                        rows.push({ userText, correctText: corrText, ok });
+                    });
+
+                    const answerCount = Object.keys(answers).length;
+                    renderFeedback(qid, `Đúng ${correctCount} / ${answerCount}`, rows, rowBuilders.twoCols);
+                }
+
+                function renderListeningPart3(qid, payload) {
+
+                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+
+
+                    let meta = null;
+                    try {
+
+                        if (questionBlock && questionBlock.dataset.metadata) {
+                            meta = JSON.parse(questionBlock.dataset.metadata);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing metadata:', e);
+                    }
+
+
+                    meta = meta || window.currentQuestionMeta || {};
+
+                    const items = Array.isArray(meta.items) ? meta.items : [];
+                    const options = Array.isArray(meta.options) ? meta.options : [];
+                    const answers = Array.isArray(meta.answers) ? meta.answers.map(v => (isNaN(v) ? v : Number(v))) : [];
+                    const userArr = payload?.values ?? payload?.selected ?? payload?.value ?? [];
+                    const optionMapping = meta.optionMapping || {};
+
+
+                    let correctCount = 0;
+                    const rows = items.map((item, i) => {
+                        const selectedDisplayIdx = (userArr && typeof userArr[i] !== 'undefined') ? userArr[i] : null;
+
+                        const selectedOriginalIdx = selectedDisplayIdx !== null && optionMapping[selectedDisplayIdx] !== undefined
+                            ? optionMapping[selectedDisplayIdx]
+                            : selectedDisplayIdx;
+
+
+
+                        const userText = (selectedOriginalIdx !== null && options[selectedOriginalIdx] !== undefined)
+                            ? options[selectedOriginalIdx]
+                            : (selectedDisplayIdx !== null ? String(selectedDisplayIdx) : '(chưa)');
+
+                        const corrRaw = (typeof answers[i] !== 'undefined') ? answers[i] : null;
+                        const corrText = (corrRaw !== null && options[corrRaw] !== undefined)
+                            ? options[corrRaw]
+                            : (corrRaw !== null ? String(corrRaw) : '(---)');
+
+
+                        const ok = (selectedOriginalIdx !== null && corrRaw !== null && String(selectedOriginalIdx) === String(corrRaw));
+                        if (ok) correctCount++;
+                        return { userText: `${item}: ${userText}`, correctText: `${item}: ${corrText}`, ok };
+                    });
+
+                    renderFeedback(qid, `Đúng ${correctCount} / ${items.length}`, rows, rowBuilders.twoCols);
+                }
+
+                function renderListeningPart4(qid, payload) {
+
+
+
+                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+
+
+                    let meta = null;
+                    try {
+
+                        if (questionBlock && questionBlock.dataset.metadata) {
+                            meta = JSON.parse(questionBlock.dataset.metadata);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing metadata:', e);
+                    }
+
+
+                    meta = meta || window.currentQuestionMeta || {};
+
+                    const options = meta.options || [];
+                    const optionMapping = meta.optionMapping || {};
+                    const stem = meta.stem || questionBlock?.querySelector('.prose')?.textContent || '';
+
+                    let selectedDisplayIdx = null;
+                    if (payload && (typeof payload.value !== 'undefined') && payload.value !== null && payload.value !== '') {
+                        selectedDisplayIdx = payload.value;
+                    } else if (payload && (typeof payload.selected !== 'undefined') && payload.selected !== null) {
+                        selectedDisplayIdx = payload.selected;
+                    }
+
+                    const selectedOriginalIdx = selectedDisplayIdx !== null && optionMapping[selectedDisplayIdx] !== undefined
+                        ? optionMapping[selectedDisplayIdx]
+                        : selectedDisplayIdx;
+
+                    const userText = (selectedOriginalIdx !== null && options[selectedOriginalIdx] !== undefined)
+                        ? options[selectedOriginalIdx]
+                        : (selectedDisplayIdx !== null ? String(selectedDisplayIdx) : '(chưa)');
+
+                    const corrRaw = (typeof meta.correct_index !== 'undefined' && meta.correct_index !== null)
+                        ? meta.correct_index
+                        : (Array.isArray(meta.correct) ? meta.correct[0] : null);
+
+                    const corrText = (corrRaw !== null && options[corrRaw] !== undefined)
+                        ? options[corrRaw]
+                        : (corrRaw !== null ? String(corrRaw) : '(---)');
+
+
+                    const ok = selectedOriginalIdx !== null && corrRaw !== null && String(selectedOriginalIdx) === String(corrRaw);
+
+
+                    renderFeedback(qid, `Đúng ${ok ? 1 : 0} / 1`, [{
+                        para: stem,
+                        userText: userText,
+                        corrText: corrText,
+                        ok: ok
+                    }], rowBuilders.paragraph);
+                }
+
+                const listeningRenderers = {
+                    part1: renderListeningPart1,
+                    part2: renderListeningPart2,
+                    part3: renderListeningPart3,
+                    part4: renderListeningPart4
+                };
 
                 const renderers = { part1: renderPart1, part2: renderPart2, part3: renderPart3, part4: renderPart4 };
                 const rootEl = document.querySelector(`.question-block[data-qid="${qid}"]`);
@@ -415,16 +633,21 @@
                 const useListening = skill === 'listening';
 
                 const looksLikePart1 = payload?.part === 'part1' || (payload?.part === 'select' && selEls.length > 1);
-                if (!useListening && looksLikePart1) return renderPart1(qid, payload);
+                if (!useListening && looksLikePart1) {
+                    return renderPart1(qid, payload);
+                }
 
                 let p = payload?.part || payload?.__part;
-                // if listening and payload is a generic 'choice' (checked inputs), map it to the listening part number
+
+
                 if (useListening && p === 'choice') {
                     const partNum = (window.currentQuestionMeta && window.currentQuestionMeta.part) ? window.currentQuestionMeta.part : (payload?.__part ?? 1);
                     p = 'part' + partNum;
                 }
+
                 const dispatcher = useListening ? listeningRenderers : renderers;
-                // renderer dispatch - prefer mapped renderer else fallback to inlineFeedback
+
+
                 return dispatcher[p] ? dispatcher[p](qid, payload) : (
                     window.inlineFeedback?.show && window.inlineFeedback.show(qid, JSON.stringify(payload.value ?? '(Chưa có đáp án)'), '', '')
                 );
@@ -433,8 +656,8 @@
                 if (!url) return;
                 this.setLoading(true);
                 try {
-                    // flush pending attemptAnswers to localStorage to avoid losing state
-                    if (typeof schedulePersistAttemptAnswers === 'function') schedulePersistAttemptAnswers(0);
+
+                    if (typeof schedulePersistAnswers === 'function') schedulePersistAnswers(0);
 
                     const res = await fetch(url, { credentials: 'same-origin' });
                     if (!res.ok) throw new Error();
@@ -444,33 +667,33 @@
                     const oldMain = document.querySelector(mainSelector);
                     if (newMain && oldMain) {
                         oldMain.replaceWith(newMain);
-                        // keep global feedbackShownForQid across pages (do not reinit); if we must reset for fresh attempts do it explicitly
+
                     }
                     history.pushState({}, '', url);
-                    
-                    // Reset the feedback-rendered attribute globally for the new page
+
+
                     document.querySelectorAll('[data-feedback-rendered]').forEach(el => {
                         el.removeAttribute('data-feedback-rendered');
                     });
-                    
-                    // dispatch a light-weight event so page-specific JS can init without re-executing inline scripts
+
+
                     window.dispatchEvent(new CustomEvent('aptis:container:replace', { detail: { url } }));
                 } catch (e) { location.href = url; }
                 finally { this.setLoading(false); }
             }
         };
 
-    // use global feedback map so state survives container replaces
-    window.__aptis_feedbackShownForQid = window.__aptis_feedbackShownForQid || {};
+
+        window.__aptis_feedbackShownForQid = window.__aptis_feedbackShownForQid || {};
 
         fnext?.addEventListener('click', async e => {
             e.preventDefault();
 
-            // Use the most visible question block
-            const root = footer._activeBlock();
-            const qid = footer.qid();
-            const payload = footer.collect(root);
-            footer.save(qid, payload);
+
+            const root = footer.getActiveBlock();
+            const qid = footer.getQid();
+            const payload = footer.collectAnswers(root);
+            footer.saveAnswer(qid, payload);
 
             function hasAnswer(p) {
                 if (!p) return false;
@@ -492,7 +715,7 @@
                     return v !== null && v !== undefined && String(v).trim() !== '';
                 }
                 if (part === 'text') return p.value && String(p.value).trim() !== '';
-                // fallback: inspect common shapes
+
                 if (Array.isArray(p.value)) return p.value.some(v => v !== null && v !== undefined && String(v).trim() !== '');
                 if (p.value) return String(p.value).trim() !== '';
                 return false;
@@ -500,9 +723,9 @@
 
             const lbl = document.getElementById('footer-next-label');
 
-            // Require an answer before showing feedback / navigating
+
             if (!hasAnswer(payload)) {
-                // brief visual hint and focus first control
+
                 const prevText = lbl ? lbl.textContent : null;
                 if (lbl) {
                     lbl.textContent = 'Vui lòng chọn đáp án';
@@ -510,7 +733,7 @@
                 }
                 if (root) {
                     const firstCtl = root.querySelector('input, select, textarea');
-                    if (firstCtl) { firstCtl.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { firstCtl.focus(); } catch(e){} }
+                    if (firstCtl) { firstCtl.scrollIntoView({ behavior: 'smooth', block: 'center' }); try { firstCtl.focus(); } catch (e) { } }
                     root.classList.add('ring-2', 'ring-red-400');
                     setTimeout(() => root.classList.remove('ring-2', 'ring-red-400'), 1500);
                 }
@@ -519,7 +742,7 @@
             }
 
             const bladeNext = @json($nextUrl ?? null);
-            // prefer blade-provided nextUrl, then data attributes on the main container (written by page), then any legacy window.nextUrl
+
             const mainElForNext = document.querySelector(mainSelector);
             const datasetNext = mainElForNext?.dataset?.nextUrl || null;
             const datasetFinal = mainElForNext?.dataset?.finalUrl || null;
@@ -530,16 +753,16 @@
             const alreadyShown = window.__aptis_feedbackShownForQid[qid] === true;
 
             if (!alreadyShown) {
-                footer.showFeedback(qid, payload);
+                footer.displayFeedback(qid, payload);
                 window.__aptis_feedbackShownForQid[qid] = true;
-                // Also persist this answer to server (non-blocking) so result page can read it
+
                 try {
                     const form = document.getElementById('answer-form');
                     const saveUrl = form ? form.action : null;
                     const tokenEl = document.querySelector('input[name="_token"]');
                     const csrf = tokenEl ? tokenEl.value : null;
                     if (saveUrl && csrf) {
-                        // normalize metadata shape expected by server
+
                         let metaToSend = payload;
                         try {
                             if (payload && payload.part === 'part1' && Array.isArray(payload.value)) {
@@ -547,7 +770,7 @@
                             } else if (payload && payload.part === 'select' && Array.isArray(payload.value)) {
                                 metaToSend = { selected: payload.value };
                             } else if (payload && payload.value !== undefined) {
-                                // generic: wrap value into selected
+
                                 metaToSend = { selected: payload.value };
                             }
                         } catch (e) { metaToSend = payload; }
@@ -562,12 +785,12 @@
                             },
                             body: JSON.stringify({ action: 'submit', metadata: metaToSend, client_provided: true })
                         }).then(r => r.json()).then(resp => {
-                            try { console.debug('autosave resp', resp); } catch(e){}
-                        }).catch(() => {});
+                            try { console.debug('autosave resp', resp); } catch (e) { }
+                        }).catch(() => { });
                     }
-                } catch (e) {}
+                } catch (e) { }
                 if (lbl) lbl.textContent = isFinal ? 'Hoàn thành' : 'Next';
-                return; // lần đầu chỉ show feedback
+                return;
             }
 
             // lần 2 mới đi tiếp

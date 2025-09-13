@@ -11,7 +11,7 @@ class ListeningSetSeeder extends Seeder
 {
     public function run(): void
     {
-        // Clear existing listening data
+        // Xóa dữ liệu cũ
         Question::where('skill', 'listening')->delete();
         ReadingSet::where('skill', 'listening')->delete();
         Quiz::where('skill', 'listening')->delete();
@@ -26,49 +26,37 @@ class ListeningSetSeeder extends Seeder
             'duration_minutes' => 40
         ]);
 
-        // --- Part 1: 13 short MC ---
+        /**
+         * PART 1: Short MCQs
+         */
         $set1Full = ReadingSet::create([
             'quiz_id' => $quizFull->id,
             'title' => 'Set 1 (Part 1)',
             'skill' => 'listening',
-            'description' => 'Part 1: short multiple choice (13 items)',
+            'description' => 'Part 1: short multiple choice (~20 items)',
             'is_public' => true,
             'order' => 1
         ]);
 
-        $part1Stems = [
-            "A doctor’s secretary calls about a change to an appointment. What is changing?",
-            "A man asks where to return a rented DVD.",
-            "A tourist asks for directions to the museum.",
-            "A customer calls about a delayed delivery.",
-            "Someone inquires about a refund policy at a store.",
-            "A passenger asks the ticket agent about seat availability.",
-            "A caller requests information about gym opening hours.",
-            "A student asks the librarian where to find a book.",
-            "A listener reports a broken streetlight to the council.",
-            "A customer asks how to change their subscription plan.",
-            "An employee calls in sick and arranges cover for a shift.",
-            "A resident enquires about recycling pickup days.",
-            "A guest asks the hotel about breakfast times."
-        ];
-
-        for ($i = 1; $i <= 13; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
             Question::create([
                 'quiz_id' => $quizFull->id,
                 'reading_set_id' => $set1Full->id,
-                'stem' => $part1Stems[$i - 1] ?? "Part 1 example question {$i}",
+                'stem' => "Dummy Part 1 Q{$i}: What is happening in this scenario?",
                 'skill' => 'listening',
                 'part' => 1,
                 'type' => 'listening_mc',
                 'order' => $i,
                 'metadata' => [
-                    'options' => ['Option A', 'Option B', 'Option C'],
-                    'correct_index' => 1
+                    'options' => ["Option A{$i}", "Option B{$i}", "Option C{$i}"],
+                    'correct_index' => $i % 3
                 ]
             ]);
         }
 
-        // --- Part 2: speakers ---
+        /**
+         * PART 2: Speakers (matching)
+         */
         $set2Full = ReadingSet::create([
             'quiz_id' => $quizFull->id,
             'title' => 'Set 2 (Part 2)',
@@ -78,29 +66,38 @@ class ListeningSetSeeder extends Seeder
             'order' => 2
         ]);
 
-        Question::create([
-            'quiz_id' => $quizFull->id,
-            'reading_set_id' => $set2Full->id,
-            'stem' => 'Four speakers: select the phrase each speaker says (choose up to 6 phrases).',
-            'skill' => 'listening',
-            'part' => 2,
-            'type' => 'listening_speakers_complete',
-            'order' => 14,
-            'metadata' => [
-                'speakers' => [
-                    ['id' => 'A', 'label' => 'Speaker A'],
-                    ['id' => 'B', 'label' => 'Speaker B'],
-                    ['id' => 'C', 'label' => 'Speaker C'],
-                    ['id' => 'D', 'label' => 'Speaker D'],
-                ],
-                'items' => ['Sentence 1', 'Sentence 2', 'Sentence 3', 'Sentence 4', 'Sentence 5', 'Sentence 6'],
-                'options' => ['Phrase 1', 'Phrase 2', 'Phrase 3', 'Phrase 4', 'Phrase 5', 'Phrase 6'],
-                // 4 đáp án tương ứng 4 speaker (index trong options)
-                'answers' => [0, 1, 2, 3]
-            ]
-        ]);
+        for ($i = 1; $i <= 3; $i++) {
+            Question::create([
+                'quiz_id' => $quizFull->id,
+                'reading_set_id' => $set2Full->id,
+                'stem' => "Part 2: Four speakers (set {$i}) - choose the correct description.",
+                'skill' => 'listening',
+                'part' => 2,
+                'type' => 'listening_speakers_match',
+                'order' => 20 + $i,
+                'metadata' => [
+                    'speakers' => [
+                        ['id' => 'A', 'label' => 'Speaker A'],
+                        ['id' => 'B', 'label' => 'Speaker B'],
+                        ['id' => 'C', 'label' => 'Speaker C'],
+                        ['id' => 'D', 'label' => 'Speaker D'],
+                    ],
+                    'options' => [
+                        "Option 1 for set {$i}",
+                        "Option 2 for set {$i}",
+                        "Option 3 for set {$i}",
+                        "Option 4 for set {$i}",
+                        "None of the speakers",
+                        "Cannot determine"
+                    ],
+                    'answers' => [0, 1, 2, 3]
+                ]
+            ]);
+        }
 
-        // --- Part 3: who expresses which opinion ---
+        /**
+         * PART 3: Who expresses which opinion?
+         */
         $set3Full = ReadingSet::create([
             'quiz_id' => $quizFull->id,
             'title' => 'Set 3 (Part 3)',
@@ -110,66 +107,60 @@ class ListeningSetSeeder extends Seeder
             'order' => 3
         ]);
 
-        Question::create([
-            'quiz_id' => $quizFull->id,
-            'reading_set_id' => $set3Full->id,
-            'stem' => "Listen to two parents discussing the issue of children's health. Read the opinions below and decide whose opinion matches the statements: the man, the woman, or both. You can listen to the discussion twice.",
-            'skill' => 'listening',
-            'part' => 3,
-            'type' => 'listening_who_expresses',
-            'order' => 15,
-            'metadata' => [
-                'title' => 'Who expresses which opinion?',
-                'items' => [
-                    'Children need more sleep',
-                    'Parents should support sports',
-                    'Diet is very important',
-                    'Screen time is harmful'
-                ],
-                'options' => ['Man', 'Woman', 'Both'],
-                'answers' => [0, 1, 2, 1]
-            ]
-        ]);
+        for ($i = 1; $i <= 2; $i++) {
+            Question::create([
+                'quiz_id' => $quizFull->id,
+                'reading_set_id' => $set3Full->id,
+                'stem' => "Scenario {$i}: Listen to two people discuss topic {$i}, match opinions to Man/Woman/Both.",
+                'skill' => 'listening',
+                'part' => 3,
+                'type' => 'listening_who_expresses',
+                'order' => 23 + $i,
+                'metadata' => [
+                    'title' => "Who expresses which opinion? (Scenario {$i})",
+                    'items' => [
+                        "Opinion A{$i}",
+                        "Opinion B{$i}",
+                        "Opinion C{$i}",
+                        "Opinion D{$i}",
+                    ],
+                    'options' => ['Man', 'Woman', 'Both'],
+                    'answers' => [0, 1, 2, 1]
+                ]
+            ]);
+        }
 
-        // --- Part 4: MCQ short passages ---
+        /**
+         * PART 4: Short passages MCQ
+         */
         $set4Full = ReadingSet::create([
             'quiz_id' => $quizFull->id,
             'title' => 'Set 4 (Part 4)',
             'skill' => 'listening',
-            'description' => 'Part 4: short multiple choice',
+            'description' => 'Part 4: short passages with 2–3 questions each',
             'is_public' => true,
             'order' => 4
         ]);
 
-        Question::create([
-            'quiz_id' => $quizFull->id,
-            'reading_set_id' => $set4Full->id,
-            'stem' => 'Listen to a city planner talk at a press conference about a new transport plan and answer the questions below. Q1: What is his opinion of the plan overall?',
-            'skill' => 'listening',
-            'part' => 4,
-            'type' => 'listening_mc',
-            'order' => 16,
-            'metadata' => [
-                'options' => ['Similar', 'No consultation', 'Not representative'],
-                'correct_index' => 1
-            ]
-        ]);
+        for ($i = 1; $i <= 10; $i++) {
+            Question::create([
+                'quiz_id' => $quizFull->id,
+                'reading_set_id' => $set4Full->id,
+                'stem' => "Part 4 Passage {$i}: Question about listening detail.",
+                'skill' => 'listening',
+                'part' => 4,
+                'type' => 'listening_mc',
+                'order' => 25 + $i,
+                'metadata' => [
+                    'options' => ["Answer A{$i}", "Answer B{$i}", "Answer C{$i}"],
+                    'correct_index' => $i % 3
+                ]
+            ]);
+        }
 
-        Question::create([
-            'quiz_id' => $quizFull->id,
-            'reading_set_id' => $set4Full->id,
-            'stem' => 'Q2: What does he think about the proposed routes?',
-            'skill' => 'listening',
-            'part' => 4,
-            'type' => 'listening_mc',
-            'order' => 17,
-            'metadata' => [
-                'options' => ['Genuine', 'Prepared', 'Embarrassing'],
-                'correct_index' => 0
-            ]
-        ]);
-
-        // === CLONE to quizzes per part ===
+        /**
+         * CLONE to separate quizzes per part
+         */
         $parts = [1 => [$set1Full], 2 => [$set2Full], 3 => [$set3Full], 4 => [$set4Full]];
 
         foreach ($parts as $part => $sets) {
@@ -207,6 +198,6 @@ class ListeningSetSeeder extends Seeder
             }
         }
 
-        echo "\nListening seed cleared and recreated (17 items, parts 1..4).\n";
+        echo "\nListening seed recreated with ~50 questions (parts 1..4).\n";
     }
 }
