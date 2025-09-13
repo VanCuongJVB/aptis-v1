@@ -158,7 +158,7 @@ class ReadingSetSeeder extends Seeder
                             'Turn on the power and wait for the green light.',
                             'Follow the on-screen setup instructions.'
                         ],
-                        'correct_order' => [0,2,1,3,4]
+                        'correct_order' => [0,1,2,3,4]
                     ],
                 ]);
 
@@ -297,7 +297,7 @@ class ReadingSetSeeder extends Seeder
                     'metadata' => [
                         'paragraphs' => $paragraphs2,
                         'options' => $options2,
-                        'correct' => [0,1]
+                        'correct' => [0,1,2]
                     ],
                 ]);
             }

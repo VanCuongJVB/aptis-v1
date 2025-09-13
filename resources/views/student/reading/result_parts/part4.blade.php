@@ -1,14 +1,42 @@
 @php
-    // normalize answer metadata
+    // normalize answer metadata into a numeric-indexed array of selections
     $userSelected = [];
-    if (!empty($ansMeta) && is_array($ansMeta)) {
-        if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userSelected = array_values($ansMeta['selected']);
-        else $userSelected = array_values($ansMeta);
+    if (!empty($ansMeta)) {
+        if (is_array($ansMeta)) {
+            if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userSelected = array_values($ansMeta['selected']);
+            elseif (isset($ansMeta['value']) && is_array($ansMeta['value'])) $userSelected = array_values($ansMeta['value']);
+            else {
+                $maybe = array_values($ansMeta);
+                if (count($maybe) === 1 && is_array($maybe[0])) $userSelected = array_values($maybe[0]);
+                else $userSelected = $maybe;
+            }
+        } elseif (is_string($ansMeta)) {
+            $dec = json_decode($ansMeta, true);
+            if (is_array($dec)) $userSelected = array_values($dec);
+        }
     }
 
     $paragraphs = is_array($meta['paragraphs'] ?? null) ? $meta['paragraphs'] : [];
-    $options = is_array($meta['options'] ?? null) ? $meta['options'] : [];
+    $options = $meta['options'] ?? [];
     $corrects = $meta['answers'] ?? $meta['correct'] ?? [];
+
+    // Build option lookup maps: by index and by id
+    $optByIndex = [];
+    $optById = [];
+    if (is_array($options)) {
+        foreach ($options as $k => $v) {
+            if (is_array($v)) {
+                $text = $v['text'] ?? $v['label'] ?? $v['content'] ?? $v['value'] ?? json_encode($v);
+                if (isset($v['id'])) $optById[(string)$v['id']] = $text;
+            } elseif (is_object($v)) {
+                $text = $v->text ?? $v->label ?? $v->content ?? $v->value ?? json_encode((array)$v);
+                if (isset($v->id)) $optById[(string)$v->id] = $text;
+            } else {
+                $text = (string)$v;
+            }
+            $optByIndex[(string)$k] = $text;
+        }
+    }
 @endphp
 
 <div class="mt-3 text-sm space-y-4">
@@ -21,35 +49,35 @@
             @foreach($paragraphs as $i => $p)
                 @php
                     $sel = $userSelected[$i] ?? null;
-                    // selected label
                     $selLabel = null;
                     if ($sel !== null) {
-                        $key = (string)$sel;
-                        if (isset($options[$key])) $selLabel = $options[$key];
-                        elseif (isset($options[(int)$key])) $selLabel = $options[(int)$key];
+                        $sKey = (string)$sel;
+                        if (isset($optByIndex[$sKey])) $selLabel = $optByIndex[$sKey];
+                        elseif (isset($optById[$sKey])) $selLabel = $optById[$sKey];
+                        elseif (isset($optByIndex[(int)$sKey])) $selLabel = $optByIndex[(int)$sKey] ?? null;
                         else $selLabel = (string)$sel;
                     }
 
-                    // determine correct value for this paragraph (best-effort)
                     $correctRaw = $corrects[$i] ?? null;
                     $correctLabel = null;
                     if ($correctRaw !== null) {
                         if (is_numeric($correctRaw) || is_string($correctRaw)) {
                             $cKey = (string)$correctRaw;
-                            if (isset($options[$cKey])) $correctLabel = $options[$cKey];
-                            elseif (isset($options[(int)$cKey])) $correctLabel = $options[(int)$cKey];
+                            if (isset($optByIndex[$cKey])) $correctLabel = $optByIndex[$cKey];
+                            elseif (isset($optById[$cKey])) $correctLabel = $optById[$cKey];
+                            elseif (isset($optByIndex[(int)$cKey])) $correctLabel = $optByIndex[(int)$cKey] ?? null;
                             else $correctLabel = (string)$correctRaw;
-                        } elseif (is_array($correctRaw)) {
-                            $correctLabel = json_encode($correctRaw);
+                        } elseif (is_array($correctRaw) || is_object($correctRaw)) {
+                            $correctLabel = is_array($correctRaw) ? json_encode($correctRaw) : json_encode((array)$correctRaw);
                         }
                     }
 
-                    // correctness: if correctRaw available, compare selected to correct
+                    // determine correctness consistently: prefer label comparison when possible
                     $isCorrect = null;
                     if ($correctRaw !== null && $sel !== null) {
+                        // direct raw equality
                         if ((string)$sel === (string)$correctRaw) $isCorrect = true;
                         else {
-                            // if correctRaw points to text, compare normalized texts
                             $a = mb_strtolower(trim((string)($selLabel ?? $sel)));
                             $b = mb_strtolower(trim((string)($correctLabel ?? $correctRaw)));
                             $isCorrect = ($a === $b);

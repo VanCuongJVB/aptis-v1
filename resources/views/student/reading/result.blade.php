@@ -121,6 +121,11 @@
                 };
 
                 $partNum = $quiz->part ?? $question->part ?? ($meta['part'] ?? null);
+                // Part 4 is composed of multiple paragraph-select items — treat as multi-selected
+                // so the header displays per-item counts instead of a single correctness badge.
+                if ($partNum == 4) {
+                    $isMultiSelected = true;
+                }
                 if ($partNum == 2 && $ansMeta && is_array($ansMeta)) {
                     $raw = null;
                     if (isset($ansMeta['selected']['order'])) $raw = $ansMeta['selected']['order'];
@@ -191,7 +196,65 @@
                     }
                 } else {
                     // generic case
-                    if ($ans && isset($ans->metadata) && is_array($ans->metadata)) {
+                    // Special-case Part 4: multi-paragraph selects
+                    if ($partNum == 4) {
+                        $options = $meta['options'] ?? [];
+                        $paragraphs = $meta['paragraphs'] ?? [];
+                        $correctArr = $meta['correct'] ?? $meta['answers'] ?? [];
+
+                        // normalize user array from answer metadata
+                        $userArr = [];
+                        if (is_array($ansMeta)) {
+                            if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userArr = array_values($ansMeta['selected']);
+                            elseif (isset($ansMeta['value']) && is_array($ansMeta['value'])) $userArr = array_values($ansMeta['value']);
+                            else {
+                                $maybe = array_values($ansMeta);
+                                if (count($maybe) === 1 && is_array($maybe[0])) $userArr = array_values($maybe[0]);
+                                else $userArr = $maybe;
+                            }
+                        } elseif (is_string($ansMeta)) {
+                            $dec = json_decode($ansMeta, true);
+                            if (is_array($dec)) $userArr = array_values($dec);
+                        }
+
+                        $perItemTotal = max(count($paragraphs), count($userArr), count($correctArr));
+                        // Treat Part 4 as multi-selected when we have per-item data so header
+                        // shows per-item correct/total instead of a single correct/sai badge.
+                        if ($perItemTotal > 0) {
+                            $isMultiSelected = true;
+                        }
+                        for ($i = 0; $i < $perItemTotal; $i++) {
+                            $raw = $userArr[$i] ?? null;
+                            $userText = '';
+                            if ($raw !== null && trim((string)$raw) !== '') {
+                                if (is_numeric($raw) && isset($options[(int)$raw])) $userText = $options[(int)$raw];
+                                else $userText = (string)$raw;
+                            }
+
+                            $corrRaw = $correctArr[$i] ?? null;
+                            $corrText = '';
+                            if ($corrRaw !== null && trim((string)$corrRaw) !== '') {
+                                if (is_numeric($corrRaw) && isset($options[(int)$corrRaw])) $corrText = $options[(int)$corrRaw];
+                                else $corrText = (string)$corrRaw;
+                            }
+
+                            $ok = false;
+                            if ($userText !== '' && $corrText !== '') {
+                                $ok = mb_strtolower(trim((string)$userText)) === mb_strtolower(trim((string)$corrText));
+                            }
+                            $perItemCorrect[] = $ok;
+                            if ($ok) $perItemCorrectCount++;
+                            // presence: check if userText exists among options
+                            $presence = false;
+                            if ($userText !== '') {
+                                foreach ($options as $opt) {
+                                    if (mb_strtolower(trim((string)$opt)) === mb_strtolower(trim((string)$userText))) { $presence = true; break; }
+                                }
+                            }
+                            $perItemPresence[] = $presence;
+                            if ($presence) $perItemPresenceCount = ($perItemPresenceCount ?? 0) + 1;
+                        }
+                    } elseif ($ans && isset($ans->metadata) && is_array($ans->metadata)) {
                         $mdTop = $ans->metadata;
                         // prefer md.selected if present
                         if (isset($mdTop['selected']) && is_array($mdTop['selected'])) {
@@ -241,7 +304,7 @@
                 <div class="flex items-start justify-between">
                     <div class="font-semibold flex items-center gap-2">
                         <span class="text-sm font-medium">Câu {{ $num }}</span>
-                        @if($isMultiSelected)
+                        @if($isMultiSelected || ($perItemTotal ?? 0) > 0)
                             <span class="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-gray-50 text-gray-800 text-xs">
                                 <strong class="text-sm">{{ $perItemCorrectCount }}</strong>
                                 /
@@ -303,8 +366,7 @@
                 
                 if (!answers && typeof window.attemptAnswers !== 'undefined') answers = window.attemptAnswers;
 
-                // debug toggle
-                var DEBUG_RESULT_RENDER = true;
+                // debug toggle removed
 
                 // helper: try to derive payload from DOM when persisted answers are not available
                 function derivePayloadFromDom(qEl) {
@@ -324,7 +386,6 @@
                             try { texts = JSON.parse(inTexts.value); } catch(e) { texts = inTexts.value.split(',').map(function(s){ return s.trim(); }); }
                         }
                         var p = { part: 'part2', order: order, texts: texts };
-                        if (DEBUG_RESULT_RENDER) console.debug('[result] derived part2 from hidden inputs', qEl.getAttribute('data-qid'), p);
                         return p;
                     }
 
@@ -339,9 +400,8 @@
                             else order.push(null);
                         });
                         // if any non-null entry, return as part2
-                        if (order.some(function(v){ return v !== null && typeof v !== 'undefined'; })) {
+                            if (order.some(function(v){ return v !== null && typeof v !== 'undefined'; })) {
                             var p = { part: 'part2', order: order, texts: texts };
-                            if (DEBUG_RESULT_RENDER) console.debug('[result] derived part2 from slots', qEl.getAttribute('data-qid'), p);
                             return p;
                         }
                     }
@@ -359,9 +419,9 @@
                 }
 
                 // Collect qids from the DOM so we can render all feedback even when storage is empty
-                if (DEBUG_RESULT_RENDER) console.info('[result] key=', 'attempt_answers_{{ $attempt->id }}', 'raw=', raw);
+                
                 var qEls = Array.from(document.querySelectorAll('.question-block[data-qid]'));
-                if (DEBUG_RESULT_RENDER) console.info('[result] answersParsed=', !!answers, 'answersKeys=', answers ? Object.keys(answers).length : 0, 'questionBlocks=', qEls.length);
+                
                 qEls.forEach(function(qEl){
                     try {
                         var qid = qEl.getAttribute('data-qid');
@@ -383,6 +443,32 @@
                         if (metaEl) {
                             try { meta = JSON.parse(metaEl.getAttribute('data-meta-json')); } catch(e) { meta = null; }
                         }
+
+                        // DEBUG: attempt to resolve selected IDs to option text for troubleshooting
+                        try {
+                                var optList = meta && meta.options ? meta.options : null;
+                                var selectedArr = null;
+                                if (payload && Array.isArray(payload)) selectedArr = payload;
+                                else if (payload && payload.selected && Array.isArray(payload.selected)) selectedArr = payload.selected;
+                                else if (payload && payload.value && Array.isArray(payload.value)) selectedArr = payload.value;
+                                else if (payload && (typeof payload === 'string' || typeof payload === 'number')) selectedArr = [payload];
+
+                                var resolved = null;
+                                if (optList && selectedArr) {
+                                    resolved = selectedArr.map(function(v){
+                                        if (typeof v === 'number' || (!isNaN(v) && String(v).trim() !== '')) {
+                                            var idx = Number(v);
+                                            if (optList[idx] !== undefined) return optList[idx];
+                                        }
+                                        for (var oi=0; oi < optList.length; oi++) {
+                                            var o = optList[oi];
+                                            if (!o) continue;
+                                            if (typeof o === 'object' && (o.id == v || o.value == v || o.key == v)) return o.text || o.label || o.content || o.value || JSON.stringify(o);
+                                        }
+                                        return String(v);
+                                    });
+                                }
+                        } catch(e) { /* debug removed */ }
 
                         // Save into helper's memory/store so other helpers can reuse it
                         if (window.readingPartHelper && window.readingPartHelper.saveAnswer) {
