@@ -422,6 +422,7 @@
                     meta = meta || window.currentQuestionMeta || {};
 
                     const sentences = meta.sentences || [];
+                    console.log(meta);
                     const corr = meta.correct_order || [];
                     const rawOrder = payload.order || [];
                     // some Part2 renderers (select-based) provide originalIndices which map display indexes
