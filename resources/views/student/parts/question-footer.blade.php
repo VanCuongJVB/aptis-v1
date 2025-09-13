@@ -812,11 +812,11 @@
                 const lastQid = window.__aptis_lastFocusedQid || null;
                 if (lastQid) focusedRoot = document.querySelector(`.question-block[data-qid="${lastQid}"]`);
             } catch (e) { focusedRoot = null; }
-            const root = focusedRoot || footer._activeBlock();
-            const qid = root?.dataset?.qid || footer.qid();
-            const payload = footer.collect(root);
+            const root = focusedRoot || footer.getActiveBlock();
+            const qid = root?.dataset?.qid || footer.getQid();
+            const payload = footer.collectAnswers(root);
             try { /* debug removed: collected payload */ } catch (err) { /* ignore */ }
-            footer.save(qid, payload);
+            footer.saveAnswer(qid, payload);
 
             function hasAnswer(p) {
                 if (!p) return false;
@@ -880,7 +880,7 @@
                     if (!payload && window.attemptAnswers && window.attemptAnswers[qid]) payload = window.attemptAnswers[qid];
                 } catch(e) {}
 
-                footer.showFeedback(qid, payload);
+                footer.displayFeedback(qid, payload);
                 window.__aptis_feedbackShownForQid[qid] = true;
 
                 try {
