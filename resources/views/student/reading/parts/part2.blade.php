@@ -40,7 +40,6 @@
                         $label = is_array($s) && isset($s['text']) ? $s['text'] : $s;
                         $pairs[] = ['idx' => $origIdx, 'label' => $label];
                     }
-                    shuffle($pairs);
                 @endphp
                 @foreach($pairs as $pair)
                     @php

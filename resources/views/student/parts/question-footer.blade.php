@@ -237,6 +237,14 @@
             displayFeedback(qid, payload) {
                 if (!payload) return;
 
+                // Prefer persisted/stored answer for this qid — this avoids showing a stale
+                // payload object when the UI navigates or when payload was captured earlier.
+                try {
+                    if (window.attemptAnswers && window.attemptAnswers[qid]) {
+                        payload = window.attemptAnswers[qid];
+                    }
+                } catch (e) { }
+
                 function renderFeedback(qid, stats, rows, rowRenderer, space = 'space-y-2') {
                     const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
                     if (!target) return;
@@ -416,11 +424,19 @@
                     const sentences = meta.sentences || [];
                     const corr = meta.correct_order || [];
                     const rawOrder = payload.order || [];
+                    // some Part2 renderers (select-based) provide originalIndices which map display indexes
+                    // back to the original sentence indices. Prefer that mapping when present.
+                    const origIdxMap = Array.isArray(payload.originalIndices) ? payload.originalIndices : null;
                     let correctCount = 0;
                     const rows = sentences.map((s, i) => {
-                        const userIdx = rawOrder[i] != null ? Number(rawOrder[i]) : null;
+                        let userIdx = null;
+                        if (origIdxMap && typeof origIdxMap[i] !== 'undefined' && origIdxMap[i] !== null) {
+                            userIdx = Number(origIdxMap[i]);
+                        } else if (rawOrder && typeof rawOrder[i] !== 'undefined' && rawOrder[i] !== null) {
+                            userIdx = rawOrder[i] != null ? Number(rawOrder[i]) : null;
+                        }
                         const userText = userIdx != null ? sentences[userIdx] : "(chưa)";
-                        const corrIdx = corr[i] ?? i;
+                        const corrIdx = typeof corr[i] !== 'undefined' ? corr[i] : i;
                         const corrText = sentences[corrIdx] ?? "";
                         const ok = userIdx != null && userIdx === corrIdx;
                         if (ok) correctCount++;

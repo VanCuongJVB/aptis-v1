@@ -12,7 +12,6 @@
 			$options = $question->metadata['options'] ?? [];
 			
 			$optionIndices = array_keys($options);
-			shuffle($optionIndices);
 			
 			$indexMapping = [];
 			foreach ($optionIndices as $newIdx => $originalIdx) {
