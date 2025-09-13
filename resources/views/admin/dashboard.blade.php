@@ -97,7 +97,53 @@
                         <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('Quản lý nội dung') }}</h3>
                         
                         <div class="grid grid-cols-1 gap-4">
-                            <!-- Reading and Listening management links removed -->
+                            <a href="{{ route('admin.quizzes.index') }}" class="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <div>
+                                        <div class="font-medium">{{ __('Quản lý Quizzes') }}</div>
+                                        <div class="text-sm text-gray-500">{{ __('Tổng quan và import câu hỏi') }}</div>
+                                    </div>
+                                </div>
+                            </a>
+
+                            <a href="{{ route('admin.quizzes.sets') }}" class="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                    </svg>
+                                    <div>
+                                        <div class="font-medium">{{ __('Quản lý Sets') }}</div>
+                                        <div class="text-sm text-gray-500">{{ __('Các bộ đề (sets) của từng quiz') }}</div>
+                                    </div>
+                                </div>
+                            </a>
+
+                            <a href="{{ route('admin.quizzes.questions') }}" class="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h8m-8 4h6" />
+                                    </svg>
+                                    <div>
+                                        <div class="font-medium">{{ __('Quản lý Questions') }}</div>
+                                        <div class="text-sm text-gray-500">{{ __('Danh sách và chỉnh sửa câu hỏi') }}</div>
+                                    </div>
+                                </div>
+                            </a>
+
+                            <a href="{{ route('admin.quizzes.index') }}" class="block p-4 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <div>
+                                        <div class="font-medium">{{ __('Import Questions') }}</div>
+                                        <div class="text-sm text-gray-500">{{ __('Mở màn import để upload file JSON') }}</div>
+                                    </div>
+                                </div>
+                            </a>
                         </div>
                     </div>
                 </div>
