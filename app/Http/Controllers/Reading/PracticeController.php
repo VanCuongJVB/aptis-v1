@@ -290,6 +290,9 @@ class PracticeController extends Controller
             ->where('question_id', $question->id)
             ->first();
 
+    // DEBUG: log the stored answer for this question (check storage/logs/laravel.log)
+    try { Log::debug('showQuestion_answer', ['attempt_id' => $attempt->id, 'question_id' => $question->id, 'answer' => $answer ? $answer->toArray() : null]); } catch (\Throwable $e) {}
+
         // Lấy thông tin tổng quan về bài làm (dựa trên question_order của attempt)
         $totalQuestions = count($order);
         $answeredCount = AttemptAnswer::where('attempt_id', $attempt->id)
@@ -342,6 +345,8 @@ class PracticeController extends Controller
 
     // If this is an AJAX per-question submit, grade server-side, persist and update attempt counters.
     if ($request->ajax() && $request->input('action') === 'submit') {
+    // DEBUG: log incoming payload before grading/saving
+    try { Log::debug('ajax_submit_meta', ['attempt_id' => $attempt->id, 'question_id' => $question->id, 'meta' => $answerMeta, 'selected_option' => $selOption, 'clientProvided' => $clientProvided]); } catch (\Throwable $e) {}
         // grade using question metadata
         $meta = $question->metadata ?? [];
         $grading = $this->gradeAnswer($question, $answerMeta);
@@ -625,7 +630,114 @@ class PracticeController extends Controller
         if ($attempt->started_at && $attempt->submitted_at) {
             $duration = $attempt->submitted_at->diffInMinutes($attempt->started_at);
         }
-        
+
+        // Recompute attempt totals: measure per-item correctness across parts (so header shows item-level accuracy)
+        try {
+            $totalItems = 0;
+            $correctItems = 0;
+
+            foreach ($questions as $q) {
+                $meta = $q->metadata ?? [];
+                $part = $q->part ?? ($meta['part'] ?? null);
+
+                // normalize meta for part1
+                if ($part == 1) {
+                    $meta = array_merge([
+                        'paragraphs' => $meta['paragraphs'] ?? [$q->content ?? $q->title],
+                        'blank_keys' => $meta['blank_keys'] ?? [],
+                        'choices' => $meta['choices'] ?? ($meta['options'] ?? []),
+                        'correct_answers' => $meta['correct_answers'] ?? ($meta['answers'] ?? [])
+                    ], $meta);
+                    $correct = $meta['correct_answers'] ?? [];
+                    $ans = $answers->get($q->id);
+                    $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                    // try to extract selected array
+                    $selected = [];
+                    if (is_array($ansMeta) && isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $selected = array_values($ansMeta['selected']);
+                    elseif (is_array($ansMeta)) $selected = array_values($ansMeta);
+
+                    $count = max(count($correct), count($selected));
+                    for ($i = 0; $i < $count; $i++) {
+                        $totalItems++;
+                        $u = isset($selected[$i]) ? trim((string)$selected[$i]) : '';
+                        $e = isset($correct[$i]) ? (is_array($correct[$i]) ? (string)($correct[$i]['text'] ?? $correct[$i]['value'] ?? '') : (string)$correct[$i]) : '';
+                        if ($e !== '') {
+                            if (mb_strtolower($u) === mb_strtolower(trim($e))) $correctItems++;
+                        }
+                    }
+                    continue;
+                }
+
+                if ($part == 2) {
+                    $sentences = $meta['sentences'] ?? $meta['items'] ?? [];
+                    $correctOrder = $meta['correct_order'] ?? $meta['correct'] ?? [];
+                    $ans = $answers->get($q->id);
+                    $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                    // extract selected order
+                    $selectedOrder = null;
+                    if (is_array($ansMeta)) {
+                        if (isset($ansMeta['selected']['order'])) $selectedOrder = $ansMeta['selected']['order'];
+                        elseif (isset($ansMeta['order'])) $selectedOrder = $ansMeta['order'];
+                        elseif (isset($ansMeta['selected'])) $selectedOrder = $ansMeta['selected'];
+                    }
+                    if (is_string($selectedOrder)) {
+                        $dec = json_decode($selectedOrder, true);
+                        if (is_array($dec)) $selectedOrder = $dec;
+                    }
+                    $selectedOrder = is_array($selectedOrder) ? array_values($selectedOrder) : [];
+                    $count = max(count($selectedOrder), count($correctOrder));
+                    for ($i = 0; $i < $count; $i++) {
+                        $totalItems++;
+                        $userIdx = isset($selectedOrder[$i]) && $selectedOrder[$i] !== null && $selectedOrder[$i] !== '' ? (int)$selectedOrder[$i] : null;
+                        $corrIdx = isset($correctOrder[$i]) && $correctOrder[$i] !== null && $correctOrder[$i] !== '' ? (int)$correctOrder[$i] : null;
+                        $userText = $userIdx !== null ? ($sentences[$userIdx] ?? '') : '';
+                        $corrText = $corrIdx !== null ? ($sentences[$corrIdx] ?? '') : '';
+                        if ($userText !== '' && $corrText !== '' && mb_strtolower(trim($userText)) === mb_strtolower(trim($corrText))) $correctItems++;
+                    }
+                    continue;
+                }
+
+                if ($part == 4) {
+                    $options = $meta['options'] ?? [];
+                    $paragraphs = $meta['paragraphs'] ?? [];
+                    $correct = $meta['correct'] ?? [];
+                    $ans = $answers->get($q->id);
+                    $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                    $userVals = [];
+                    if (is_array($ansMeta) && isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userVals = $ansMeta['selected'];
+                    elseif (is_array($ansMeta) && isset($ansMeta['value']) && is_array($ansMeta['value'])) $userVals = $ansMeta['value'];
+                    $count = max(count($paragraphs), count($userVals));
+                    for ($i = 0; $i < $count; $i++) {
+                        $totalItems++;
+                        $raw = $userVals[$i] ?? null;
+                        $userIdx = ($raw !== null && trim((string)$raw) !== '') ? (int)$raw : null;
+                        $userText = $userIdx !== null ? ($options[$userIdx] ?? '') : '';
+                        $corrRaw = $correct[$i] ?? null;
+                        $corrIdx = ($corrRaw !== null && trim((string)$corrRaw) !== '') ? (int)$corrRaw : null;
+                        $corrText = $corrIdx !== null ? ($options[$corrIdx] ?? '') : '';
+                        if ($userText !== '' && $corrText !== '' && mb_strtolower(trim($userText)) === mb_strtolower(trim($corrText))) $correctItems++;
+                    }
+                    continue;
+                }
+
+                // default: treat as single-item question
+                $totalItems++;
+                $ans = $answers->get($q->id);
+                if ($ans && ($ans->is_correct ?? false)) $correctItems++;
+            }
+
+            $scorePercentage = $totalItems > 0 ? round(($correctItems / $totalItems) * 100, 2) : 0;
+            $attempt->update([
+                'total_questions' => $totalItems,
+                'correct_answers' => $correctItems,
+                'score_percentage' => $scorePercentage
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('recompute totals failed: ' . $e->getMessage());
+        }
+
+        try { Log::debug('answers_map', ['attempt_id' => $attempt->id, 'answers' => $answers->map(function($a){ return $a->toArray(); })->toArray()]); } catch (\Throwable $e) {}
+
         return view('student.reading.result', [
             'attempt' => $attempt,
             'quiz' => $attempt->quiz,
