@@ -77,94 +77,128 @@
     @push('scripts')
         <script>
             (function () {
-                const pool = document.getElementById('pool');
-                const slots = document.getElementById('slot-container');
-                const inputOrder = document.getElementById('part2_order');
-                const inputTexts = document.getElementById('part2_selected_texts');
-                const qid = @json($question->id);
+                // Initialize function to set up drag and drop
+                function initPart2DragDrop() {
+                    const pool = document.getElementById('pool');
+                    const slots = document.getElementById('slot-container');
+                    const inputOrder = document.getElementById('part2_order');
+                    const inputTexts = document.getElementById('part2_selected_texts');
+                    const qid = @json($question->id);
 
-                function addDrag(el) {
-                    el.addEventListener('dragstart', e => {
-                        e.dataTransfer.setData('text/plain', el.dataset.index);
-                        el.classList.add('opacity-60');
-                    });
-                    el.addEventListener('dragend', () => el.classList.remove('opacity-60'));
+                    if (!pool || !slots) return; // Guard against missing elements
 
-                    // hover / focus visuals
-                    el.addEventListener('mouseenter', () => el.classList.add('hovering'));
-                    el.addEventListener('mouseleave', () => el.classList.remove('hovering'));
-                    el.addEventListener('focus', () => el.classList.add('hovering'));
-                    el.addEventListener('blur', () => el.classList.remove('hovering'));
-                }
+                    function addDrag(el) {
+                        el.addEventListener('dragstart', e => {
+                            e.dataTransfer.setData('text/plain', el.dataset.index);
+                            el.classList.add('opacity-60');
+                        });
+                        el.addEventListener('dragend', () => el.classList.remove('opacity-60'));
 
-                function collect() {
-                    const order = [];
-                    const texts = [];
-                    slots.querySelectorAll('.slot').forEach(slot => {
-                        const item = slot.querySelector('.draggable-item');
-                        if (item) {
-                            order.push(item.dataset.index);
-                            texts.push(item.innerText.trim());
-                        } else {
-                            order.push(null);
-                        }
-                    });
-                    try { inputOrder.value = JSON.stringify(order); } catch (e) { inputOrder.value = ''; }
-                    try { inputTexts.value = JSON.stringify(texts); } catch (e) { inputTexts.value = ''; }
+                        // hover / focus visuals
+                        el.addEventListener('mouseenter', () => el.classList.add('hovering'));
+                        el.addEventListener('mouseleave', () => el.classList.remove('hovering'));
+                        el.addEventListener('focus', () => el.classList.add('hovering'));
+                        el.addEventListener('blur', () => el.classList.remove('hovering'));
+                    }
 
-                    try { if (window.readingPartHelper?.process) window.readingPartHelper.process(qid, { __part: 'part2', data: [texts.length ? texts : null, order] }); } catch (e) { }
-                }
-
-                function restore() {
-                    try {
-                        const savedOrder = inputOrder.value ? JSON.parse(inputOrder.value) : null;
-                        if (!savedOrder) return;
-                        savedOrder.forEach((idx, pos) => {
-                            if (idx === null) return;
-                            const src = pool.querySelector(`.draggable-item[data-index="${idx}"]`);
-                            const slot = slots.querySelector(`.slot[data-slot-index="${pos}"]`);
-                            if (src && slot) {
-                                if (slot.firstChild) pool.appendChild(slot.firstChild);
-                                slot.innerHTML = '';
-                                slot.appendChild(src);
+                    function collect() {
+                        const order = [];
+                        const texts = [];
+                        slots.querySelectorAll('.slot').forEach(slot => {
+                            const item = slot.querySelector('.draggable-item');
+                            if (item) {
+                                order.push(item.dataset.index);
+                                texts.push(item.innerText.trim());
+                            } else {
+                                order.push(null);
                             }
                         });
-                        collect();
-                    } catch (e) { console.warn('Restore failed', e); }
-                }
+                        try { inputOrder.value = JSON.stringify(order); } catch (e) { inputOrder.value = ''; }
+                        try { inputTexts.value = JSON.stringify(texts); } catch (e) { inputTexts.value = ''; }
 
-                // slot drag highlight and drop
-                slots.querySelectorAll('.slot').forEach(slot => {
-                    slot.addEventListener('dragover', e => e.preventDefault());
-                    slot.addEventListener('dragenter', () => slot.classList.add('ring-2', 'ring-blue-300'));
-                    slot.addEventListener('dragleave', () => slot.classList.remove('ring-2', 'ring-blue-300'));
-                    slot.addEventListener('drop', e => {
-                        e.preventDefault();
-                        slot.classList.remove('ring-2', 'ring-blue-300');
-                        const idx = e.dataTransfer.getData('text/plain');
-                        const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
-                        if (src) {
-                            if (slot.firstChild) pool.appendChild(slot.firstChild);
-                            slot.innerHTML = '';
-                            slot.appendChild(src);
+                        try { if (window.readingPartHelper?.process) window.readingPartHelper.process(qid, { __part: 'part2', data: [texts.length ? texts : null, order] }); } catch (e) { }
+                    }
+
+                    function restore() {
+                        try {
+                            const savedOrder = inputOrder.value ? JSON.parse(inputOrder.value) : null;
+                            if (!savedOrder) return;
+                            savedOrder.forEach((idx, pos) => {
+                                if (idx === null) return;
+                                const src = pool.querySelector(`.draggable-item[data-index="${idx}"]`);
+                                const slot = slots.querySelector(`.slot[data-slot-index="${pos}"]`);
+                                if (src && slot) {
+                                    if (slot.firstChild) pool.appendChild(slot.firstChild);
+                                    slot.innerHTML = '';
+                                    slot.appendChild(src);
+                                }
+                            });
                             collect();
+                        } catch (e) { console.warn('Restore failed', e); }
+                    }
+
+                    // Remove any existing event listeners to prevent duplicates
+                    const oldItems = document.querySelectorAll('.draggable-item');
+                    oldItems.forEach(item => {
+                        const newItem = item.cloneNode(true);
+                        if (item.parentNode) {
+                            item.parentNode.replaceChild(newItem, item);
                         }
                     });
-                });
 
-                // pool drop
-                pool.addEventListener('dragover', e => e.preventDefault());
-                pool.addEventListener('drop', e => {
-                    e.preventDefault();
-                    const idx = e.dataTransfer.getData('text/plain');
-                    const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
-                    if (src) pool.appendChild(src);
-                    collect();
-                });
+                    // slot drag highlight and drop
+                    slots.querySelectorAll('.slot').forEach(slot => {
+                        // Clean up old listeners by cloning and replacing
+                        const newSlot = slot.cloneNode(true);
+                        slot.parentNode.replaceChild(newSlot, slot);
+                        
+                        newSlot.addEventListener('dragover', e => e.preventDefault());
+                        newSlot.addEventListener('dragenter', () => newSlot.classList.add('ring-2', 'ring-blue-300'));
+                        newSlot.addEventListener('dragleave', () => newSlot.classList.remove('ring-2', 'ring-blue-300'));
+                        newSlot.addEventListener('drop', e => {
+                            e.preventDefault();
+                            newSlot.classList.remove('ring-2', 'ring-blue-300');
+                            const idx = e.dataTransfer.getData('text/plain');
+                            const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
+                            if (src) {
+                                if (newSlot.firstChild) pool.appendChild(newSlot.firstChild);
+                                newSlot.innerHTML = '';
+                                newSlot.appendChild(src);
+                                collect();
+                            }
+                        });
+                    });
 
-                // init
-                pool.querySelectorAll('.draggable-item').forEach(addDrag);
-                restore();
+                    // Clean up old pool listener by cloning and replacing
+                    if (pool) {
+                        const newPool = pool.cloneNode(false);
+                        Array.from(pool.children).forEach(child => newPool.appendChild(child));
+                        pool.parentNode.replaceChild(newPool, pool);
+                        
+                        // pool drop
+                        newPool.addEventListener('dragover', e => e.preventDefault());
+                        newPool.addEventListener('drop', e => {
+                            e.preventDefault();
+                            const idx = e.dataTransfer.getData('text/plain');
+                            const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
+                            if (src) newPool.appendChild(src);
+                            collect();
+                        });
+                    }
+
+                    // init
+                    document.querySelectorAll('.draggable-item').forEach(addDrag);
+                    restore();
+                }
+
+                // Initial setup
+                initPart2DragDrop();
+
+                // Listen for container replace events to re-initialize
+                window.addEventListener('aptis:container:replace', function() {
+                    // Use setTimeout to ensure DOM is fully updated before re-initializing
+                    setTimeout(initPart2DragDrop, 50);
+                });
             })();
         </script>
 

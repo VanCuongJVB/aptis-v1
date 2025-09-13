@@ -49,7 +49,7 @@
                 @if(isset($allQuestions) && $allQuestions->isNotEmpty())
                     @foreach($allQuestions as $q)
                         @php $ansForQ = $answersMap->get($q->id) ?? null; @endphp
-                        <div class="mb-6 question-block" data-qid="{{ $q->id }}">
+                        <div class="mb-6 question-block" data-qid="{{ $q->id }}" data-metadata="{{ json_encode($q->metadata ?? []) }}">
                             <div class="prose mb-3">{!! $q->content ?? $q->title !!}</div>
                             @php $part = $q->part ?? $q->metadata['part'] ?? $quiz->part; @endphp
                             @includeWhen(true, 'student.reading.parts.part' . $part, [
@@ -60,7 +60,7 @@
                     @endforeach
                 @else
                     @php $part = $question->part ?? $question->metadata['part'] ?? $quiz->part; @endphp
-                    <div class="question-block" data-qid="{{ $question->id }}">
+                    <div class="question-block" data-qid="{{ $question->id }}" data-metadata="{{ json_encode($question->metadata ?? []) }}">
                         @includeWhen(true, 'student.reading.parts.part' . $part, [
                             'question' => $question,
                             'answer' => $answer ?? null

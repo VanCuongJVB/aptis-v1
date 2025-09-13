@@ -35,6 +35,12 @@
                     const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
                     if (!target) return;
 
+                    // Add a guard to prevent multiple rendering
+                    if (target.hasAttribute('data-feedback-rendered')) {
+                        return; // Skip if feedback was already rendered for this target
+                    }
+                    target.setAttribute('data-feedback-rendered', 'true');
+
                     const node = tpl.content.cloneNode(true);
                     node.querySelector('[data-user]').textContent = userAnswer ?? '(chưa chọn)';
                     node.querySelector('[data-correct]').textContent = correctAnswer ?? '(không có)';
@@ -48,6 +54,7 @@
                     if (target) {
                         target.innerHTML = '';
                         target.classList.add('hidden');
+                        target.removeAttribute('data-feedback-rendered');
                     }
                 }
             };

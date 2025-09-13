@@ -81,9 +81,42 @@
 
         const footer = {
             setLoading(on) { spinner?.classList.toggle('hidden', !on); fnext.disabled = on; },
-            qid() { return document.querySelector('.question-block')?.dataset.qid || null; },
+            // Find the most visible question block (useful when multiple blocks are present)
+            _activeBlock() {
+                const blocks = [...document.querySelectorAll('.question-block')];
+                if (!blocks.length) return null;
+                if (blocks.length === 1) return blocks[0];
+                
+                // Find the most visible block in the viewport
+                let bestBlock = blocks[0];
+                let bestVisibility = 0;
+                
+                blocks.forEach(block => {
+                    const rect = block.getBoundingClientRect();
+                    // Calculate how much of the element is in the viewport
+                    const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+                    const visibleWidth = Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0);
+                    const visibleArea = visibleHeight * visibleWidth;
+                    
+                    if (visibleArea > bestVisibility) {
+                        bestVisibility = visibleArea;
+                        bestBlock = block;
+                    }
+                });
+                
+                return bestBlock;
+            },
+            qid() { 
+                // Get the ID from the most visible question block
+                const activeBlock = this._activeBlock();
+                return activeBlock?.dataset.qid || null;
+            },
             collect(root) {
-                if (!root) return null;
+                if (!root) {
+                    // If no root is provided, use the active block
+                    root = this._activeBlock();
+                    if (!root) return null;
+                }
                 if (root.querySelector('.slot')) {
                     const order = [], texts = [];
                     root.querySelectorAll('.slot').forEach(s => {
@@ -139,6 +172,13 @@
                 function renderFeedback(qid, stats, rows, rowRenderer, space = 'space-y-2') {
                     const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
                     if (!target) return;
+                    
+                    // Add a guard to prevent multiple rendering of the same feedback
+                    if (target.hasAttribute('data-feedback-rendered')) {
+                        return; // Skip if feedback was already rendered for this target
+                    }
+                    target.setAttribute('data-feedback-rendered', 'true');
+                    
                     const container = document.createElement('div');
                     container.className = 'w-full';
                     container.innerHTML = `
@@ -200,6 +240,13 @@
                         show: function (qid, userAnswer, correctAnswer, statsText) {
                             const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
                             if (!target) return;
+                            
+                            // Add a guard to prevent multiple rendering of the same feedback
+                            if (target.hasAttribute('data-feedback-rendered')) {
+                                return; // Skip if feedback was already rendered for this target
+                            }
+                            target.setAttribute('data-feedback-rendered', 'true');
+                            
                             const container = document.createElement('div');
                             container.className = 'w-full';
                             container.innerHTML = `
@@ -224,18 +271,35 @@
                         },
                         hide: function (qid) {
                             const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
-                            if (target) { target.innerHTML = ''; target.classList.add('hidden'); }
+                            if (target) { 
+                                target.innerHTML = ''; 
+                                target.classList.add('hidden');
+                                target.removeAttribute('data-feedback-rendered');
+                            }
                         }
                     };
                 }
 
                 function renderPart1(qid, payload) {
-                    const selEls = [...document.querySelectorAll(`.question-block[data-qid="${qid}"] select`)];
+                    // Get the specific question block for this qid
+                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                    const selEls = questionBlock ? [...questionBlock.querySelectorAll('select')] : [];
                     // fallback to payload.value (collected earlier) when DOM query doesn't find selects
                     const userValsFromDom = selEls.length ? selEls.map(s => s.value || null) : null;
                     const userVals = userValsFromDom ?? (payload?.value ? Array.from(payload.value) : []);
 
-                    const meta = window.currentQuestionMeta ?? {};
+                    // Get question-specific metadata if available
+                    let meta = null;
+                    try {
+                        // Try to get metadata from the DOM (via data attributes) first
+                        if (questionBlock && questionBlock.dataset.metadata) {
+                            meta = JSON.parse(questionBlock.dataset.metadata);
+                        }
+                    } catch (e) {}
+                    
+                    // Fall back to window.currentQuestionMeta
+                    meta = meta || window.currentQuestionMeta || {};
+                    
                     let expected = meta.correct_answers || meta.correctAnswers || meta.answers || meta.key || meta.correct || [];
                     expected = expected.map(e => typeof e === 'object' ? (e.text ?? e.label ?? e.value) : e);
                     let correctCount = 0;
@@ -249,7 +313,21 @@
                 }
 
                 function renderPart2(qid, payload) {
-                    const meta = window.currentQuestionMeta ?? {};
+                    // Get the specific question block for this qid
+                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                    
+                    // Get question-specific metadata if available
+                    let meta = null;
+                    try {
+                        // Try to get metadata from the DOM (via data attributes) first
+                        if (questionBlock && questionBlock.dataset.metadata) {
+                            meta = JSON.parse(questionBlock.dataset.metadata);
+                        }
+                    } catch (e) {}
+                    
+                    // Fall back to window.currentQuestionMeta
+                    meta = meta || window.currentQuestionMeta || {};
+                    
                     const sentences = meta.sentences || [];
                     const corr = meta.correct_order || [];
                     const rawOrder = payload.order || [];
@@ -369,6 +447,12 @@
                         // keep global feedbackShownForQid across pages (do not reinit); if we must reset for fresh attempts do it explicitly
                     }
                     history.pushState({}, '', url);
+                    
+                    // Reset the feedback-rendered attribute globally for the new page
+                    document.querySelectorAll('[data-feedback-rendered]').forEach(el => {
+                        el.removeAttribute('data-feedback-rendered');
+                    });
+                    
                     // dispatch a light-weight event so page-specific JS can init without re-executing inline scripts
                     window.dispatchEvent(new CustomEvent('aptis:container:replace', { detail: { url } }));
                 } catch (e) { location.href = url; }
@@ -382,7 +466,8 @@
         fnext?.addEventListener('click', async e => {
             e.preventDefault();
 
-            const root = document.querySelector('.question-block');
+            // Use the most visible question block
+            const root = footer._activeBlock();
             const qid = footer.qid();
             const payload = footer.collect(root);
             footer.save(qid, payload);
@@ -446,7 +531,7 @@
 
             if (!alreadyShown) {
                 footer.showFeedback(qid, payload);
-                feedbackShownForQid[qid] = true;
+                window.__aptis_feedbackShownForQid[qid] = true;
                 // Also persist this answer to server (non-blocking) so result page can read it
                 try {
                     const form = document.getElementById('answer-form');
