@@ -1,11 +1,18 @@
 <div class="mt-3 text-sm">
     <div class="font-medium">Đáp án của bạn (Part 1)</div>
     @php
-        // normalize user answers
+        // normalize user answers (defensive)
         $userSelected = [];
-        if (!empty($ansMeta) && is_array($ansMeta)) {
-            if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userSelected = array_values($ansMeta['selected']);
-            else $userSelected = array_values($ansMeta);
+        if (!empty($ansMeta)) {
+            if (is_string($ansMeta)) {
+                // try to json decode
+                $decoded = json_decode($ansMeta, true);
+                if (is_array($decoded)) $ansMeta = $decoded;
+            }
+            if (is_array($ansMeta)) {
+                if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userSelected = array_values($ansMeta['selected']);
+                else $userSelected = array_values($ansMeta);
+            }
         }
 
         // authoritative answers in metadata
@@ -18,9 +25,14 @@
         <div class="ml-2 text-gray-600">Chưa trả lời</div>
     @else
         <div class="space-y-2">
-            @foreach($userSelected as $i => $val)
+                @foreach($userSelected as $i => $val)
                 @php
-                    $u = (string)$val;
+                    // ensure scalar for display
+                    if (is_array($val) || is_object($val)) {
+                        $u = json_encode($val, JSON_UNESCAPED_UNICODE);
+                    } else {
+                        $u = (string)$val;
+                    }
                     $correctRaw = $correctAnswers[$i] ?? null;
                     $isCorrect = null;
                     if ($correctRaw !== null) {

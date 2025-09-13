@@ -44,7 +44,17 @@
                 $authOptionIds = [];
                 $authTexts = [];
                 if (!empty($meta)) {
-                    if (!empty($meta['answers']) && is_array($meta['answers'])) {
+                    if (!empty($meta['correct_answers']) && is_array($meta['correct_answers'])) {
+                        foreach ($meta['correct_answers'] as $a) {
+                            if (is_array($a)) {
+                                if (isset($a['option_id'])) $authOptionIds[] = $a['option_id'];
+                                if (isset($a['text'])) $authTexts[] = $a['text'];
+                            } else {
+                                if (is_numeric($a)) $authOptionIds[] = (int) $a;
+                                else $authTexts[] = (string) $a;
+                            }
+                        }
+                    } elseif (!empty($meta['answers']) && is_array($meta['answers'])) {
                         foreach ($meta['answers'] as $a) {
                             if (is_array($a)) {
                                 if (isset($a['option_id'])) $authOptionIds[] = $a['option_id'];

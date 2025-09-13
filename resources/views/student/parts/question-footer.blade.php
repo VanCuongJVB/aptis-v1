@@ -76,10 +76,11 @@
                 const checked = root.querySelectorAll('input:checked');
                 if (checked.length) return { part: 'choice', value: Array.from(checked).map(i => i.value) };
 
-                // detect multiple selects (Part 4 style) and return array of values
+                // detect multiple selects (Part 1 style: multiple dropdowns for blanks)
                 const selEls = root.querySelectorAll('select');
                 if (selEls.length > 1) {
-                    return { part: 'part4', value: Array.from(selEls).map(s => s.value) };
+                    // treat as part1 so renderPart1 is used (it queries selects by qid)
+                    return { part: 'part1', value: Array.from(selEls).map(s => s.value) };
                 }
 
                 if (selEls.length === 1) return { part: 'select', value: selEls[0].value };
@@ -157,7 +158,10 @@
 
                 function renderPart1(qid, payload) {
                     const selEls = [...document.querySelectorAll(`.question-block[data-qid="${qid}"] select`)];
-                    const userVals = selEls.map(s => s.value || null);
+                    // fallback to payload.value (collected earlier) when DOM query doesn't find selects
+                    const userValsFromDom = selEls.length ? selEls.map(s => s.value || null) : null;
+                    const userVals = userValsFromDom ?? (payload?.value ? Array.from(payload.value) : []);
+
                     const meta = window.currentQuestionMeta ?? {};
                     let expected = meta.correct_answers || meta.correctAnswers || meta.answers || meta.key || meta.correct || [];
                     expected = expected.map(e => typeof e === 'object' ? (e.text ?? e.label ?? e.value) : e);
@@ -271,6 +275,40 @@
             if (!alreadyShown) {
                 footer.showFeedback(qid, payload);
                 feedbackShownForQid[qid] = true;
+                // Also persist this answer to server (non-blocking) so result page can read it
+                try {
+                    const form = document.getElementById('answer-form');
+                    const saveUrl = form ? form.action : null;
+                    const tokenEl = document.querySelector('input[name="_token"]');
+                    const csrf = tokenEl ? tokenEl.value : null;
+                    if (saveUrl && csrf) {
+                        // normalize metadata shape expected by server
+                        let metaToSend = payload;
+                        try {
+                            if (payload && payload.part === 'part1' && Array.isArray(payload.value)) {
+                                metaToSend = { selected: payload.value };
+                            } else if (payload && payload.part === 'select' && Array.isArray(payload.value)) {
+                                metaToSend = { selected: payload.value };
+                            } else if (payload && payload.value !== undefined) {
+                                // generic: wrap value into selected
+                                metaToSend = { selected: payload.value };
+                            }
+                        } catch (e) { metaToSend = payload; }
+
+                        fetch(saveUrl, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrf,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ action: 'submit', metadata: metaToSend, client_provided: true })
+                        }).then(r => r.json()).then(resp => {
+                            try { console.debug('autosave resp', resp); } catch(e){}
+                        }).catch(() => {});
+                    }
+                } catch (e) {}
                 if (lbl) lbl.textContent = isFinal ? 'Hoàn thành' : 'Next';
                 return; // ✅ lần đầu chỉ show feedback, không đi đâu cả
             }
