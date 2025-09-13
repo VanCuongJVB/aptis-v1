@@ -1,6 +1,9 @@
 <div class="w-full max-w-3xl mx-auto p-4">
 	<div class="mb-4">
 		<h2 class="text-lg font-semibold text-gray-800">Câu hỏi {{ $question->order_no }}</h2>
+		@if(!empty($question->stem))
+			<p class="text-gray-800 font-medium">{{ $question->stem }}</p>
+		@endif
 		@if(!empty($question->content))
 			<p class="text-gray-700 mt-1">{{ $question->content }}</p>
 		@endif
@@ -21,6 +24,7 @@
 	</div>
 
 	<div id="feedback-{{ $question->id }}" class="mt-4 hidden"></div>
+	<div class="inline-feedback mt-3 text-sm text-gray-700" data-qid-feedback="{{ $question->id }}"></div>
 </div>
 
 <script>
@@ -61,11 +65,11 @@ function submitListeningAnswerPart(questionId) {
 		}
 		document.getElementById(`next-btn-${questionId}`).disabled = false;
 
-		// store answer locally (to be submitted in one batch at the end)
+		// store canonical payload
 		try {
 			window.attemptAnswers = window.attemptAnswers || {};
-			window.attemptAnswers[questionId] = { selected: selected.value, is_correct: isCorrect };
-			console.log('stored local answer', window.attemptAnswers[questionId]);
+			window.attemptAnswers[questionId] = { part: 'select', value: sel, is_correct: isCorrect };
+			try { localStorage.setItem('attempt_answers_' + (window.currentAttemptId || {{ $question->quiz_id ?? 0 }}), JSON.stringify(window.attemptAnswers)); } catch(e) {}
 		} catch(e) { console.warn(e); }
 	} catch (e) {
 		console.error(e);

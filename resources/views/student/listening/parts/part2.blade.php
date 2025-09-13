@@ -7,11 +7,21 @@
 	</div>
 
 	<form class="space-y-3">
-		@foreach($question->metadata['items'] as $idx => $item)
-			<label class="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-				<input type="radio" name="selected" value="{{ $idx }}" class="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-				<span class="text-gray-800">{!! $item !!}</span>
-			</label>
+		@php
+			$items = $question->metadata['items'] ?? [];
+			$options = $question->metadata['options'] ?? [];
+		@endphp
+
+		@foreach($items as $idx => $item)
+			<div class="p-3 border rounded-md">
+				<div class="text-sm font-medium mb-2">{!! nl2br(e($item)) !!}</div>
+				<select class="w-full border rounded p-2 part2-select" data-index="{{ $idx }}">
+					<option value="">- Chọn cụm từ -</option>
+					@foreach($options as $oIdx => $opt)
+						<option value="{{ $oIdx }}">{{ e($opt) }}</option>
+					@endforeach
+				</select>
+			</div>
 		@endforeach
 	</form>
 
@@ -21,6 +31,7 @@
 	</div>
 
 	<div id="feedback-{{ $question->id }}" class="mt-4 hidden"></div>
+	<div class="inline-feedback mt-3 text-sm text-gray-700" data-qid-feedback="{{ $question->id }}"></div>
 </div>
 
 <script>
@@ -61,11 +72,19 @@ function submitListeningAnswerPart(questionId) {
 		}
 		document.getElementById(`next-btn-${questionId}`).disabled = false;
 
-		// store answer locally (to be submitted in one batch at the end)
+		// collect selections into canonical payload and store
 		try {
+			const selects = Array.from(document.querySelectorAll('.part2-select'));
+			const order = [];
+			const texts = [];
+			selects.forEach(s => {
+				const v = s.value === '' ? null : Number(s.value);
+				order.push(v);
+				texts.push(v === null ? null : s.options[s.selectedIndex].text);
+			});
 			window.attemptAnswers = window.attemptAnswers || {};
-			window.attemptAnswers[questionId] = { selected: selected.value, is_correct: isCorrect };
-			console.log('stored local answer', window.attemptAnswers[questionId]);
+			window.attemptAnswers[questionId] = { part: 'part2', order: order, texts: texts };
+			try { localStorage.setItem('attempt_answers_' + (window.currentAttemptId || {{ $question->quiz_id ?? 0 }}), JSON.stringify(window.attemptAnswers)); } catch(e) {}
 		} catch(e) { console.warn(e); }
 	} catch (e) {
 		console.error(e);
