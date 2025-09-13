@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Reading\ReadingManagerController;
 use App\Http\Controllers\Reading\QuestionController;
 use App\Http\Controllers\Reading\PracticeController;
 use App\Http\Controllers\Student\ReadingController;
@@ -16,32 +15,7 @@ use Illuminate\Support\Facades\Route;
 | 
 */
 
-// Admin Reading Management Routes
-Route::middleware(['auth', 'admin.role'])->prefix('admin/reading')->name('admin.reading.')->group(function () {
-    // Quản lý Reading
-    Route::get('/', [ReadingManagerController::class, 'index'])->name('index');
-
-    // Quản lý bộ đề Reading
-    Route::prefix('sets')->name('sets.')->group(function () {
-        Route::get('part/{part}', [ReadingManagerController::class, 'showPart'])->name('part');
-        Route::get('create/{part}', [ReadingManagerController::class, 'create'])->name('create');
-        Route::post('/', [ReadingManagerController::class, 'store'])->name('store');
-        Route::get('{quiz}/edit', [ReadingManagerController::class, 'edit'])->name('edit');
-        Route::put('{quiz}', [ReadingManagerController::class, 'update'])->name('update');
-        Route::delete('{quiz}', [ReadingManagerController::class, 'destroy'])->name('destroy');
-        Route::post('{quiz}/toggle-publish', [ReadingManagerController::class, 'togglePublish'])->name('toggle-publish');
-        Route::post('{quiz}/reorder', [ReadingManagerController::class, 'reorderQuestions'])->name('reorder');
-    });
-
-    // Quản lý câu hỏi Reading
-    Route::prefix('questions')->name('questions.')->group(function () {
-        Route::get('quiz/{quiz}/create', [QuestionController::class, 'create'])->name('create');
-        Route::post('quiz/{quiz}', [QuestionController::class, 'store'])->name('store');
-        Route::get('{question}/edit', [QuestionController::class, 'edit'])->name('edit');
-        Route::put('{question}', [QuestionController::class, 'update'])->name('update');
-        Route::delete('{question}', [QuestionController::class, 'destroy'])->name('destroy');
-    });
-});
+// Admin Reading Management Routes removed (reading admin UI moved/removed)
 
 // Student Reading Practice Routes
 Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.')->group(function () {
