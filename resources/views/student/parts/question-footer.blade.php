@@ -59,10 +59,22 @@
         const fnext = document.getElementById('footer-next-btn');
         const spinner = document.getElementById('footer-next-spinner');
         const mainSelector = '.container.mx-auto';
+    if (!fnext) { try { /* debug removed: next button not found */ } catch (e) {} }
 
         window.attemptAnswers = window.attemptAnswers || {};
         window.__aptis_feedbackShownForQid = window.__aptis_feedbackShownForQid || {};
-
+        // Track last-focused question block so the footer uses the question the user
+        // was interacting with (clicking footer steals focus from inputs).
+        window.__aptis_lastFocusedQid = window.__aptis_lastFocusedQid || null;
+        document.addEventListener('focusin', (ev) => {
+            try {
+                const b = ev.target && ev.target.closest ? ev.target.closest('.question-block') : null;
+                if (b && b.dataset && b.dataset.qid) {
+                    window.__aptis_lastFocusedQid = b.dataset.qid;
+                }
+            } catch (e) { /* ignore */ }
+        }, true);
+        // Debounced persistence to reduce main-thread pauses caused by JSON.stringify
         let __aptis_persist_timer = null;
         function persistAnswersNow() {
             try {
@@ -154,6 +166,54 @@
 
                 const selEls = root.querySelectorAll('select');
                 if (selEls.length > 1) {
+                    // Try to infer the question part from per-block metadata (preferred)
+                    try {
+                        let inferredPart = null;
+                        // 1) data-meta attribute on block (stringified JSON)
+                        if (root && root.dataset && root.dataset.metadata) {
+                            const dm = JSON.parse(root.dataset.metadata);
+                            if (dm && (dm.part === 4 || (dm.paragraphs && dm.paragraphs.length))) inferredPart = 4;
+                        }
+                        // 2) hidden data-meta-json element (result page)
+                        if (!inferredPart) {
+                            const metaEl = root.querySelector('[data-meta-json]');
+                            if (metaEl) {
+                                const dm = JSON.parse(metaEl.getAttribute('data-meta-json'));
+                                if (dm && (dm.part === 4 || (dm.paragraphs && dm.paragraphs.length))) inferredPart = 4;
+                            }
+                        }
+                        // 3) fallback to global currentQuestionMeta
+                        if (!inferredPart && window.currentQuestionMeta && (window.currentQuestionMeta.part === 4 || (window.currentQuestionMeta.paragraphs && window.currentQuestionMeta.paragraphs.length))) {
+                            inferredPart = 4;
+                        }
+
+                        // If metadata strongly indicates part4, we still apply a defensive heuristic:
+                        // when all selects are embedded inline inside a `.prose` element (typical for
+                        // part1 blanks), prefer treating this as part1 to avoid mis-detection caused by
+                        // stray metadata (observed when `meta.paragraphs` exists but the UI is part1).
+                        try {
+                            if (inferredPart === 4) {
+                                const isInlineSelect = (s) => {
+                                    try {
+                                        if (s.closest && s.closest('.prose')) return true;
+                                        if (s.closest && s.closest('p')) return true;
+                                        if (s.closest && s.closest('span')) return true;
+                                        if (s.classList && s.classList.contains('inline-block')) return true;
+                                    } catch (e) {}
+                                    return false;
+                                };
+                                const inlineCount = Array.from(selEls).filter(s => isInlineSelect(s)).length;
+                                // prefer part1 when a clear majority of selects are inline (>=60%)
+                                if (inlineCount >= Math.ceil(selEls.length * 0.6)) {
+                                    inferredPart = null;
+                                }
+                            }
+                        } catch (e) { /* ignore and respect inferredPart if error */ }
+
+                        if (inferredPart === 4) return { part: 'part4', value: Array.from(selEls).map(s => s.value) };
+                    } catch (e) { /* ignore parsing errors and fallthrough */ }
+
+                    // default to part1 when no metadata indicates part4
                     return { part: 'part1', value: Array.from(selEls).map(s => s.value) };
                 }
 
@@ -214,15 +274,37 @@
                         const row = document.createElement('div');
                         row.className = `grid grid-cols-2 gap-4 p-2 border rounded ${r.ok ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`;
                         const userCol = document.createElement('div');
-                        userCol.className = 'text-sm text-gray-800 flex items-center gap-2';
-                        if (r.ok) {
-                            userCol.innerHTML = `
-                                <svg class="h-4 w-4 text-green-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414-1.414L8 11.172 4.707 7.879a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8z" clip-rule="evenodd"/></svg>
-                                <span>${r.userText}</span>
-                            `;
-                        } else {
-                            userCol.textContent = r.userText;
+                        userCol.className = 'text-sm text-gray-800';
+
+                        // context (sentence containing the blank)
+                        if (r.context) {
+                            const ctx = document.createElement('div');
+                            ctx.className = 'text-xs italic text-gray-500 mb-1';
+                            ctx.textContent = r.context;
+                            userCol.appendChild(ctx);
                         }
+
+                        const userVal = document.createElement('div');
+                        userVal.className = 'flex items-center gap-2';
+                        if (r.ok) {
+                            const svg = document.createElement('svg');
+                            svg.setAttribute('class','h-4 w-4 text-green-600 flex-shrink-0');
+                            svg.setAttribute('viewBox','0 0 20 20');
+                            svg.setAttribute('fill','currentColor');
+                            svg.setAttribute('aria-hidden','true');
+                            svg.innerHTML = '<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414-1.414L8 11.172 4.707 7.879a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8z" clip-rule="evenodd"/>';
+                            userVal.appendChild(svg);
+                            const span = document.createElement('span');
+                            span.textContent = r.userText;
+                            userVal.appendChild(span);
+                        } else {
+                            const span = document.createElement('div');
+                            span.textContent = r.userText;
+                            userVal.appendChild(span);
+                        }
+
+                        userCol.appendChild(userVal);
+
                         const corrCol = document.createElement('div');
                         corrCol.className = 'text-sm text-gray-800';
                         corrCol.textContent = r.correctText;
@@ -291,17 +373,18 @@
                 }
 
                 function renderPart1(qid, payload) {
-
                     const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
                     const selEls = questionBlock ? [...questionBlock.querySelectorAll('select')] : [];
+                    try {
+                        if (questionBlock) {
+                            const prose = questionBlock.querySelector('.prose');
+                        }
+                    } catch (e) { }
 
                     const userValsFromDom = selEls.length ? selEls.map(s => s.value || null) : null;
                     const userVals = userValsFromDom ?? (payload?.value ? Array.from(payload.value) : []);
-
-
                     let meta = null;
                     try {
-
                         if (questionBlock && questionBlock.dataset.metadata) {
                             meta = JSON.parse(questionBlock.dataset.metadata);
                         }
@@ -383,20 +466,56 @@
                 }
 
                 function renderPart4(qid, payload) {
-                    const meta = window.currentQuestionMeta ?? {};
-                    const options = meta.options || [];
-                    const paragraphs = meta.paragraphs || [];
-                    const correct = meta.correct || [];
-                    const userVals = payload.value || [];
+                    // Prefer per-question metadata found in the DOM (data attributes or hidden meta element).
+                    // Fallback order: question block dataset.metadata -> [data-meta-json] element -> payload.meta -> window.currentQuestionMeta
+                    let meta = {};
+                    try {
+                        const qBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                        if (qBlock) {
+                            if (qBlock.dataset && qBlock.dataset.metadata) {
+                                meta = JSON.parse(qBlock.dataset.metadata);
+                            } else {
+                                const metaEl = qBlock.querySelector('[data-meta-json]');
+                                if (metaEl) meta = JSON.parse(metaEl.getAttribute('data-meta-json'));
+                            }
+                        }
+                    } catch (e) {
+                        meta = {};
+                    }
+
+                    // fallback to payload-provided metadata, then global
+                    if ((!meta || Object.keys(meta).length === 0) && payload && payload.meta) meta = payload.meta;
+                    if ((!meta || Object.keys(meta).length === 0) && window.currentQuestionMeta) meta = window.currentQuestionMeta;
+
+                    const options = Array.isArray(meta.options) ? meta.options : [];
+                    const paragraphs = Array.isArray(meta.paragraphs) ? meta.paragraphs : [];
+                    const correct = Array.isArray(meta.correct) ? meta.correct : (Array.isArray(meta.answers) ? meta.answers : []);
+                    const userVals = Array.isArray(payload?.value) ? payload.value : (Array.isArray(payload?.selected) ? payload.selected : []);
+
                     let correctCount = 0;
-                    const rows = paragraphs.map((para, i) => {
+                    const displayCount = Math.max(paragraphs.length, userVals.length, correct.length);
+                    const rows = Array.from({ length: displayCount }).map((_, i) => {
+                        const para = paragraphs[i] ?? '';
                         const raw = typeof userVals[i] !== 'undefined' ? userVals[i] : null;
-                        const userIdx = (raw !== null && String(raw).trim() !== '') ? Number(raw) : null;
-                        const userText = userIdx !== null ? options[userIdx] : "(chưa chọn)";
+                        const sKey = raw !== null ? String(raw).trim() : '';
+                        let userText = '(chưa chọn)';
+                        if (sKey !== '') {
+                            // try numeric index then fallback to raw string
+                            const idx = Number(sKey);
+                            if (!Number.isNaN(idx) && typeof options[idx] !== 'undefined') userText = options[idx];
+                            else userText = String(raw);
+                        }
+
                         const corrRaw = typeof correct[i] !== 'undefined' ? correct[i] : null;
-                        const corrIdx = (corrRaw !== null && String(corrRaw).trim() !== '') ? Number(corrRaw) : null;
-                        const corrText = corrIdx !== null ? options[corrIdx] : "";
-                        const ok = userIdx !== null && corrIdx !== null && userIdx === corrIdx;
+                        const cKey = corrRaw !== null ? String(corrRaw).trim() : '';
+                        let corrText = '';
+                        if (cKey !== '') {
+                            const cIdx = Number(cKey);
+                            if (!Number.isNaN(cIdx) && typeof options[cIdx] !== 'undefined') corrText = options[cIdx];
+                            else corrText = String(corrRaw);
+                        }
+
+                        const ok = (sKey !== '' && cKey !== '' && String(userText).trim().toLowerCase() === String(corrText).trim().toLowerCase());
                         if (ok) correctCount++;
                         return { para, userText, corrText, ok };
                     });
@@ -704,11 +823,15 @@
 
         fnext?.addEventListener('click', async e => {
             e.preventDefault();
-
-
-            const root = footer.getActiveBlock();
-            const qid = footer.getQid();
+            let focusedRoot = null;
+            try {
+                const lastQid = window.__aptis_lastFocusedQid || null;
+                if (lastQid) focusedRoot = document.querySelector(`.question-block[data-qid="${lastQid}"]`);
+            } catch (e) { focusedRoot = null; }
+            const root = focusedRoot || footer.getActiveBlock();
+            const qid = root?.dataset?.qid || footer.getQid();
             const payload = footer.collectAnswers(root);
+            try { /* debug removed: collected payload */ } catch (err) { /* ignore */ }
             footer.saveAnswer(qid, payload);
 
             function hasAnswer(p) {
@@ -769,6 +892,10 @@
             const alreadyShown = window.__aptis_feedbackShownForQid[qid] === true;
 
             if (!alreadyShown) {
+                try {
+                    if (!payload && window.attemptAnswers && window.attemptAnswers[qid]) payload = window.attemptAnswers[qid];
+                } catch(e) {}
+
                 footer.displayFeedback(qid, payload);
                 window.__aptis_feedbackShownForQid[qid] = true;
 
@@ -800,9 +927,7 @@
                                 'X-Requested-With': 'XMLHttpRequest'
                             },
                             body: JSON.stringify({ action: 'submit', metadata: metaToSend, client_provided: true })
-                        }).then(r => r.json()).then(resp => {
-                            try { console.debug('autosave resp', resp); } catch (e) { }
-                        }).catch(() => { });
+                        }).then(r => r.json()).then(resp => {}).catch(() => {});
                     }
                 } catch (e) { }
                 if (lbl) lbl.textContent = isFinal ? 'Hoàn thành' : 'Next';
@@ -817,6 +942,11 @@
             }
         });
 
-        window.addEventListener('popstate', () => location.reload());
+        // Avoid forcing a full reload on history popstate which can cause the SPA to jump
+        // to the result page unexpectedly. Instead emit a custom event so page-level
+        // code can decide whether to re-fetch or re-init the container.
+        window.addEventListener('popstate', (ev) => {
+            window.dispatchEvent(new CustomEvent('aptis:history:pop', { detail: ev }));
+        });
     })();
 </script>

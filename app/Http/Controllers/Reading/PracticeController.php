@@ -290,8 +290,7 @@ class PracticeController extends Controller
             ->where('question_id', $question->id)
             ->first();
 
-    // DEBUG: log the stored answer for this question (check storage/logs/laravel.log)
-    try { Log::debug('showQuestion_answer', ['attempt_id' => $attempt->id, 'question_id' => $question->id, 'answer' => $answer ? $answer->toArray() : null]); } catch (\Throwable $e) {}
+    // debug logging removed
 
         // Lấy thông tin tổng quan về bài làm (dựa trên question_order của attempt)
         $totalQuestions = count($order);
@@ -345,8 +344,7 @@ class PracticeController extends Controller
 
     // If this is an AJAX per-question submit, grade server-side, persist and update attempt counters.
     if ($request->ajax() && $request->input('action') === 'submit') {
-    // DEBUG: log incoming payload before grading/saving
-    try { Log::debug('ajax_submit_meta', ['attempt_id' => $attempt->id, 'question_id' => $question->id, 'meta' => $answerMeta, 'selected_option' => $selOption, 'clientProvided' => $clientProvided]); } catch (\Throwable $e) {}
+    // debug logging removed
         // grade using question metadata
         $meta = $question->metadata ?? [];
         $grading = $this->gradeAnswer($question, $answerMeta);
@@ -697,24 +695,107 @@ class PracticeController extends Controller
                     continue;
                 }
 
+                if ($part == 3) {
+                    $items = $meta['items'] ?? [];
+                    $options = $meta['options'] ?? [];
+                    $answersKey = $meta['answers'] ?? $meta['correct'] ?? [];
+                    $ans = $answers->get($q->id);
+                    $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                    $userArr = [];
+                    if (is_array($ansMeta)) {
+                        if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userArr = array_values($ansMeta['selected']);
+                        elseif (isset($ansMeta['values']) && is_array($ansMeta['values'])) $userArr = array_values($ansMeta['values']);
+                        elseif (isset($ansMeta['value']) && is_array($ansMeta['value'])) $userArr = array_values($ansMeta['value']);
+                        else $userArr = array_values($ansMeta);
+                    } elseif (is_string($ansMeta)) {
+                        $dec = json_decode($ansMeta, true);
+                        if (is_array($dec)) $userArr = array_values($dec);
+                    }
+                    $count = max(count($items), count($userArr), count($answersKey));
+                    for ($i = 0; $i < $count; $i++) {
+                        $totalItems++;
+                        $raw = isset($userArr[$i]) ? $userArr[$i] : null;
+                        $userText = ($raw !== null && isset($options[$raw])) ? $options[$raw] : ($raw !== null ? (string)$raw : '');
+                        $corrRaw = isset($answersKey[$i]) ? $answersKey[$i] : null;
+                        $corrText = ($corrRaw !== null && isset($options[$corrRaw])) ? $options[$corrRaw] : ($corrRaw !== null ? (string)$corrRaw : '');
+                        if ($userText !== '' && $corrText !== '' && mb_strtolower(trim($userText)) === mb_strtolower(trim($corrText))) $correctItems++;
+                    }
+                    continue;
+                }
+
                 if ($part == 4) {
                     $options = $meta['options'] ?? [];
                     $paragraphs = $meta['paragraphs'] ?? [];
                     $correct = $meta['correct'] ?? [];
                     $ans = $answers->get($q->id);
                     $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+
+                    // Build option lookup maps for index -> text and id -> text (when option items are objects)
+                    $optByIndex = [];
+                    $optById = [];
+                    if (is_array($options)) {
+                        foreach ($options as $k => $v) {
+                            if (is_array($v)) {
+                                $text = $v['text'] ?? $v['label'] ?? $v['content'] ?? $v['value'] ?? json_encode($v);
+                                if (isset($v['id'])) $optById[(string)$v['id']] = $text;
+                            } elseif (is_object($v)) {
+                                $text = $v->text ?? $v->label ?? $v->content ?? $v->value ?? json_encode((array)$v);
+                                if (isset($v->id)) $optById[(string)$v->id] = $text;
+                            } else {
+                                $text = (string)$v;
+                            }
+                            $optByIndex[(string)$k] = $text;
+                        }
+                    }
+
+                    // normalize user values from stored metadata (support ['selected'], ['value'], or direct numeric array)
                     $userVals = [];
-                    if (is_array($ansMeta) && isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userVals = $ansMeta['selected'];
-                    elseif (is_array($ansMeta) && isset($ansMeta['value']) && is_array($ansMeta['value'])) $userVals = $ansMeta['value'];
-                    $count = max(count($paragraphs), count($userVals));
+                    if (is_array($ansMeta)) {
+                        if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userVals = array_values($ansMeta['selected']);
+                        elseif (isset($ansMeta['value']) && is_array($ansMeta['value'])) $userVals = array_values($ansMeta['value']);
+                        else {
+                            // handle case where metadata is ['value' => [...]] or numeric keys
+                            $maybe = array_values($ansMeta);
+                            if (count($maybe) === 1 && is_array($maybe[0])) $userVals = array_values($maybe[0]);
+                            else $userVals = $maybe;
+                        }
+                    } elseif (is_string($ansMeta)) {
+                        $dec = json_decode($ansMeta, true);
+                        if (is_array($dec)) $userVals = array_values($dec);
+                    }
+
+                    $count = max(count($paragraphs), count($userVals), count($correct));
                     for ($i = 0; $i < $count; $i++) {
                         $totalItems++;
                         $raw = $userVals[$i] ?? null;
-                        $userIdx = ($raw !== null && trim((string)$raw) !== '') ? (int)$raw : null;
-                        $userText = $userIdx !== null ? ($options[$userIdx] ?? '') : '';
+
+                        // Resolve user text: support numeric index, option id, or raw text
+                        $userText = '';
+                        if ($raw !== null && trim((string)$raw) !== '') {
+                            $sKey = (string)$raw;
+                            // prefer lookup by index
+                            if (isset($optByIndex[$sKey])) {
+                                $userText = $optByIndex[$sKey];
+                            } elseif (isset($optById[$sKey])) {
+                                $userText = $optById[$sKey];
+                            } elseif (isset($optByIndex[(int)$sKey])) {
+                                $userText = $optByIndex[(int)$sKey] ?? '';
+                            } else {
+                                // fallback to raw string
+                                $userText = (string)$raw;
+                            }
+                        }
+
                         $corrRaw = $correct[$i] ?? null;
-                        $corrIdx = ($corrRaw !== null && trim((string)$corrRaw) !== '') ? (int)$corrRaw : null;
-                        $corrText = $corrIdx !== null ? ($options[$corrIdx] ?? '') : '';
+                        $corrText = '';
+                        if ($corrRaw !== null && trim((string)$corrRaw) !== '') {
+                            $cKey = (string)$corrRaw;
+                            if (isset($optByIndex[$cKey])) $corrText = $optByIndex[$cKey];
+                            elseif (isset($optById[$cKey])) $corrText = $optById[$cKey];
+                            elseif (isset($optByIndex[(int)$cKey])) $corrText = $optByIndex[(int)$cKey] ?? '';
+                            else $corrText = (string)$corrRaw;
+                        }
+
                         if ($userText !== '' && $corrText !== '' && mb_strtolower(trim($userText)) === mb_strtolower(trim($corrText))) $correctItems++;
                     }
                     continue;
@@ -736,7 +817,7 @@ class PracticeController extends Controller
             Log::error('recompute totals failed: ' . $e->getMessage());
         }
 
-        try { Log::debug('answers_map', ['attempt_id' => $attempt->id, 'answers' => $answers->map(function($a){ return $a->toArray(); })->toArray()]); } catch (\Throwable $e) {}
+    // debug logging removed
 
         return view('student.reading.result', [
             'attempt' => $attempt,
