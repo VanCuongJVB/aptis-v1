@@ -41,6 +41,10 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
         return view('admin.quizzes.coming_soon');
     })->name('quizzes.coming');
 
+    // Import endpoint for quizzes JSON
+    Route::post('quizzes/import', [\App\Http\Controllers\Admin\ImportController::class, 'store'])->name('quizzes.import');
+    Route::post('quizzes/import/dry-run', [\App\Http\Controllers\Admin\ImportController::class, 'dryRun'])->name('quizzes.import.dryrun');
+
     // Question management (basic CRUD)
     Route::get('quizzes/questions/create', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'create'])->name('questions.create');
     Route::post('quizzes/questions', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'store'])->name('questions.store');

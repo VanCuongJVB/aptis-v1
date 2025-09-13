@@ -1,0 +1,255 @@
+{
+  "quizzes": [
+    {
+      "title": "Reading - Part 1 (Gap Filling) - Template",
+      "description": "Template: reading_gap_filling with paragraphs, choices and correct_answers",
+      "skill": "reading",
+      "part": 1,
+      "is_published": true,
+      "sets": [
+        {
+          "title": "Reading Set Part1 - Template",
+          "skill": "reading",
+          "order": 1,
+          "questions": [
+            {
+              "type": "reading_gap_filling",
+              "stem": "Dear Sally (Gap fill)",
+              "skill": "reading",
+              "part": 1,
+              "order": 1,
+              "metadata": {
+                "paragraphs": [
+                  "Dear Sally,",
+                  "Tim and I are on holiday in Greece. We have a nice [BLANK1] of the sea from our hotel.",
+                  "The weather is [BLANK2] and it’s really hot.",
+                  "Yesterday we went on a [BLANK3] on the lake and caught some fish.",
+                  "We had lunch and then we visited an old [BLANK4].",
+                  "Tomorrow we are going to take a car and [BLANK5] around."
+                ],
+                "choices": [
+                  ["view", "room", "garden"],
+                  ["sunny", "cold", "windy"],
+                  ["boat", "walk", "ride"],
+                  ["castle", "museum", "park"],
+                  ["drive", "walk", "cycle"]
+                ],
+                "correct_answers": ["room","windy","boat","castle","drive"],
+                "blank_keys": ["BLANK1","BLANK2","BLANK3","BLANK4","BLANK5"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "title": "Reading - Part 2 (Ordering) - Template",
+      "description": "Template: reading_notice_matching with sentences and correct_order",
+      "skill": "reading",
+      "part": 2,
+      "is_published": false,
+      "sets": [
+        {
+          "title": "Reading Set Part2 - Template",
+          "skill": "reading",
+          "is_public": true,
+          "order": 1,
+          "questions": [
+            {
+              "type": "reading_notice_matching",
+              "skill": "reading",
+              "part": 2,
+              "order": 1,
+              "stem": "Procedure ordering - sample",
+              "metadata": {
+                "sentences": [
+                  "First, read your work and correct spelling mistakes.",
+                  "When you have corrected all the mistakes, print out your assignment.",
+                  "Attach the cover sheet and hand it to the front desk.",
+                  "A staff member will check and confirm submission."
+                ],
+                "correct_order": [0,1,2,3]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "title": "Reading - Part 3 (Sentence Matching) - Template",
+      "description": "Template: reading_sentence_matching with people, items and answers",
+      "skill": "reading",
+      "part": 3,
+      "is_published": false,
+      "sets": [
+        {
+          "title": "Reading Set Part3 - Template",
+          "skill": "reading",
+          "is_public": true,
+          "order": 1,
+          "questions": [
+            {
+              "type": "reading_sentence_matching",
+              "skill": "reading",
+              "part": 3,
+              "order": 1,
+              "stem": "Four people respond in the comments section; match opinions to people.",
+              "metadata": {
+                "people": [
+                  { "id": "A", "name": "Petra", "text": "As you get older, responsibilities..." },
+                  { "id": "B", "name": "Antonio", "text": "Life doesn’t really get serious..." },
+                  { "id": "C", "name": "Eleanor", "text": "Nowadays, it is popular for school leavers..." },
+                  { "id": "D", "name": "Jermaine", "text": "I think we should all keep learning..." }
+                ],
+                "items": [
+                  "Who thinks you should study when you are older?",
+                  "Who thinks formal qualifications are too expensive?",
+                  "Who thinks you should start work immediately?"
+                ],
+                "answers": ["A","D","C"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "title": "Reading - Part 4 (Long Text) - Template",
+      "description": "Template: reading_long_text with paragraphs, options and correct indexes",
+      "skill": "reading",
+      "part": 4,
+      "is_published": false,
+      "sets": [
+        {
+          "title": "Reading Set Part4 - Template",
+          "skill": "reading",
+          "is_public": true,
+          "order": 1,
+          "questions": [
+            {
+              "type": "reading_long_text",
+              "skill": "reading",
+              "part": 4,
+              "order": 1,
+              "stem": "Mission to Mars",
+              "metadata": {
+                "paragraphs": [
+                  "On 3 June 2010, an international crew of six astronauts entered a spaceship...",
+                  "Emerging from the spaceship after an exhausting 520 days, Russian commander..."
+                ],
+                "options": [
+                  "There was also space for food storage, a small greenhouse, a bathroom, a sauna and even a gym.",
+                  "The programme has been fully carried out",
+                  "The astronauts never even left the ground"
+                ],
+                "correct": [0,1]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "title": "Listening - Full Test (seed format) - Template",
+      "description": "Listening full test with parts 1..4 (listening_mc, listening_speakers_match, listening_who_expresses)",
+      "skill": "listening",
+      "part": 0,
+      "is_published": false,
+      "sets": [
+        {
+          "title": "Set 1 (Part 1) - Short MCQs",
+          "skill": "listening",
+          "is_public": true,
+          "order": 1,
+          "questions": [
+            {
+              "type": "listening_mc",
+              "skill": "listening",
+              "part": 1,
+              "order": 1,
+              "stem": "Short conversation: What does the woman want?",
+              "metadata": {
+                "options": ["Option A", "Option B", "Option C"],
+                "correct_index": 0
+              },
+              "audio": "media/listening/part1_q1.mp3"
+            }
+          ]
+        },
+
+        {
+          "title": "Set 2 (Part 2) - Speakers matching",
+          "skill": "listening",
+          "is_public": true,
+          "order": 2,
+          "questions": [
+            {
+              "type": "listening_speakers_match",
+              "skill": "listening",
+              "part": 2,
+              "order": 21,
+              "stem": "Four speakers: choose which description matches each.",
+              "metadata": {
+                "speakers": [
+                  { "id": "A", "label": "Speaker A" },
+                  { "id": "B", "label": "Speaker B" },
+                  { "id": "C", "label": "Speaker C" },
+                  { "id": "D", "label": "Speaker D" }
+                ],
+                "options": ["Desc 1","Desc 2","Desc 3","Desc 4","None"],
+                "answers": [0,1,2,3]
+              }
+            }
+          ]
+        },
+
+        {
+          "title": "Set 3 (Part 3) - Who expresses which opinion",
+          "skill": "listening",
+          "is_public": true,
+          "order": 3,
+          "questions": [
+            {
+              "type": "listening_who_expresses",
+              "skill": "listening",
+              "part": 3,
+              "order": 30,
+              "stem": "Match opinions to speakers.",
+              "metadata": {
+                "items": ["Opinion A","Opinion B","Opinion C","Opinion D"],
+                "options": ["Man","Woman","Both"],
+                "answers": [0,1,2,1]
+              },
+              "audio": "media/listening/part3_sample.mp3"
+            }
+          ]
+        },
+
+        {
+          "title": "Set 4 (Part 4) - Short passages MCQ",
+          "skill": "listening",
+          "is_public": true,
+          "order": 4,
+          "questions": [
+            {
+              "type": "listening_mc",
+              "skill": "listening",
+              "part": 4,
+              "order": 40,
+              "stem": "Short passage question",
+              "metadata": {
+                "options": ["A","B","C"],
+                "correct_index": 2
+              },
+              "audio": "media/listening/part4_q1.mp3"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
