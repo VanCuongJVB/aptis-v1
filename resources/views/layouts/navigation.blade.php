@@ -57,20 +57,15 @@
                             </x-slot>
 
                             <x-slot name="content">
-                                <x-dropdown-link :href="route('admin.reading.index')">
-                                    {{ __('Đề thi Reading') }}
+                                <x-dropdown-link :href="route('dashboard')">
+                                    {{ __('Thống kê hệ thống') }}
                                 </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.listening.index')">
-                                    {{ __('Đề thi Listening') }}
-                                </x-dropdown-link>
+                                <!-- Admin Reading/Listening links removed -->
                                 <x-dropdown-link :href="route('admin.students.index')">
                                     {{ __('Quản lý học sinh') }}
                                 </x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.users.index')">
                                     {{ __('Quản lý người dùng') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('dashboard')">
-                                    {{ __('Thống kê hệ thống') }}
                                 </x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
@@ -151,12 +146,7 @@
 
             <div class="mt-4 px-4 py-2 font-medium text-sm text-gray-700">{{ __('Admin') }}</div>
             @if(Auth::user()->is_admin)
-                <x-responsive-nav-link :href="route('admin.reading.index')" :active="request()->routeIs('admin.reading.*')">
-                    {{ __('Đề thi Reading') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.listening.index')" :active="request()->routeIs('admin.listening.*')">
-                    {{ __('Đề thi Listening') }}
-                </x-responsive-nav-link>
+                <!-- Admin Reading/Listening links removed -->
                 <x-responsive-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')">
                     {{ __('Quản lý học sinh') }}
                 </x-responsive-nav-link>
