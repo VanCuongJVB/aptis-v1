@@ -1024,7 +1024,40 @@ class PracticeController extends Controller
 
             if ($part == 2) {
                 $correctOrder = $meta['correct_order'] ?? $meta['correct'] ?? [];
-                $selected = $answerMeta['selected']['order'] ?? $answerMeta['selected'] ?? $answerMeta ?? [];
+
+                // Extract selected order from various shapes (string, array, nested)
+                $selectedRaw = [];
+                if (is_array($answerMeta)) {
+                    if (isset($answerMeta['selected']['order'])) $selectedRaw = $answerMeta['selected']['order'];
+                    elseif (isset($answerMeta['selected'])) $selectedRaw = $answerMeta['selected'];
+                    elseif (isset($answerMeta['order'])) $selectedRaw = $answerMeta['order'];
+                    else $selectedRaw = $answerMeta;
+                } else {
+                    $selectedRaw = $answerMeta;
+                }
+
+                // If JSON string, decode
+                if (is_string($selectedRaw)) {
+                    $dec = json_decode($selectedRaw, true);
+                    if (is_array($dec)) $selectedRaw = $dec;
+                }
+
+                // Normalize each entry to int or null. If metadata contains an optionMapping (display->original),
+                // prefer mapping when provided in question metadata inside $meta['optionMapping'] or inside selected payload.
+                $optionMapping = $meta['optionMapping'] ?? ($answerMeta['optionMapping'] ?? null);
+                $selected = [];
+                if (is_array($selectedRaw)) {
+                    foreach ($selectedRaw as $v) {
+                        if ($v === null || $v === '') { $selected[] = null; continue; }
+                        // if mapping exists and this is a display index, map to original
+                        if (is_array($optionMapping) && isset($optionMapping[$v])) {
+                            $selected[] = (int)$optionMapping[$v];
+                        } else {
+                            $selected[] = is_numeric($v) ? (int)$v : $v;
+                        }
+                    }
+                }
+
                 $result['is_correct'] = json_encode(array_values($selected)) === json_encode(array_values($correctOrder));
                 $result['correct_data'] = $correctOrder;
                 return $result;
