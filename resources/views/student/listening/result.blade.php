@@ -11,15 +11,15 @@
         <div class="mb-4 grid grid-cols-3 gap-4">
             <div class="p-3 bg-gray-50 rounded">
                 <div class="text-xs text-gray-500">Tổng câu</div>
-                <div class="text-xl font-bold">{{ $attempt->total_questions ?? 0 }}</div>
+                <div class="text-xl font-bold">{{ $computedTotals['total'] ?? $attempt->total_questions ?? 0 }}</div>
             </div>
             <div class="p-3 bg-gray-50 rounded">
                 <div class="text-xs text-gray-500">Đúng</div>
-                <div class="text-xl font-bold">{{ $attempt->correct_answers ?? 0 }}</div>
+                <div class="text-xl font-bold">{{ $computedTotals['correct'] ?? $attempt->correct_answers ?? 0 }}</div>
             </div>
             <div class="p-3 bg-gray-50 rounded">
                 <div class="text-xs text-gray-500">Phần trăm</div>
-                <div class="text-xl font-bold">{{ $attempt->score_percentage ?? 0 }}%</div>
+                <div class="text-xl font-bold">{{ $computedTotals['score'] ?? $attempt->score_percentage ?? 0 }}%</div>
             </div>
         </div>
 
@@ -27,19 +27,10 @@
         <div class="space-y-3">
             @foreach($questions as $q)
                 @php $ans = $answers->get($q->id); @endphp
+                @php $part = $q->part ?? ($q->metadata['part'] ?? 1); @endphp
                 <div class="p-3 border rounded">
-                    <div class="text-sm text-gray-700">{!! $q->content ?? $q->title !!}</div>
-                    <div class="mt-2 text-xs text-gray-500">Part {{ $q->part }}</div>
-                    <div class="mt-2">
-                        @if($ans)
-                            <div class="text-sm">Trạng thái: @if($ans->is_correct) <span class="text-green-600">Đúng</span> @else <span class="text-red-600">Sai</span> @endif</div>
-                            @if($ans->selected_option_id !== null)
-                                <div class="text-sm text-gray-700">Lựa chọn: {{ $ans->selected_option_id }}</div>
-                            @endif
-                        @else
-                            <div class="text-sm text-gray-500">Chưa trả lời</div>
-                        @endif
-                    </div>
+                    @php $partToInclude = $part ?? ($quiz->part ?? 1); @endphp
+                    @includeIf('student.listening.result_parts.part' . $partToInclude, ['question' => $q, 'answer' => $ans, 'quiz' => $quiz])
                 </div>
             @endforeach
         </div>

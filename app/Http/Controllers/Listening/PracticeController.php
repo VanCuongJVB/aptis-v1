@@ -373,12 +373,108 @@ class PracticeController extends Controller
             $duration = $attempt->submitted_at->diffInMinutes($attempt->started_at);
         }
 
+        // Recompute attempt totals at item-level across listening parts so headers show accurate accuracy
+        // Use defensive normalization to avoid exceptions from unexpected metadata shapes.
+        try {
+            $totalItems = 0;
+            $correctItems = 0;
+            $computedTotals = null;
+
+            $normalizeSelected = function($ans) {
+                if (! $ans) return null;
+                $meta = $ans->metadata ?? null;
+                if (is_array($meta) && isset($meta['selected']['option_id'])) return $meta['selected']['option_id'];
+                if (is_array($meta) && isset($meta['selected']) && !is_array($meta['selected'])) return $meta['selected'];
+                if (is_array($meta) && isset($meta['selected']) && is_array($meta['selected'])) {
+                    // try common shapes: first scalar value or option_id inside
+                    $s = $meta['selected'];
+                    if (isset($s['option_id'])) return $s['option_id'];
+                    if (isset($s[0]) && !is_array($s[0])) return $s[0];
+                    return null;
+                }
+                if (isset($ans->selected_option_id)) return $ans->selected_option_id;
+                return null;
+            };
+
+            foreach ($questions as $q) {
+                try {
+                    $meta = $q->metadata ?? [];
+                    $part = $q->part ?? ($meta['part'] ?? null);
+
+                    // multiple choice: single item
+                    if (in_array($part, [1,16,17]) || ($meta['type'] ?? '') === 'mc') {
+                        $totalItems++;
+                        $correctIndex = $meta['correct_index'] ?? $meta['correct'] ?? null;
+                        // normalize scalar correct index
+                        if (is_array($correctIndex) && isset($correctIndex['option_id'])) $correctIndex = $correctIndex['option_id'];
+                        if (is_array($correctIndex) && isset($correctIndex[0]) && !is_array($correctIndex[0])) $correctIndex = $correctIndex[0];
+
+                        $ans = $answers->get($q->id);
+                        $selected = $normalizeSelected($ans);
+
+                        if (!is_null($correctIndex) && !is_null($selected)) {
+                            if ((is_scalar($selected) && is_scalar($correctIndex) && ((string)$selected === (string)$correctIndex || (int)$selected === (int)$correctIndex))) {
+                                $correctItems++;
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Speaker completion / mapping (part 14)
+                    if ($part == 14 || ($meta['type'] ?? '') === 'speakers') {
+                        $correct = $meta['answers'] ?? [];
+                        $ans = $answers->get($q->id);
+                        $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                        $selected = $ansMeta['selected'] ?? $ansMeta ?? [];
+                        $valsUser = is_array($selected) ? array_values($selected) : [$selected];
+                        $valsCorr = is_array($correct) ? array_values($correct) : [$correct];
+                        $totalItems += count($valsCorr);
+                        if (json_encode($valsUser) === json_encode($valsCorr)) $correctItems += count($valsCorr);
+                        continue;
+                    }
+
+                    // Who expresses (part 15)
+                    if ($part == 15 || ($meta['type'] ?? '') === 'who_expresses') {
+                        $correct = $meta['answers'] ?? [];
+                        $ans = $answers->get($q->id);
+                        $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                        $selected = $ansMeta['selected'] ?? $ansMeta ?? [];
+                        $valsUser = is_array($selected) ? array_values($selected) : [$selected];
+                        $valsCorr = is_array($correct) ? array_values($correct) : [$correct];
+                        $totalItems += count($valsCorr);
+                        if (json_encode($valsUser) === json_encode($valsCorr)) $correctItems += count($valsCorr);
+                        continue;
+                    }
+
+                    // fallback: treat as single item question
+                    $totalItems++;
+                    $ans = $answers->get($q->id);
+                    if ($ans && ($ans->is_correct ?? false)) $correctItems++;
+                } catch (\Throwable $inner) {
+                    // skip problematic question but continue recompute for others
+                    continue;
+                }
+            }
+
+            $scorePercentage = $totalItems > 0 ? round(($correctItems / $totalItems) * 100, 2) : 0;
+            $attempt->update([
+                'total_questions' => $totalItems,
+                'correct_answers' => $correctItems,
+                'score_percentage' => $scorePercentage
+            ]);
+
+            $computedTotals = ['total' => $totalItems, 'correct' => $correctItems, 'score' => $scorePercentage, 'duration' => $duration];
+        } catch (\Throwable $e) {
+            // ignore and leave attempt as-is
+        }
+
         return view('student.listening.result', [
             'attempt' => $attempt,
             'quiz' => $attempt->quiz,
             'questions' => $questions,
             'answers' => $answers,
-            'duration' => $duration
+            'duration' => $duration,
+            'computedTotals' => $computedTotals ?? null
         ]);
     }
 
