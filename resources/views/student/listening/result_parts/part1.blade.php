@@ -73,6 +73,8 @@
     }
 @endphp
 
+<div class="prose mb-2">{!! $question->stem ?? '' !!}</div>
+
 <div class="mt-3 text-sm">
     <div class="font-medium">Đáp án của bạn (Part 1)</div>
 
