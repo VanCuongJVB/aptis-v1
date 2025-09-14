@@ -226,4 +226,8 @@ class StudentController extends Controller
         AccessLog::log(auth()->id(), 'students_imported', ['created' => $created, 'updated' => $updated, 'errors' => $errors]);
         return redirect()->route('admin.students.index')->with('ok', "Import xong: tạo {$created}, cập nhật {$updated}, lỗi {$errors}");
     }
+
+    public function show($id){
+        // Define later
+    }
 }
