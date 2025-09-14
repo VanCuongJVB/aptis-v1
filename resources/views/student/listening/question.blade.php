@@ -85,7 +85,6 @@
             skill: 'listening',
             __debug_info: 'From listening/question.blade.php'
         }); 
-        console.log('Setting currentQuestionMeta:', window.currentQuestionMeta);
     } catch(e){ console.error('Error setting currentQuestionMeta:', e); }
     
     try { window.currentAttemptId = '{{ $attempt->id }}'; } catch(e){}

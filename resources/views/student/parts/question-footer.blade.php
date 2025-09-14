@@ -124,6 +124,14 @@
                     if (!root) return null;
                 }
 
+                // Support custom Part4 controls that use hidden inputs named part4_choice[...]
+                try {
+                    const part4Hidden = root.querySelectorAll('input[type="hidden"][name^="part4_choice"]');
+                    if (part4Hidden && part4Hidden.length) {
+                        return { part: 'part4', value: Array.from(part4Hidden).map(i => i.value) };
+                    }
+                } catch (e) { /* ignore */ }
+
                 if (root.querySelector('.slot')) {
                     const order = [], texts = [];
                     root.querySelectorAll('.slot').forEach(s => {
@@ -267,6 +275,12 @@
                     target.innerHTML = '';
                     target.appendChild(container);
                     target.classList.remove('hidden');
+                    // scroll feedback into view so user sees it immediately
+                    try {
+                        setTimeout(function(){
+                            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 60);
+                    } catch(e) { }
                 }
 
                 const rowBuilders = {
@@ -422,7 +436,6 @@
                     meta = meta || window.currentQuestionMeta || {};
 
                     const sentences = meta.sentences || [];
-                    console.log(meta);
                     const corr = meta.correct_order || [];
                     const rawOrder = payload.order || [];
                     // some Part2 renderers (select-based) provide originalIndices which map display indexes

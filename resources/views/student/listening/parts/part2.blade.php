@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			const metadata = JSON.parse(questionBlock.getAttribute('data-metadata') || '{}');
 			metadata.optionMapping = @json($indexMapping);
 			questionBlock.setAttribute('data-metadata', JSON.stringify(metadata));
-			console.log('Updated metadata with option mapping:', metadata);
 		} catch (e) {
 			console.error('Error updating metadata:', e);
 		}

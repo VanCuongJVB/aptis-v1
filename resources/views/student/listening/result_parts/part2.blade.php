@@ -190,14 +190,3 @@
         </div>
     @endif
 </div>
-
-@push('scripts')
-<script>
-    try {
-        console.log('Listening result part2: question=', {!! json_encode($question ?? null, JSON_UNESCAPED_UNICODE) !!});
-        console.log('Listening result part2: meta=', {!! json_encode($meta ?? null, JSON_UNESCAPED_UNICODE) !!});
-        console.log('Listening result part2: answer=', {!! json_encode($answer ?? null, JSON_UNESCAPED_UNICODE) !!});
-        console.log('Listening result part2: normalized selected=', {!! json_encode($selected ?? null, JSON_UNESCAPED_UNICODE) !!}, 'sKey=', {!! json_encode($sKeyNormalized ?? null, JSON_UNESCAPED_UNICODE) !!}, 'label=', {!! json_encode($selectedLabel ?? null, JSON_UNESCAPED_UNICODE) !!});
-    } catch (e) { console.error('Error logging part2 debug:', e); }
-</script>
-@endpush
