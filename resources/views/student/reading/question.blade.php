@@ -3,7 +3,7 @@
 @section('title', 'Câu hỏi Reading')
 
 @section('content')
-<div class="container mx-auto py-6">
+<div class="container mx-auto py-6" data-next-url="@if(isset($nextPosition) && $nextPosition){{ route('reading.practice.question', ['attempt' => $attempt->id, 'position' => $nextPosition]) }}@endif" data-final-url="{{ route('reading.practice.result', $attempt) }}">
     <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow" style="margin-bottom: 135px;">
         <!-- Header -->
         <div class="flex justify-between items-start mb-4">

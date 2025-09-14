@@ -61,6 +61,47 @@
         const mainSelector = '.container.mx-auto';
     if (!fnext) { try { /* debug removed: next button not found */ } catch (e) {} }
 
+        function findQuestionBlockByQid(qid) {
+            if (!qid) return null;
+            try {
+                const blocks = document.querySelectorAll('.question-block');
+                for (const b of blocks) {
+                    if (!b) continue;
+                    try {
+                        if (b.dataset && typeof b.dataset.qid !== 'undefined' && String(b.dataset.qid) === String(qid)) return b;
+                    } catch (e) { /* ignore per-element errors */ }
+                }
+
+                try {
+                    const esc = (window.CSS && typeof window.CSS.escape === 'function') ? CSS.escape(qid) : qid;
+                    return document.querySelector('.question-block[data-qid="' + esc + '"]');
+                } catch (e) {
+                    return null;
+                }
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function findInlineFeedbackByQid(qid) {
+            if (!qid) return null;
+            try {
+                const nodes = document.querySelectorAll('.inline-feedback');
+                for (const n of nodes) {
+                    if (!n) continue;
+                    try {
+                        if (n.dataset && typeof n.dataset.qidFeedback !== 'undefined' && String(n.dataset.qidFeedback) === String(qid)) return n;
+                        if (n.getAttribute && n.getAttribute('data-qid-feedback') === String(qid)) return n;
+                    } catch (e) { /* ignore per-node errors */ }
+                }
+                // fallback to attribute selector
+                try {
+                    const esc = (window.CSS && typeof window.CSS.escape === 'function') ? CSS.escape(qid) : qid;
+                    return document.querySelector('.inline-feedback[data-qid-feedback="' + esc + '"]');
+                } catch (e) { return null; }
+            } catch (e) { return null; }
+        }
+
         window.attemptAnswers = window.attemptAnswers || {};
         window.__aptis_feedbackShownForQid = window.__aptis_feedbackShownForQid || {};
         // Track last-focused question block so the footer uses the question the user
@@ -254,7 +295,7 @@
                 } catch (e) { }
 
                 function renderFeedback(qid, stats, rows, rowRenderer, space = 'space-y-2') {
-                    const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
+                        const target = findInlineFeedbackByQid(qid);
                     if (!target) return;
 
                     if (target.hasAttribute('data-feedback-rendered')) return;
@@ -352,7 +393,7 @@
                 if (!window.inlineFeedback) {
                     window.inlineFeedback = {
                         show: function (qid, userAnswer, correctAnswer, statsText) {
-                            const target = document.querySelector(`.inline-feedback[data-qid-feedback="${qid}"]`);
+                                    const target = findInlineFeedbackByQid(qid);
                             if (!target) return;
 
                             if (target.hasAttribute('data-feedback-rendered')) return;
@@ -392,7 +433,7 @@
                 }
 
                 function renderPart1(qid, payload) {
-                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                        const questionBlock = findQuestionBlockByQid(qid);
                     const selEls = questionBlock ? [...questionBlock.querySelectorAll('select')] : [];
                     try {
                         if (questionBlock) {
@@ -426,7 +467,7 @@
 
                 function renderPart2(qid, payload) {
 
-                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                    const questionBlock = findQuestionBlockByQid(qid);
 
 
                     let meta = null;
@@ -489,7 +530,7 @@
                     // Fallback order: question block dataset.metadata -> [data-meta-json] element -> payload.meta -> window.currentQuestionMeta
                     let meta = {};
                     try {
-                        const qBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                        const qBlock = findQuestionBlockByQid(qid);
                         if (qBlock) {
                             if (qBlock.dataset && qBlock.dataset.metadata) {
                                 meta = JSON.parse(qBlock.dataset.metadata);
@@ -543,7 +584,7 @@
 
                 function renderListeningPart1(qid, payload) {
 
-                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                    const questionBlock = findQuestionBlockByQid(qid);
 
 
                     let meta = null;
@@ -600,7 +641,7 @@
                 }
 
                 function renderListeningPart2(qid, payload) {
-                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                    const questionBlock = findQuestionBlockByQid(qid);
 
 
                     let meta = null;
@@ -662,7 +703,7 @@
 
                 function renderListeningPart3(qid, payload) {
 
-                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                    const questionBlock = findQuestionBlockByQid(qid);
 
 
                     let meta = null;
@@ -717,7 +758,7 @@
 
 
 
-                    const questionBlock = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                    const questionBlock = findQuestionBlockByQid(qid);
 
 
                     let meta = null;
@@ -780,7 +821,7 @@
                 };
 
                 const renderers = { part1: renderPart1, part2: renderPart2, part3: renderPart3, part4: renderPart4 };
-                const rootEl = document.querySelector(`.question-block[data-qid="${qid}"]`);
+                const rootEl = findQuestionBlockByQid(qid);
                 const selEls = rootEl ? [...rootEl.querySelectorAll('select')] : [];
 
                 const skill = (window.currentQuestionMeta && window.currentQuestionMeta.skill) ? window.currentQuestionMeta.skill : (payload && payload.skill ? payload.skill : null);
@@ -811,28 +852,42 @@
                 this.setLoading(true);
                 try {
 
+                    try { console.debug('APTIS_DEBUG_NAVIGATE_START', { url }); } catch (e) {}
+
                     if (typeof schedulePersistAnswers === 'function') schedulePersistAnswers(0);
 
                     const res = await fetch(url, { credentials: 'same-origin' });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) throw new Error('fetch-not-ok:' + res.status);
+                    try { console.debug('APTIS_DEBUG_NAVIGATE_FETCHED', { url, status: res.status }); } catch (e) {}
+
                     const html = await res.text();
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     const newMain = doc.querySelector(mainSelector);
                     const oldMain = document.querySelector(mainSelector);
+                    try {
+                        console.debug('APTIS_DEBUG_NAVIGATE_DOM', {
+                            url,
+                            newMainExists: !!newMain,
+                            oldMainExists: !!oldMain,
+                            newMainDataset: newMain ? Object.assign({}, newMain.dataset) : null,
+                            oldMainDataset: oldMain ? Object.assign({}, oldMain.dataset) : null
+                        });
+                    } catch (e) {}
+
                     if (newMain && oldMain) {
                         oldMain.replaceWith(newMain);
-
+                        history.pushState({}, '', url);
+                        try { console.debug('APTIS_DEBUG_NAVIGATE_SUCCESS', { url }); } catch (e) {}
+                    } else {
+                        try { console.debug('APTIS_DEBUG_NAVIGATE_NO_REPLACE', { url }); } catch (e) {}
                     }
-                    history.pushState({}, '', url);
-
 
                     document.querySelectorAll('[data-feedback-rendered]').forEach(el => {
                         el.removeAttribute('data-feedback-rendered');
                     });
 
-
                     window.dispatchEvent(new CustomEvent('aptis:container:replace', { detail: { url } }));
-                } catch (e) { location.href = url; }
+                } catch (e) { try { console.debug('APTIS_DEBUG_NAVIGATE_ERROR', { url, err: String(e) }); } catch (ee) {} location.href = url; }
                 finally { this.setLoading(false); }
             }
         };
@@ -845,7 +900,7 @@
             let focusedRoot = null;
             try {
                 const lastQid = window.__aptis_lastFocusedQid || null;
-                if (lastQid) focusedRoot = document.querySelector(`.question-block[data-qid="${lastQid}"]`);
+                if (lastQid) focusedRoot = findQuestionBlockByQid(lastQid);
             } catch (e) { focusedRoot = null; }
             const root = focusedRoot || footer.getActiveBlock();
             const qid = root?.dataset?.qid || footer.getQid();
@@ -904,9 +959,21 @@
             const mainElForNext = document.querySelector(mainSelector);
             const datasetNext = mainElForNext?.dataset?.nextUrl || null;
             const datasetFinal = mainElForNext?.dataset?.finalUrl || null;
-            const nextUrl = bladeNext || datasetNext || window.nextUrl || null;
+            // Use the freshly-rendered container's dataset as the authoritative next URL.
+            const nextUrl = datasetNext || bladeNext || window.nextUrl || null;
             const finalUrl = datasetFinal || '{{ route('reading.practice.result', ['attempt' => $attempt->id]) }}';
             const isFinal = !nextUrl;
+
+            try {
+                console.debug('APTIS_DEBUG_NEXT_COMPUTE', {
+                    bladeNext: bladeNext,
+                    datasetNext: datasetNext,
+                    datasetFinal: datasetFinal,
+                    resolvedNext: nextUrl,
+                    isFinal: isFinal,
+                    mainDataset: mainElForNext ? Object.assign({}, mainElForNext.dataset) : null
+                });
+            } catch (e) { }
 
             const alreadyShown = window.__aptis_feedbackShownForQid[qid] === true;
 
