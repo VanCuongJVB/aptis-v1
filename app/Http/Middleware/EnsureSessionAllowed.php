@@ -17,8 +17,9 @@ class EnsureSessionAllowed
         $user = Auth::user();
         if (!$user) return $next($request);
 
-        $sessionId = $request->session()->getId();
-        $fingerprint = sha1(($request->userAgent() ?? 'ua'). '|' . ($request->ip() ?? 'ip'));
+    $sessionId = $request->session()->getId();
+    $deviceId = $request->cookie('device_id');
+    $fingerprint = sha1(($request->userAgent() ?? 'ua') . '|' . ($deviceId ?? $request->ip()));
 
         // Record or update the user session. Use session_id as primary matching key.
         UserSession::updateOrCreate(
