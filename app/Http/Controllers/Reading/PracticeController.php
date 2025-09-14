@@ -852,102 +852,47 @@ class PracticeController extends Controller
      */
     public function progress()
     {
-        $parts = [
-            1 => 'Sentence Comprehension',
-            2 => 'Text Cohesion',
-            3 => 'Reading Comprehension',
-            4 => 'Long Text Reading'
-        ];
-        
-        // Thống kê theo từng phần
-        $stats = [];
-        foreach ($parts as $part => $name) {
-            // Số bộ đề đã hoàn thành
-            $completedQuizzes = DB::table('attempts')
-                ->join('quizzes', 'attempts.quiz_id', '=', 'quizzes.id')
-                ->where('attempts.user_id', Auth::id())
-                ->where('quizzes.skill', 'reading')
-                ->where('quizzes.part', $part)
-                ->where('attempts.status', 'submitted')
-                ->distinct('quizzes.id')
-                ->count('quizzes.id');
-                
-            // Tổng số bộ đề
+        $userId = Auth::id();
+
+        // For each part (1..4) compute: total quizzes published, attempts by user, completed attempts, avg score, last attempt
+        $parts = [];
+        for ($part = 1; $part <= 4; $part++) {
             $totalQuizzes = Quiz::where('skill', 'reading')
                 ->where('part', $part)
                 ->where('is_published', true)
                 ->count();
-                
-            // Số câu trả lời đúng
-            $correctAnswers = AttemptAnswer::whereHas('attempt', function($query) use ($part) {
-                    $query->where('user_id', Auth::id())
-                          ->whereHas('quiz', function($q) use ($part) {
-                              $q->where('skill', 'reading')
-                                ->where('part', $part);
-                          });
-                })
-                ->where('is_correct', true)
-                ->count();
-                
-            // Tổng số câu đã trả lời
-            $totalAnswers = AttemptAnswer::whereHas('attempt', function($query) use ($part) {
-                    $query->where('user_id', Auth::id())
-                          ->whereHas('quiz', function($q) use ($part) {
-                              $q->where('skill', 'reading')
-                                ->where('part', $part);
-                          });
-                })
-                ->count();
-                
-            // Điểm trung bình
-            $avgScore = Attempt::where('user_id', Auth::id())
-                ->whereHas('quiz', function($query) use ($part) {
-                    $query->where('skill', 'reading')
-                          ->where('part', $part);
-                })
+
+            $attemptsQuery = Attempt::where('user_id', $userId)
+                ->whereHas('quiz', function($q) use ($part) {
+                    $q->where('skill', 'reading')->where('part', $part);
+                });
+
+            $totalAttempts = $attemptsQuery->count();
+            $completedAttempts = (clone $attemptsQuery)->where('status', 'submitted')->count();
+
+            $avgScore = (clone $attemptsQuery)
                 ->where('status', 'submitted')
                 ->avg('score_percentage');
-                
-            $stats[$part] = [
-                'name' => $name,
-                'completed' => $completedQuizzes,
-                'total' => $totalQuizzes,
-                'progress' => $totalQuizzes > 0 ? round(($completedQuizzes / $totalQuizzes) * 100) : 0,
-                'correct' => $correctAnswers,
-                'answered' => $totalAnswers,
-                'accuracy' => $totalAnswers > 0 ? round(($correctAnswers / $totalAnswers) * 100) : 0,
-                'average_score' => $avgScore ? round($avgScore) : 0
+
+            $lastAttempt = (clone $attemptsQuery)->latest('submitted_at')->first();
+
+            $parts[$part] = [
+                'total_quizzes' => $totalQuizzes,
+                'total_attempts' => $totalAttempts,
+                'completed_attempts' => $completedAttempts,
+                'avg_score' => $avgScore ? round($avgScore, 2) : null,
+                'last_attempt_at' => $lastAttempt ? $lastAttempt->submitted_at : null,
             ];
         }
-        
-        // Dữ liệu tiến trình theo thời gian (10 lượt làm gần nhất)
-        $recentAttempts = Attempt::where('user_id', Auth::id())
-            ->whereHas('quiz', function($query) {
-                $query->where('skill', 'reading');
-            })
-            ->where('status', 'submitted')
-            ->with('quiz')
-            ->orderBy('submitted_at', 'desc')
-            ->take(10)
-            ->get()
-            ->reverse();
-            
-        $chartData = [
-            'labels' => $recentAttempts->map(function($attempt) {
-                return $attempt->submitted_at->format('d/m/Y');
-            })->toArray(),
-            'scores' => $recentAttempts->map(function($attempt) {
-                return $attempt->score_percentage;
-            })->toArray(),
-            'parts' => $recentAttempts->map(function($attempt) {
-                return 'Part ' . $attempt->quiz->part;
-            })->toArray()
-        ];
-        
-        return view('student.reading.progress', [
-            'stats' => $stats,
-            'chartData' => $chartData
-        ]);
+
+        // Overall aggregates
+        $overall = [];
+        $overall['total_quizzes'] = Quiz::where('skill', 'reading')->where('is_published', true)->count();
+        $overall['total_attempts'] = Attempt::where('user_id', $userId)->count();
+        $overall['completed_attempts'] = Attempt::where('user_id', $userId)->where('status', 'submitted')->count();
+        $overall['avg_score'] = Attempt::where('user_id', $userId)->where('status', 'submitted')->avg('score_percentage');
+
+        return view('student.reading.progress', compact('parts', 'overall'));
     }
 
     /**

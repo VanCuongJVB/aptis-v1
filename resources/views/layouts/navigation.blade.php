@@ -38,9 +38,9 @@
                             <x-dropdown-link :href="route('reading.progress')">
                                 {{ __('Tiến độ học tập') }}
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('student.attempts.history')">
+                            {{-- <x-dropdown-link :href="route('student.attempts.history')">
                                 {{ __('Lịch sử làm bài') }}
-                            </x-dropdown-link>
+                            </x-dropdown-link> --}}
                         </x-slot>
                     </x-dropdown>
 

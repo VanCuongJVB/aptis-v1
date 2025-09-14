@@ -24,8 +24,8 @@ class HomeController extends Controller
             }
         }
         
-        // Hiển thị trang chào mừng mặc định cho khách
-        return view('welcome');
+    // Nếu chưa đăng nhập, chuyển thẳng về trang đăng nhập
+    return redirect()->route('login');
     }
     
     /**
