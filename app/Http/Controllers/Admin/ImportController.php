@@ -112,12 +112,15 @@ class ImportController extends Controller
     {
         $qOrder = $this->coerceInt($ques['order'] ?? null, $index);
 
-        // merge audio into metadata
-        $qMeta = $ques['metadata'] ?? null;
+        // Start with provided metadata; prefer provided metadata.* over top-level fields
+        $qMeta = $ques['metadata'] ?? [];
+
+        // If audio given at top-level, copy into metadata and also set audio_path column
+        $audioPath = null;
         if (!empty($ques['audio'])) {
-            $metaArr = is_array($qMeta) ? $qMeta : ($qMeta ? (array)$qMeta : []);
-            $metaArr['audio'] = $ques['audio'];
-            $qMeta = $metaArr;
+            $qMeta = is_array($qMeta) ? $qMeta : (array)$qMeta;
+            $qMeta['audio'] = $ques['audio'];
+            $audioPath = $ques['audio'];
         }
 
         $rawSkill = $ques['skill'] ?? $sData['skill'] ?? $quiz->skill ?? null;
@@ -138,16 +141,29 @@ class ImportController extends Controller
             'skill' => $qSkill,
             'part' => $qPart,
             'point' => $point,
+            'audio_path' => $audioPath,
             'metadata' => $qMeta,
         ]);
 
+        // Create Option model rows only when the author provided a top-level 'options' array
+        // Many seeded questions keep options inside metadata (metadata.options) — in that case we preserve metadata and do not create Option rows.
         if (!empty($ques['options']) && is_array($ques['options'])) {
             foreach ($ques['options'] as $optIndex => $opt) {
+                $isCorrect = false;
+                // support top-level 'correct' index or boolean markers per option
+                if (isset($ques['correct']) && $ques['correct'] === $optIndex) {
+                    $isCorrect = true;
+                }
+                // support metadata.correct_index pointing to an index
+                if (isset($qMeta['correct_index']) && $qMeta['correct_index'] === $optIndex) {
+                    $isCorrect = true;
+                }
+
                 Option::create([
                     'question_id' => $question->id,
                     'label' => chr(65 + $optIndex),
                     'content' => is_array($opt) ? json_encode($opt) : $opt,
-                    'is_correct' => isset($ques['correct']) && $ques['correct'] === $optIndex,
+                    'is_correct' => $isCorrect,
                     'order' => is_numeric($optIndex) ? (int)$optIndex : 0,
                 ]);
             }
@@ -270,5 +286,40 @@ class ImportController extends Controller
         ];
 
         return response()->json(['success' => true, 'summary' => $summary]);
+    }
+
+    /**
+     * Export the current quizzes/sets/questions/options as a JSON template users can download and edit.
+     */
+    public function exportTemplate()
+    {
+        $quizzes = Quiz::with(['sets.questions.options'])->get();
+
+        $payload = ['quizzes' => []];
+        foreach ($quizzes as $quiz) {
+            $q = $quiz->toArray();
+            // convert relationships into nested structure compatible with importer
+            $q['sets'] = [];
+            foreach ($quiz->sets as $set) {
+                $s = $set->toArray();
+                $s['questions'] = [];
+                foreach ($set->questions as $question) {
+                    $qq = $question->toArray();
+                    $qq['options'] = [];
+                    foreach ($question->options as $opt) {
+                        $qq['options'][] = $opt->toArray();
+                    }
+                    $s['questions'][] = $qq;
+                }
+                $q['sets'][] = $s;
+            }
+            $payload['quizzes'][] = $q;
+        }
+
+        $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return response($json, 200, [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => 'attachment; filename="aptis_export_' . date('Ymd_His') . '.json"'
+        ]);
     }
 }

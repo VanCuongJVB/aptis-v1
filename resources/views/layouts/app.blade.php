@@ -7,9 +7,10 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- Fonts: prefer Manrope then Public Sans for Vietnamese support -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=manrope:400,500,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=public-sans:400,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts/CSS: prefer pre-built assets in public/build (no npm run dev required) -->
         @php
@@ -39,10 +40,14 @@
         @endif
 
         <style>
+            /* font variable requested by user */
+            :root{--font-inter: 'Manrope','Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji';}
             /* Minimal fallback button styles (kept for safety) */
             .btn-base{display:flex;align-items:center;justify-content: center; padding:0.5rem 0.75rem;border-radius:0.375rem;font-size:0.875rem;font-weight:500;border:1px solid #d1d5db}
             .btn-primary{background-color:#23085a;color:#fff;border-color:transparent}
             .btn-primary:hover{background-color:#19043f}
+            /* Use the requested font stack via the CSS variable */
+            body { font-family: var(--font-inter); }
         </style>
     </head>
     <body class="font-sans antialiased">

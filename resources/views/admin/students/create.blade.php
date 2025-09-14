@@ -10,6 +10,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <h1 class="text-xl font-bold mb-4">Thêm học sinh mới</h1>
+                    <div class="text-sm text-gray-500 mb-3">Các trường có dấu <span class="text-red-500">*</span> là bắt buộc.</div>
                     <form method="POST" action="{{ route('admin.students.store') }}" class="space-y-3 max-w-xl">
                         @csrf
                         @include('admin.students.partials.form', ['student' => null])

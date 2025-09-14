@@ -9,27 +9,39 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                         <div>
-                            <h1 class="text-xl font-bold">Danh sách học sinh</h1>
-                            <p class="text-sm text-slate-600">Quản lý học sinh, cửa sổ truy cập và gia hạn nhanh.</p>
+                            <h1 class="text-2xl font-extrabold text-gray-900">Danh sách học sinh</h1>
+                            <p class="mt-1 text-sm text-slate-500">Quản lý học sinh, cửa sổ truy cập và gia hạn nhanh.
+                            </p>
                         </div>
-                        <div class="flex gap-2">
-                            <a class="px-3 py-2 rounded bg-slate-200 hover:bg-slate-300 transition-colors" href="{{ route('admin.students.import.form') }}">Nhập từ file</a>
-                            <a class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors" href="{{ route('admin.students.create') }}">+ Thêm học sinh</a>
+                        <div class="flex items-center gap-3">
+                            <a class="btn-base bg-white border hover:bg-slate-50"
+                                href="{{ route('admin.students.import.form') }}">Nhập từ file</a>
+                            <a class="btn-base btn-primary" href="{{ route('admin.students.create') }}">+ Thêm học
+                                sinh</a>
                         </div>
                     </div>
 
-                    <form method="GET" class="flex flex-col md:flex-row gap-2 md:items-center mb-3">
-                        <input type="text" name="s" value="{{ request('s') }}" placeholder="Tìm email hoặc tên..."
-                            class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm w-full md:w-72">
-                        <div class="flex gap-1">
+                    <form method="GET" class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+                        {{-- Search --}}
+                        <div class="flex-1">
+                            <input type="text" name="s" value="{{ request('s') }}" placeholder="Tìm email hoặc tên..."
+                                class="w-full md:w-60 border border-gray-300 rounded-lg px-3 py-2 shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        {{-- Status tabs --}}
+                        <div class="flex items-center gap-2 overflow-x-auto md:overflow-visible">
                             @php $st = $status ?? request('status'); @endphp
                             @php
                                 $tab = function ($key, $label) use ($st) {
-                                $url = request()->fullUrlWithQuery(['status' => $key ?: null]);
-                                $active = ($st === $key) || (!$st && $key === null);
-                                return '<a href="' . $url . '" class="px-3 py-1 rounded ' . ($active ? 'bg-slate-800 text-white' : 'bg-white border hover:bg-slate-50') . '">' . $label . '</a>';
+                                    $url = request()->fullUrlWithQuery(['status' => $key ?: null]);
+                                    $active = ($st === $key) || (!$st && $key === null);
+                                    $base = 'px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors';
+                                    $cls = $active
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50';
+                                    return '<a href="' . $url . '" class="' . $base . ' ' . $cls . '">' . $label . '</a>';
                                 };
                             @endphp
                             {!! $tab(null, 'Tất cả') !!}
@@ -38,74 +50,134 @@
                             {!! $tab('expiring', 'Sắp hết hạn ≤7d') !!}
                             {!! $tab('expired', 'Đã hết hạn') !!}
                         </div>
-                        <button class="px-3 py-2 rounded bg-slate-200 hover:bg-slate-300 transition-colors">Lọc</button>
+
+                        {{-- Submit --}}
+                        <button
+                            class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium shadow-sm transition">
+                            Lọc
+                        </button>
                     </form>
 
+
                     <div class="bg-white rounded shadow overflow-x-auto">
-                        <table class="w-full text-sm">
+                        <table class="min-w-full divide-y divide-gray-100 text-sm">
                             <thead class="bg-slate-50 text-left">
-                                <tr>
-                                    <th class="px-3 py-2">Email</th>
-                                    <th class="px-3 py-2">Tên</th>
-                                    <th class="px-3 py-2">Trạng thái</th>
-                                    <th class="px-3 py-2">Thời gian truy cập</th>
-                                    <th class="px-3 py-2">Thao tác</th>
+                                <tr class="text-xs text-slate-500 uppercase">
+                                    <th class="px-4 py-3">Email</th>
+                                    <th class="px-4 py-3">Tên</th>
+                                    <th class="px-4 py-3">Trạng thái</th>
+                                    <th class="px-4 py-3">Thời gian truy cập</th>
+                                    <th class="px-4 py-3">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y">
+                            <tbody class="bg-white divide-y divide-gray-100">
                                 @php $now = \Carbon\Carbon::now(); @endphp
                                 @foreach($students as $st)
-                                @php
-                                    $expired = $st->access_ends_at && $st->access_ends_at->lt($now);
-                                    $expiring = $st->access_ends_at && $st->access_ends_at->between($now, (clone $now)->addDays(7));
-                                @endphp
-                                <tr>
-                                    <td class="px-3 py-2 font-medium">{{ $st->email }}</td>
-                                    <td class="px-3 py-2">{{ $st->name }}</td>
-                                    <td class="px-3 py-2">
-                                    @if($st->is_active)
-                                        <span class="px-2 py-0.5 rounded bg-green-100 border border-green-300">Kích hoạt</span>
-                                    @else
-                                        <span class="px-2 py-0.5 rounded bg-slate-200 border">Bị khoá</span>
-                                    @endif
+                                    @php
+                                        $expired = $st->access_ends_at && $st->access_ends_at->lt($now);
+                                        $expiring = $st->access_ends_at && $st->access_ends_at->between($now, (clone $now)->addDays(7));
+                                    @endphp
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3 font-medium text-slate-800">{{ $st->email }}</td>
+                                        <td class="px-4 py-3">{{ $st->name }}</td>
+                                       <td class="px-4 py-3">
+                                            <div class="flex flex-col gap-1">
+                                                @if($st->is_active)
+                                                    <span class="px-2 py-0.5 rounded bg-emerald-100 border border-emerald-300 text-emerald-700">
+                                                        Kích hoạt
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 py-0.5 rounded bg-slate-200 border text-slate-700">
+                                                        Bị khoá
+                                                    </span>
+                                                @endif
 
-                                    @if($expired)
-                                        <span class="ml-2 px-2 py-0.5 rounded bg-red-100 border border-red-300">Hết hạn</span>
-                                    @elseif($expiring)
-                                        <span class="ml-2 px-2 py-0.5 rounded bg-amber-100 border border-amber-300">Sắp hết hạn</span>
-                                    @endif
-                                    </td>
-                                    <td class="px-3 py-2 text-slate-600">
-                                    <div class="text-xs">
-                                        @if($st->access_starts_at) Từ: {{ $st->access_starts_at->format('Y-m-d H:i') }} @endif
-                                        @if($st->access_ends_at) • Đến: {{ $st->access_ends_at->format('Y-m-d H:i') }} @endif
-                                    </div>
-                                    </td>
-                                    <td class="px-3 py-2">
-                                    <div class="flex flex-wrap gap-2">
-                                        <a class="px-2 py-1 rounded bg-slate-200 hover:bg-slate-300 transition-colors" href="{{ route('admin.students.edit', $st) }}">Sửa</a>
-                                        <form class="inline" method="POST" action="{{ route('admin.students.extend', $st) }}?days=30">
-                                        @csrf
-                                        <button class="px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">+30 ngày</button>
-                                        </form>
-                                        <form class="inline" method="POST" action="{{ route('admin.students.extend', $st) }}?days=90">
-                                        @csrf
-                                        <button class="px-2 py-1 rounded bg-emerald-700 text-white hover:bg-emerald-800 transition-colors">+90 ngày</button>
-                                        </form>
-                                        <form class="inline" method="POST" action="{{ route('admin.students.destroy', $st) }}"
-                                            onsubmit="return confirm('Bạn có chắc chắn muốn xoá học sinh này?')">
-                                        @csrf @method('DELETE')
-                                        <button class="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition-colors">Xoá</button>
-                                        </form>
-                                    </div>
-                                    </td>
-                                </tr>
+                                                @if($expired)
+                                                    <span class="px-2 py-0.5 rounded bg-red-100 border border-red-300">
+                                                        Hết hạn
+                                                    </span>
+                                                @elseif($expiring)
+                                                    <span class="px-2 py-0.5 rounded bg-amber-100 border border-amber-300">
+                                                        Sắp hết hạn
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-slate-600">
+                                            <div class="text-xs">
+                                                @if($st->access_starts_at) Từ:
+                                                {{ $st->access_starts_at->format('Y-m-d H:i') }} @endif
+                                                @if($st->access_ends_at) • Đến:
+                                                {{ $st->access_ends_at->format('Y-m-d H:i') }} @endif
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex flex-wrap gap-2">
+                                                {{-- Sửa --}}
+                                                <a class="px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 text-sm font-medium transition"
+                                                href="{{ route('admin.students.edit', $st) }}">
+                                                    Sửa
+                                                </a>
+
+                                                {{-- +30 ngày --}}
+                                                <form method="POST" action="{{ route('admin.students.extend', $st) }}?days=30" class="inline">
+                                                    @csrf
+                                                    <button 
+                                                    style="background-color: oklch(70.7% 0.165 254.624);"
+                                                        class="px-3 py-1.5 rounded-md text-white hover:bg-blue-700 text-sm font-medium transition">
+                                                        +30 ngày
+                                                    </button>
+                                                </form>
+
+                                                {{-- +90 ngày --}}
+                                                <form method="POST" action="{{ route('admin.students.extend', $st) }}?days=90" class="inline">
+                                                    @csrf
+                                                    <button
+                                                        class="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium transition">
+                                                        +90 ngày
+                                                    </button>
+                                                </form>
+
+                                                {{-- Xoá --}}
+                                                <form method="POST" action="{{ route('admin.students.destroy', $st) }}"
+                                                    onsubmit="return confirm('Bạn có chắc chắn muốn xoá học sinh này?')" class="inline">
+                                                    @csrf @method('DELETE')
+                                                    <button
+                                                        style="background-color: oklch(59.3% 0.261 27.14);"
+                                                        class="px-3 py-1.5 rounded-md text-white hover:bg-red-600 text-sm font-medium transition">
+                                                        Xoá
+                                                    </button>
+                                                </form>
+
+                                                {{-- Khoá / Mở khoá --}}
+                                                <form method="POST" action="{{ route('admin.students.toggleActive', $st) }}" class="inline">
+                                                    @csrf
+                                                    <button type="submit"
+                                                        class="px-3 py-1.5 rounded-md text-sm font-medium transition
+                                                            {{ $st->is_active
+                                                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                                : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' }}">
+                                                        {{ $st->is_active ? 'Khoá' : 'Mở khoá' }}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="mt-3">{{ $students->links() }}</div>
+                    <div class="mt-4 w-100">
+                        <div class="flex justify-between">
+                            <style>
+                                nav {
+                                    width: 100% !important;
+                                }
+                            </style>
+                            {{ $students->links() }}
+                        </div>
+                    </div>
 
                     <p class="mt-4 text-xs text-slate-500">
                         Gợi ý: mật khẩu mặc định của học sinh là <code>123456</code>

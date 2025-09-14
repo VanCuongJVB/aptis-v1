@@ -20,8 +20,8 @@
                         <label class="block font-medium">Tệp dữ liệu</label>
                         <input id="importFile" name="file" type="file" accept="application/json" class="mt-2" />
                         <div class="mt-2 text-sm text-gray-600">
-                            Cần mẫu tệp? <a href="{{ asset('import_templates/aptis_import_template.json') }}" download
-                                class="text-indigo-600 underline">Tải xuống mẫu JSON</a>
+                            Cần mẫu tệp? <a href="{{ route('admin.quizzes.import.template') }}" download
+                                class="text-indigo-600 underline">Tải dữ liệu hiện tại (JSON)</a>
                         </div>
                     </div>
 

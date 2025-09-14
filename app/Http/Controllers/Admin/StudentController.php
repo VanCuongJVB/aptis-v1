@@ -69,8 +69,11 @@ class StudentController extends Controller
         $student->email = strtolower($data['email']);
         $student->role = 'student';
         $student->is_active = $request->boolean('is_active', true);
-        $student->access_starts_at = $data['access_starts_at'] ?? null;
-        $student->access_ends_at = $data['access_ends_at'] ?? null;
+    // normalize empty date inputs to null to avoid saving empty strings
+    $start = trim($data['access_starts_at'] ?? '');
+    $end = trim($data['access_ends_at'] ?? '');
+    $student->access_starts_at = $start !== '' ? Carbon::parse($start) : null;
+    $student->access_ends_at = $end !== '' ? Carbon::parse($end) : null;
         $student->password = Hash::make('123456');
         $student->email_verified_at = now();
         $student->save();
@@ -94,12 +97,15 @@ class StudentController extends Controller
             'access_starts_at' => ['nullable', 'date'],
             'access_ends_at' => ['nullable', 'date', 'after:access_starts_at'],
         ]);
+        // normalize empty date inputs to null
+        $start = trim($data['access_starts_at'] ?? '');
+        $end = trim($data['access_ends_at'] ?? '');
         $student->fill([
             'name' => $data['name'] ?? null,
             'email' => strtolower($data['email']),
             'is_active' => $request->boolean('is_active', true),
-            'access_starts_at' => $data['access_starts_at'] ?? null,
-            'access_ends_at' => $data['access_ends_at'] ?? null,
+            'access_starts_at' => $start !== '' ? Carbon::parse($start) : null,
+            'access_ends_at' => $end !== '' ? Carbon::parse($end) : null,
         ])->save();
         AccessLog::log(auth()->id(), 'student_updated', ['student_id' => $student->id]);
         return redirect()->route('admin.students.index')->with('ok', 'Đã lưu học sinh.');
@@ -124,6 +130,15 @@ class StudentController extends Controller
         $student->save();
         AccessLog::log(auth()->id(), 'student_extended', ['student_id' => $student->id, 'days' => $days]);
         return back()->with('ok', "Đã gia hạn +{$days} ngày (đến {$student->access_ends_at}).");
+    }
+
+    public function toggleActive(Request $request, User $student)
+    {
+        abort_if($student->role === 'admin', 403);
+        $student->is_active = !$student->is_active;
+        $student->save();
+        AccessLog::log(auth()->id(), $student->is_active ? 'student_unlocked' : 'student_locked', ['student_id' => $student->id]);
+        return back()->with('ok', $student->is_active ? 'Đã mở khoá học sinh.' : 'Đã khoá học sinh.');
     }
 
     public function importForm()

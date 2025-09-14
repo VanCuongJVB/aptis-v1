@@ -174,7 +174,7 @@
             </div>
             
             <!-- Bài thi khả dụng -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            {{-- <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <h3 class="text-lg font-medium mb-4">{{ __('Bài thi khả dụng') }}</h3>
                     
@@ -225,7 +225,7 @@
                         </div>
                     @endif
                 </div>
-            </div>
+            </div> --}}
         </div>
     </div>
 </x-app-layout>

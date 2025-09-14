@@ -1,6 +1,6 @@
 <div class="space-y-4">
   <div>
-    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
     <input type="email" id="email" name="email" class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required
            value="{{ old('email', isset($student) ? $student->email : '') }}">
     @error('email')
@@ -9,7 +9,7 @@
   </div>
   
   <div>
-    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Tên học sinh (tuỳ chọn)</label>
+  <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Tên học sinh (tuỳ chọn)</label>
     <input type="text" id="name" name="name" class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
            value="{{ old('name', isset($student) ? $student->name : '') }}">
     @error('name')

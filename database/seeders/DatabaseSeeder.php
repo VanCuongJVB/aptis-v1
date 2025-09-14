@@ -24,6 +24,10 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('123456'),
             'role' => 'admin',
             'is_active' => true,
+            'access_starts_at' => now(),
+            // give admin long access by default
+            'access_ends_at' => now()->addYears(5),
+            'last_access_at' => now(),
         ]);
 
         // Create test students
@@ -40,7 +44,11 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('123456'),
                 'role' => 'student',
                 'is_active' => true,
+                // compatibility: keep legacy expires field and new start/end fields
                 'access_expires_at' => now()->addDays(30),
+                'access_starts_at' => now(),
+                'access_ends_at' => now()->addDays(30),
+                'last_access_at' => now()->subDays(rand(0, 7)),
             ]);
 
             // Tạo mẫu các session thiết bị cho học viên
