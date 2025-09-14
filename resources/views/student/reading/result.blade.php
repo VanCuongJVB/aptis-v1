@@ -16,11 +16,11 @@
             </div>
         </div>
 
-        <div class="mb-4 grid grid-cols-3 gap-4 text-sm text-gray-700">
+        {{-- <div class="mb-4 grid grid-cols-3 gap-4 text-sm text-gray-700">
             <div>Thời gian bắt đầu: {{ $attempt->started_at ? $attempt->started_at->format('H:i d/m/Y') : '-' }}</div>
             <div>Thời gian nộp: {{ $attempt->submitted_at ? $attempt->submitted_at->format('H:i d/m/Y') : '-' }}</div>
             <div>Thời lượng (phút): {{ $duration ?? '-' }}</div>
-        </div>
+        </div> --}}
 
         <hr class="my-4">
     {{-- include helper so result page can render inline-feedback exactly like the practice view --}}

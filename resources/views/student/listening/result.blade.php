@@ -6,7 +6,7 @@
 <div class="container mx-auto py-6">
     <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
         <h2 class="text-lg font-semibold mb-2">Kết quả: {{ $quiz->title }}</h2>
-        <div class="mb-4 text-sm text-gray-600">Bài làm bởi: bạn — Thời lượng: {{ $duration ?? 'N/A' }} phút</div>
+        {{-- <div class="mb-4 text-sm text-gray-600">Bài làm bởi: bạn — Thời lượng: {{ $duration ?? 'N/A' }} phút</div> --}}
 
         <div class="mb-4 grid grid-cols-3 gap-4">
             <div class="p-3 bg-gray-50 rounded">
