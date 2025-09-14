@@ -58,30 +58,47 @@
                                     <tr>
                                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                             <div class="text-sm leading-5 font-medium text-gray-900">
-                                                {{ $session->device_name }}
+                                                {{ $session->device_name ?? 'Unknown device' }}
                                             </div>
                                             <div class="text-sm leading-5 text-gray-500">
-                                                User Agent: {{ Str::limit($session->user_agent, 50) }}
+                                                User Agent: {{ \Illuminate\Support\Str::limit($session->user_agent ?? '—', 50) }}
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                             {{ $session->ip_address }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                            {{ $session->last_active_at->diffForHumans() }}
-                                            <div class="text-xs text-gray-500">
-                                                {{ $session->last_active_at->format('Y-m-d H:i:s') }}
-                                            </div>
+                                            @if($session->last_active_at)
+                                                {{ $session->last_active_at->diffForHumans() }}
+                                                <div class="text-xs text-gray-500">
+                                                    {{ $session->last_active_at->format('Y-m-d H:i:s') }}
+                                                </div>
+                                            @else
+                                                <span class="text-xs text-gray-500">—</span>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                            @if($session->is_active && $session->last_active_at->gt(now()->subMinutes(30)))
+                                            @if($session->revoked_at)
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                    Revoked
+                                                </span>
+                                            @elseif($session->is_active && $session->last_active_at && $session->last_active_at->gt(now()->subMinutes(5)))
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                    Active
+                                                    Online now
+                                                </span>
+                                            @elseif($session->is_active && $session->last_active_at && $session->last_active_at->gt(now()->subMinutes(30)))
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                                                    Recently active
                                                 </span>
                                             @else
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
                                                     Inactive
                                                 </span>
+                                            @endif
+
+                                            <div class="text-xs text-gray-400 mt-1">ID: {{ $session->id }} / SId: {{ $session->session_id ?? '—' }}</div>
+                                            @if($session->device_fingerprint)
+                                                <div class="text-xs text-gray-400">FP: {{ \Illuminate\Support\Str::limit($session->device_fingerprint, 32) }}</div>
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm leading-5 font-medium">

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserSession;
+use App\Models\AccessLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class UserController extends Controller
@@ -101,8 +103,20 @@ class UserController extends Controller
      */
     public function logoutAllDevices(User $user)
     {
-        UserSession::where('user_id', $user->id)->delete();
-        
+        $sessions = UserSession::where('user_id', $user->id)->get();
+        foreach ($sessions as $s) {
+            $s->update(['revoked_at' => now()]);
+            // Delete Laravel session row if using database session driver
+            try {
+                if (config('session.driver') === 'database' && $s->session_id) {
+                    DB::table('sessions')->where('id', $s->session_id)->delete();
+                }
+            } catch (\Throwable $e) {
+                // ignore
+            }
+            try { AccessLog::log($user->id, 'admin_logout_device', ['session_id' => $s->session_id]); } catch (\Throwable $e) {}
+        }
+
         return redirect()->route('admin.users.sessions', $user)
             ->with('success', 'Đã đăng xuất khỏi tất cả thiết bị.');
     }
@@ -113,10 +127,19 @@ class UserController extends Controller
     public function logoutDevice(UserSession $session)
     {
         $user = $session->user;
-        $deviceName = $session->device_name;
-        
-        $session->delete();
-        
+        $deviceName = $session->device_name ?? 'Unknown device';
+
+        // mark revoked and delete corresponding Laravel session if possible
+        $session->update(['revoked_at' => now()]);
+        try {
+            if (config('session.driver') === 'database' && $session->session_id) {
+                DB::table('sessions')->where('id', $session->session_id)->delete();
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+        try { AccessLog::log($user->id, 'admin_logout_device', ['session_id' => $session->session_id]); } catch (\Throwable $e) {}
+
         return redirect()->route('admin.users.sessions', $user)
             ->with('success', "Đã đăng xuất khỏi thiết bị: {$deviceName}");
     }
