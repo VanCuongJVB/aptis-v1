@@ -32,7 +32,19 @@
                 $blankToken = '[BLANK'.($i + 1).']';
 
                 $selName = "part1_choice[{$i}]";
-                $selHtml = '<select name="'.e($selName).'" class="border rounded px-2 py-1 inline-block">';
+                // compute longest option length in characters and use that to set a min-width
+                $maxLen = 0;
+                if (is_array($opts)) {
+                    foreach ($opts as $optCandidate) {
+                        $ln = mb_strlen((string)$optCandidate);
+                        if ($ln > $maxLen) $maxLen = $ln;
+                    }
+                }
+                // add a small extra (in ch units) so the dropdown arrow has space
+                $extraCh = 6;
+                $minWidth = ($maxLen + $extraCh) . 'ch';
+
+                $selHtml = '<select name="'.e($selName).'" class="border rounded px-2 py-1 inline-block align-middle" style="min-width: '.e($minWidth).';">';
                 $current = $selected[$i] ?? null;
                 $selHtml .= '<option value="">-</option>';
                 foreach($opts as $opt) {
