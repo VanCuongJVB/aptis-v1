@@ -301,12 +301,17 @@
                         const userVal = document.createElement('div');
                         userVal.className = 'flex items-center gap-2';
                         if (r.ok) {
-                            const svg = document.createElement('svg');
+                            const svgns = 'http://www.w3.org/2000/svg';
+                            const svg = document.createElementNS(svgns, 'svg');
                             svg.setAttribute('class','h-4 w-4 text-green-600 flex-shrink-0');
                             svg.setAttribute('viewBox','0 0 20 20');
                             svg.setAttribute('fill','currentColor');
                             svg.setAttribute('aria-hidden','true');
-                            svg.innerHTML = '<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414-1.414L8 11.172 4.707 7.879a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8z" clip-rule="evenodd"/>';
+                            const path = document.createElementNS(svgns, 'path');
+                            path.setAttribute('fill-rule','evenodd');
+                            path.setAttribute('d','M16.707 5.293a1 1 0 00-1.414-1.414L8 11.172 4.707 7.879a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l8-8z');
+                            path.setAttribute('clip-rule','evenodd');
+                            svg.appendChild(path);
                             userVal.appendChild(svg);
                             const span = document.createElement('span');
                             span.textContent = r.userText;
