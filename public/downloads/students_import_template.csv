@@ -1,0 +1,6 @@
+email,name,is_active,access_starts_at,access_ends_at
+student1@example.com,Nguyen Van A,1,2025-09-01 00:00:00,2025-12-01 23:59:59
+student2@example.com,Tran Thi B,1,,2025-11-30 23:59:59
+# Notes:
+# - Leave access_starts_at empty to use "now" when importing (or set an explicit start)
+# - Date format: YYYY-MM-DD HH:MM:SS
