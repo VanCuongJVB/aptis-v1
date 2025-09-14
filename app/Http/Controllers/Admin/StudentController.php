@@ -157,10 +157,40 @@ class StudentController extends Controller
             if (($handle = fopen($file->getRealPath(), "r")) !== false) {
                 $header = null;
                 while (($data = fgetcsv($handle)) !== false) {
-                    if ($header === null) {
-                        $header = $data;
+                    // skip completely empty rows
+                    if ($data === null || (count($data) === 1 && trim((string)$data[0]) === '')) {
                         continue;
                     }
+
+                    // header row
+                    if ($header === null) {
+                        // strip BOM from first cell
+                        if (isset($data[0])) {
+                            $data[0] = preg_replace('/^\x{FEFF}/u', '', $data[0]);
+                        }
+                        $header = array_map('trim', $data);
+                        $lower = array_map('strtolower', $header);
+                        if (!in_array('email', $lower, true)) {
+                            fclose($handle);
+                            return back()->withErrors(['file' => 'Header file phải chứa cột "email".']);
+                        }
+                        continue;
+                    }
+
+                    // skip commented rows starting with #
+                    if (isset($data[0]) && preg_match('/^\s*#/', (string)$data[0])) {
+                        continue;
+                    }
+
+                    // normalize row length
+                    $hCount = count($header);
+                    $dCount = count($data);
+                    if ($dCount < $hCount) {
+                        $data = array_pad($data, $hCount, null);
+                    } elseif ($dCount > $hCount) {
+                        $data = array_slice($data, 0, $hCount);
+                    }
+
                     $row = @array_combine($header, $data);
                     if ($row) $rows[] = $row;
                 }
@@ -170,8 +200,24 @@ class StudentController extends Controller
             if (class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
                 $sheets = \Maatwebsite\Excel\Facades\Excel::toArray([], $file);
                 $sheet = $sheets[0] ?? [];
-                $header = array_map('strval', $sheet[0] ?? []);
+                $header = array_map(function($v){ return trim((string)$v); }, $sheet[0] ?? []);
+                if (isset($header[0])) {
+                    $header[0] = preg_replace('/^\x{FEFF}/u', '', $header[0]);
+                }
+                $lower = array_map('strtolower', $header);
+                if (!in_array('email', $lower, true)) {
+                    return back()->withErrors(['file' => 'Header file phải chứa cột "email".']);
+                }
                 foreach (array_slice($sheet, 1) as $line) {
+                    if ($line === null || (count($line) === 1 && trim((string)$line[0]) === '')) continue;
+                    if (isset($line[0]) && preg_match('/^\s*#/', (string)$line[0])) continue;
+                    $dCount = count($line);
+                    $hCount = count($header);
+                    if ($dCount < $hCount) {
+                        $line = array_pad($line, $hCount, null);
+                    } elseif ($dCount > $hCount) {
+                        $line = array_slice($line, 0, $hCount);
+                    }
                     $row = @array_combine($header, $line);
                     if ($row) $rows[] = $row;
                 }

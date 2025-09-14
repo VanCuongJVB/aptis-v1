@@ -24,7 +24,7 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
     Route::delete('sessions/{session}', [UserController::class, 'logoutDevice'])->name('sessions.destroy');
     
     // Student Management Routes
-    Route::resource('students', StudentController::class);
+    Route::resource('students', StudentController::class)->except(['show']);
     Route::get('students/import', [StudentController::class, 'importForm'])->name('students.import.form');
     Route::post('students/import', [StudentController::class, 'importStore'])->name('students.import');
     Route::get('students/{student}/extend', [StudentController::class, 'extend'])->name('students.extend');
