@@ -9,9 +9,6 @@
             <h1 class="text-2xl font-semibold">Tiến độ luyện Reading</h1>
             <p class="text-sm text-slate-500">Tổng quan tiến độ và điểm từng phần.</p>
         </div>
-        <div>
-            <a href="{{ route('student.reading.history') }}" class="inline-flex items-center px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-slate-700 hover:bg-gray-50">Lịch sử làm bài</a>
-        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
