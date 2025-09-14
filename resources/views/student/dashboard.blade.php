@@ -130,9 +130,9 @@
                                         <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             {{ __('Thời gian') }}
                                         </th>
-                                        <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {{-- <th class="py-2 px-4 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             {{ __('Thao tác') }}
-                                        </th>
+                                        </th> --}}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -150,16 +150,27 @@
                                                 </span>
                                             </td>
                                             <td class="py-2 px-4 border-b border-gray-200">
-                                                {{ $attempt->score }} / {{ $attempt->total_questions }}
+                                                @php
+                                                    $score = $attempt->score_percentage ?? $attempt->score_points ?? null;
+                                                @endphp
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ ($score !== null && $score >= 80) ? 'bg-green-100 text-green-800' : (($score !== null && $score >= 60) ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}"
+                                                        data-attempt-id="{{ $attempt->id }}"
+                                                        data-score="{{ $score }}"
+                                                    >
+                                                        {{ $score !== null ? $score . '%' : 'N/A' }}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td class="py-2 px-4 border-b border-gray-200">
                                                 {{ $attempt->created_at->format('d/m/Y H:i') }}
                                             </td>
-                                            <td class="py-2 px-4 border-b border-gray-200">
+                                            {{-- <td class="py-2 px-4 border-b border-gray-200">
                                                 <a href="#" class="text-blue-600 hover:text-blue-800">
                                                     {{ __('Xem chi tiết') }}
                                                 </a>
-                                            </td>
+                                            </td> --}}
                                         </tr>
                                     @endforeach
                                 </tbody>

@@ -62,7 +62,14 @@
                                     @foreach($recentAttempts as $attempt)
                                         <tr>
                                             <td class="py-2 px-4 border-b border-gray-200">{{ $attempt->quiz->title }}</td>
-                                            <td class="py-2 px-4 border-b border-gray-200">{{ $attempt->score_percentage }}%</td>
+                                            @php
+                                                $score = $attempt->score_percentage ?? $attempt->score_points ?? null;
+                                            @endphp
+                                            <td class="py-2 px-4 border-b border-gray-200">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ ($score !== null && $score >= 80) ? 'bg-green-100 text-green-800' : (($score !== null && $score >= 60) ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                                                    {{ $score !== null ? $score . '%' : 'N/A' }}
+                                                </span>
+                                            </td>
                                             <td class="py-2 px-4 border-b border-gray-200">{{ $attempt->created_at->format('d/m/Y H:i') }}</td>
                                         </tr>
                                     @endforeach

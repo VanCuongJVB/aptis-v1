@@ -35,7 +35,12 @@
 @endphp
 
 <div class="mt-3 text-sm">
-    <div class="font-medium">Đáp án của bạn (Part 3)</div>
+    @php
+        $qTitle = $question->content ?? $question->title ?? ($question->metadata['title'] ?? null);
+    @endphp
+    @if(!empty($qTitle))
+        <div class="text-sm font-medium mb-2">{{ e($qTitle) }}</div>
+    @endif
 
     @if(empty($items))
         @if(!empty($userArr))
@@ -48,6 +53,15 @@
             <div class="ml-2 text-gray-600">Chưa trả lời</div>
         @endif
     @else
+        @php
+            $detail = $computedDetails[$question->id] ?? null;
+            $perMatches = $detail['matches'] ?? null;
+            $perMatchCount = $detail['matchCount'] ?? null;
+            $perTotal = is_array($perMatches) ? count($perMatches) : count($items);
+        @endphp
+
+        <div class="mb-2 text-sm text-gray-600">@if(!is_null($perMatchCount)) Đúng {{ $perMatchCount }} / {{ $perTotal }} @endif</div>
+
         <div class="space-y-3">
             @foreach($items as $i => $it)
                 @php
@@ -56,7 +70,14 @@
                     $userText = ($raw !== null && isset($options[$raw])) ? $toText($options[$raw]) : ($raw !== null ? (string)$raw : '');
                     $corrRaw = $answersKey[$i] ?? null;
                     $corrText = ($corrRaw !== null && isset($options[$corrRaw])) ? $toText($options[$corrRaw]) : ($corrRaw !== null ? (string)$corrRaw : '');
-                    $isCorrect = ($userText !== '' && $corrText !== '' && mb_strtolower(trim($userText)) === mb_strtolower(trim($corrText)));
+                    // prefer computed match flag when available
+                    $isCorrect = null;
+                    if (is_array($perMatches) && isset($perMatches[$i])) {
+                        $isCorrect = (bool)($perMatches[$i]['match'] ?? false);
+                    }
+                    if (is_null($isCorrect)) {
+                        $isCorrect = ($userText !== '' && $corrText !== '' && mb_strtolower(trim($userText)) === mb_strtolower(trim($corrText)));
+                    }
                 @endphp
 
                 <div class="border rounded-lg p-4 bg-white">

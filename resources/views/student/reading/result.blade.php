@@ -310,10 +310,6 @@
                                 /
                                 <span class="text-sm">{{ $perItemTotal }}</span>
                                 <span class="text-xs text-gray-500">đúng</span>
-                                @if(!empty($perItemPresenceCount))
-                                    <span class="mx-1">·</span>
-                                    <span class="text-xs text-amber-600">{{ $perItemPresenceCount }} hiện diện</span>
-                                @endif
                             </span>
                         @else
                             @if($isCorrect === true)
