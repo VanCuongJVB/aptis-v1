@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-9xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -47,6 +47,7 @@
                             {!! $tab(null, 'Tất cả') !!}
                             {!! $tab('active', 'Đang kích hoạt') !!}
                             {!! $tab('inactive', 'Bị khoá') !!}
+                            {!! $tab('warned', 'Cảnh cáo') !!}
                             {!! $tab('expiring', 'Sắp hết hạn ≤7d') !!}
                             {!! $tab('expired', 'Đã hết hạn') !!}
                         </div>
@@ -66,6 +67,7 @@
                                     <th class="px-4 py-3">Email</th>
                                     <th class="px-4 py-3">Tên</th>
                                     <th class="px-4 py-3">Trạng thái</th>
+                                    <th class="px-4 py-3">Cảnh báo</th>
                                     <th class="px-4 py-3">Thời gian truy cập</th>
                                     <th class="px-4 py-3">Thao tác</th>
                                 </tr>
@@ -80,7 +82,7 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-4 py-3 font-medium text-slate-800">{{ $st->email }}</td>
                                         <td class="px-4 py-3">{{ $st->name }}</td>
-                                       <td class="px-4 py-3">
+                                        <td class="px-4 py-3">
                                             <div class="flex flex-col gap-1">
                                                 @if($st->is_active)
                                                     <span class="px-2 py-0.5 rounded bg-emerald-100 border border-emerald-300 text-emerald-700">
@@ -102,6 +104,17 @@
                                                     </span>
                                                 @endif
                                             </div>
+                                        </td>
+
+                                        {{-- Cảnh báo column --}}
+                                        <td class="px-4 py-3">
+                                            @if($st->device_warning)
+                                                <span class="px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-amber-700">
+                                                    Cảnh cáo
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-slate-400">—</span>
+                                            @endif
                                         </td>
                                         <td class="px-4 py-3 text-slate-600">
                                             <div class="text-xs">

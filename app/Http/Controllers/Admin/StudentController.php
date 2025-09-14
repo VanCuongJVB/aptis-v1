@@ -37,6 +37,8 @@ class StudentController extends Controller
         } elseif ($status === 'expired') {
             $q->whereNotNull('access_ends_at')
                 ->where('access_ends_at', '<', $now);
+        } elseif ($status === 'warned') {
+            $q->where('device_warning', true);
         } elseif ($status === 'expiring') {
             $q->whereNotNull('access_ends_at')
                 ->whereBetween('access_ends_at', [$now, (clone $now)->addDays(7)]);

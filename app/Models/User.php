@@ -16,6 +16,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+    'device_warning',
     'access_expires_at',
     'access_starts_at',
     'access_ends_at',
@@ -34,6 +35,7 @@ class User extends Authenticatable
     'access_starts_at' => 'datetime',
     'access_ends_at' => 'datetime',
     'last_access_at' => 'datetime',
+    'device_warning' => 'boolean',
         'active_devices' => 'array',
         'is_active' => 'boolean',
     ];
@@ -84,6 +86,7 @@ class User extends Authenticatable
 
     public function canAddDevice()
     {
-        return $this->getActiveDeviceCount() < 2;
+    $max = (int) config('aptis.sessions.max_devices', 2);
+    return $this->getActiveDeviceCount() < $max;
     }
 }

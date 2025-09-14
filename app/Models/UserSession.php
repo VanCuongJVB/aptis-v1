@@ -11,17 +11,20 @@ class UserSession extends Model
 
     protected $fillable = [
         'user_id',
+    'session_id',
         'device_fingerprint',
         'device_name',
         'ip_address',
         'user_agent',
         'is_active',
-        'last_active_at',
+    'last_active_at',
+    'revoked_at',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'last_active_at' => 'datetime',
+    'revoked_at' => 'datetime',
     ];
 
     // Relationships
