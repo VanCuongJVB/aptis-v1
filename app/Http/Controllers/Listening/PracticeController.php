@@ -379,6 +379,7 @@ class PracticeController extends Controller
             $totalItems = 0;
             $correctItems = 0;
             $computedTotals = null;
+            $computedDetails = [];
 
             $normalizeSelected = function($ans) {
                 if (! $ans) return null;
@@ -401,8 +402,8 @@ class PracticeController extends Controller
                     $meta = $q->metadata ?? [];
                     $part = $q->part ?? ($meta['part'] ?? null);
 
-                    // multiple choice: single item
-                    if (in_array($part, [1,16,17]) || ($meta['type'] ?? '') === 'mc') {
+                    // multiple choice: single item (include part 4)
+                    if (in_array($part, [1,4,16,17]) || ($meta['type'] ?? '') === 'mc') {
                         $totalItems++;
                         $correctIndex = $meta['correct_index'] ?? $meta['correct'] ?? null;
                         // normalize scalar correct index
@@ -420,16 +421,73 @@ class PracticeController extends Controller
                         continue;
                     }
 
-                    // Speaker completion / mapping (part 14)
-                    if ($part == 14 || ($meta['type'] ?? '') === 'speakers') {
+                    // Speaker completion / mapping (part 14) and listening speaker-match (part 2)
+                    if ($part == 14 || ($meta['type'] ?? '') === 'speakers' || $part == 2 || ($meta['type'] ?? '') === 'listening_speakers_match') {
                         $correct = $meta['answers'] ?? [];
                         $ans = $answers->get($q->id);
                         $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
-                        $selected = $ansMeta['selected'] ?? $ansMeta ?? [];
-                        $valsUser = is_array($selected) ? array_values($selected) : [$selected];
+
+                        // Normalize user's mapping into an array of indices (0-based)
+                        $valsUser = [];
+                        if (is_array($ansMeta)) {
+                            if (isset($ansMeta['order']) && is_array($ansMeta['order'])) {
+                                $valsUser = array_values($ansMeta['order']);
+                            } elseif (isset($ansMeta['originalIndices']) && is_array($ansMeta['originalIndices'])) {
+                                $valsUser = array_values($ansMeta['originalIndices']);
+                            } elseif (isset($ansMeta['texts']) && is_array($ansMeta['texts']) && isset($meta['options']) && is_array($meta['options'])) {
+                                // map texts back to option indexes when available
+                                foreach ($ansMeta['texts'] as $t) {
+                                    $found = array_search($t, $meta['options']);
+                                    $valsUser[] = $found === false ? null : $found;
+                                }
+                            } elseif (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) {
+                                $valsUser = array_values($ansMeta['selected']);
+                            } elseif (isset($ansMeta['selected'])) {
+                                $valsUser = is_array($ansMeta['selected']) ? array_values($ansMeta['selected']) : [$ansMeta['selected']];
+                            }
+                        }
+
+                        $valsUser = array_values($valsUser);
                         $valsCorr = is_array($correct) ? array_values($correct) : [$correct];
+
+                        // Detect 1-based vs 0-based indices by comparing minima and normalize to 0-based
+                        $numericUser = array_filter($valsUser, 'is_numeric');
+                        $numericCorr = array_filter($valsCorr, 'is_numeric');
+                        if (!empty($numericUser) && !empty($numericCorr)) {
+                            $minUser = (int)min($numericUser);
+                            $minCorr = (int)min($numericCorr);
+                            if ($minUser > $minCorr) {
+                                // user indices appear offset (e.g. 1-based while correct is 0-based)
+                                $offset = $minUser - $minCorr;
+                                $valsUser = array_map(function($v) use ($offset) { return is_numeric($v) ? ((int)$v - $offset) : $v; }, $valsUser);
+                            }
+                        }
+
                         $totalItems += count($valsCorr);
-                        if (json_encode($valsUser) === json_encode($valsCorr)) $correctItems += count($valsCorr);
+                        // grade per-item matches and record detail
+                        $matches = [];
+                        $matchCount = 0;
+                        for ($i = 0; $i < count($valsCorr); $i++) {
+                            $u = $valsUser[$i] ?? null;
+                            $c = $valsCorr[$i] ?? null;
+                            $ok = false;
+                            if ($u !== null && $c !== null) {
+                                if ((string)$u === (string)$c || ((is_numeric($u) || is_numeric($c)) && (int)$u === (int)$c)) {
+                                    $ok = true;
+                                    $correctItems++;
+                                    $matchCount++;
+                                }
+                            }
+                            $matches[] = ['user' => $u, 'correct' => $c, 'match' => $ok];
+                        }
+
+                        $computedDetails[$q->id] = [
+                            'question_id' => $q->id,
+                            'valsUser' => $valsUser,
+                            'valsCorr' => $valsCorr,
+                            'matches' => $matches,
+                            'matchCount' => $matchCount
+                        ];
                         continue;
                     }
 
@@ -443,6 +501,65 @@ class PracticeController extends Controller
                         $valsCorr = is_array($correct) ? array_values($correct) : [$correct];
                         $totalItems += count($valsCorr);
                         if (json_encode($valsUser) === json_encode($valsCorr)) $correctItems += count($valsCorr);
+                        continue;
+                    }
+
+                    // Part 3: grouped multiple-select items (items + options)
+                    if ($part == 3 || (!empty($meta['items']) && is_array($meta['items']))) {
+                        $items = is_array($meta['items']) ? array_values($meta['items']) : [];
+                        $answersKey = $meta['answers'] ?? $meta['correct'] ?? [];
+
+                        $ans = $answers->get($q->id);
+                        $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+
+                        // normalize user selections into an array per item
+                        $valsUser = [];
+                        if (is_array($ansMeta)) {
+                            if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) {
+                                $valsUser = array_values($ansMeta['selected']);
+                            } elseif (isset($ansMeta['values']) && is_array($ansMeta['values'])) {
+                                $valsUser = array_values($ansMeta['values']);
+                            } elseif (isset($ansMeta['value']) && is_array($ansMeta['value'])) {
+                                $valsUser = array_values($ansMeta['value']);
+                            } else {
+                                // attempt to use positional entries
+                                $valsUser = array_values($ansMeta);
+                            }
+                        } elseif (is_string($ansMeta)) {
+                            $dec = json_decode($ansMeta, true);
+                            if (is_array($dec)) $valsUser = array_values($dec);
+                        }
+
+                        $valsUser = array_values($valsUser);
+                        $valsCorr = is_array($answersKey) ? array_values($answersKey) : [$answersKey];
+
+                        $totalItems += count($valsCorr);
+                        $matches = [];
+                        $matchCount = 0;
+
+                        for ($i = 0; $i < count($valsCorr); $i++) {
+                            $u = $valsUser[$i] ?? null;
+                            $c = $valsCorr[$i] ?? null;
+                            // normalize texts to compare when options exist
+                            $ok = false;
+                            if ($u !== null && $c !== null) {
+                                if ((string)$u === (string)$c || ((is_numeric($u) || is_numeric($c)) && (int)$u === (int)$c)) {
+                                    $ok = true;
+                                    $correctItems++;
+                                    $matchCount++;
+                                }
+                            }
+                            $matches[] = ['user' => $u, 'correct' => $c, 'match' => $ok];
+                        }
+
+                        $computedDetails[$q->id] = [
+                            'question_id' => $q->id,
+                            'valsUser' => $valsUser,
+                            'valsCorr' => $valsCorr,
+                            'matches' => $matches,
+                            'matchCount' => $matchCount
+                        ];
+
                         continue;
                     }
 
@@ -474,7 +591,8 @@ class PracticeController extends Controller
             'questions' => $questions,
             'answers' => $answers,
             'duration' => $duration,
-            'computedTotals' => $computedTotals ?? null
+            'computedTotals' => $computedTotals ?? null,
+            'computedDetails' => $computedDetails ?? null
         ]);
     }
 
@@ -497,8 +615,8 @@ class PracticeController extends Controller
         $result = ['is_correct' => false, 'correct_data' => null];
 
         try {
-            // Multiple choice (parts 1,16,17 and others)
-            if (in_array($part, [1,16,17]) || ($meta['type'] ?? '') === 'mc') {
+            // Multiple choice (parts 1,4,16,17 and others)
+            if (in_array($part, [1,4,16,17]) || ($meta['type'] ?? '') === 'mc') {
                 $correctIndex = $meta['correct_index'] ?? $meta['correct'] ?? null;
                 $selected = $answerMeta['selected']['option_id'] ?? $answerMeta['selected'] ?? ($answerMeta['option_id'] ?? null);
                 $result['is_correct'] = !is_null($correctIndex) && ((string)$selected === (string)$correctIndex || (int)$selected === (int)$correctIndex);

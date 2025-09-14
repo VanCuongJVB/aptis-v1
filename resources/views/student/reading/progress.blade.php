@@ -29,7 +29,13 @@
                 </div>
                 <div class="p-3 bg-slate-50 rounded">
                     <div class="text-xs text-slate-500">Điểm TB</div>
-                    <div class="text-xl font-bold">{{ $overall['avg_score'] ? $overall['avg_score'] . '%' : '-' }}</div>
+                    <div class="text-xl font-bold">
+                        @if(isset($overall['avg_score']) && is_numeric($overall['avg_score']))
+                            {{ number_format($overall['avg_score'], 2) . '%' }}
+                        @else
+                            -
+                        @endif
+                    </div>
                 </div>
             </div>
 

@@ -103,7 +103,47 @@
 @endphp
 
 <div class="mt-3 text-sm">
-    <div class="font-medium">Đáp án của bạn (Part 2)</div>
+    @php
+        $subTotal = 0;
+        $subCorrect = 0;
+        if ($mappingOrder !== null) {
+            $valsUser = $mappingOrder;
+            $valsCorr = $answersCorr;
+            $valsUser = array_values($valsUser);
+            $valsCorr = array_values($valsCorr);
+
+            // detect 1-based vs 0-based and normalize
+            $numericUser = array_filter($valsUser, 'is_numeric');
+            $numericCorr = array_filter($valsCorr, 'is_numeric');
+            if (!empty($numericUser) && !empty($numericCorr)) {
+                $minUser = (int)min($numericUser);
+                $minCorr = (int)min($numericCorr);
+                if ($minUser > $minCorr) {
+                    $offset = $minUser - $minCorr;
+                    $valsUser = array_map(function($v) use ($offset) { return is_numeric($v) ? ((int)$v - $offset) : $v; }, $valsUser);
+                }
+            }
+
+            // ensure rows use the same normalized values as the header/count
+            $mappingOrder = $valsUser;
+
+            $subTotal = count($valsCorr);
+            for ($ii = 0; $ii < $subTotal; $ii++) {
+                $u = $valsUser[$ii] ?? null;
+                $c = $valsCorr[$ii] ?? null;
+                if ($u !== null && $c !== null) {
+                    if ((string)$u === (string)$c || ((is_numeric($u) || is_numeric($c)) && (int)$u === (int)$c)) {
+                        $subCorrect++;
+                    }
+                }
+            }
+        }
+    @endphp
+    @if($mappingOrder !== null)
+        <div class="font-medium">{{ $subCorrect }} / {{ $subTotal }} đúng</div>
+    @else
+        <div class="font-medium">Đáp án của bạn (Part 2)</div>
+    @endif
 
     @if($mappingOrder !== null)
         <div class="mt-2 space-y-3">

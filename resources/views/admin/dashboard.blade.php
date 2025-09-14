@@ -53,9 +53,9 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             {{ __('Thời gian') }}
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {{-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             {{ __('Thao tác') }}
-                                        </th>
+                                        </th> --}}
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -69,16 +69,23 @@
                                                 <div class="text-sm text-gray-900">{{ $attempt->quiz->title }}</div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $attempt->score >= 80 ? 'bg-green-100 text-green-800' : ($attempt->score >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
-                                                    {{ $attempt->score }}%
+                                                @php
+                                                    $score = $attempt->score_percentage ?? $attempt->score_points ?? null;
+                                                @endphp
+                                                <span
+                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ ($score !== null && $score >= 80) ? 'bg-green-100 text-green-800' : (($score !== null && $score >= 60) ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}"
+                                                    data-attempt-id="{{ $attempt->id }}"
+                                                    data-score="{{ $score }}"
+                                                >
+                                                    {{ $score !== null ? $score . '%' : 'N/A' }}
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {{ $attempt->created_at->diffForHumans() }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            {{-- <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                 <a href="{{ route('admin.students.show', $attempt->user_id) }}" class="text-indigo-600 hover:text-indigo-900">Xem học sinh</a>
-                                            </td>
+                                            </td> --}}
                                         </tr>
                                     @endforeach
                                 </tbody>
