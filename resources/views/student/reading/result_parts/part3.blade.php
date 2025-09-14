@@ -63,9 +63,9 @@
                                 $correctLabel = is_array($ansRaw) ? json_encode($ansRaw) : (string)$ansRaw;
                             }
                         } else {
-                            // primitive
+                            // primitive (e.g. 'A' or 'B') — treat as both label and id
                             $correctLabel = (string)$ansRaw;
-                            if (is_numeric($ansRaw)) $correctId = (string)$ansRaw;
+                            $correctId = (string)$ansRaw;
                         }
                     }
 
@@ -75,7 +75,20 @@
                     }
                 @endphp
 
-                <div class="bg-white border rounded-lg shadow-sm p-4 flex items-start justify-between gap-4">
+                @php
+                    // container classes and inline styles depend on correctness
+                    $containerBase = 'border rounded-lg shadow-sm p-4 flex items-start justify-between gap-4';
+                    $containerStyle = '';
+                    // light green for correct, light red for incorrect, white for unknown
+                    if ($isCorrectItem === true) {
+                        $containerStyle = 'background-color:#ecfdf5;';
+                    } elseif ($isCorrectItem === false) {
+                        $containerStyle = 'background-color:#fff1f2;';
+                    } else {
+                        $containerStyle = 'background-color:#ffffff;';
+                    }
+                @endphp
+                <div class="{{ $containerBase }}" style="{{ $containerStyle }}">
                     <div class="flex-1">
                         <div class="text-sm text-gray-800 mb-2">{{ $i+1 }}. {{ e($prompt) }}</div>
                         <div class="flex items-center gap-3">

@@ -285,18 +285,18 @@
 
                 // per-part color/style map
                 $partClass = match($quiz->part ?? null) {
-                    1 => 'border-blue-200 bg-blue-50',
-                    2 => 'border-indigo-200 bg-indigo-50',
-                    3 => 'border-yellow-200 bg-yellow-50',
-                    4 => 'border-purple-200 bg-purple-50',
+                    1 => 'border-gray-200 bg-white',
+                    2 => 'border-gray-200 bg-white',
+                    3 => 'border-gray-200 bg-white',
+                    4 => 'border-gray-200 bg-white',
                     default => 'border-gray-200 bg-white',
                 };
                 $chipClass = match($quiz->part ?? null) {
-                    1 => 'bg-blue-100 text-blue-800',
-                    2 => 'bg-indigo-100 text-indigo-800',
-                    3 => 'bg-yellow-100 text-yellow-800',
-                    4 => 'bg-purple-100 text-purple-800',
-                    default => 'bg-gray-100 text-gray-800',
+                    1 => 'border-gray-200 bg-white',
+                    2 => 'border-gray-200 bg-white',
+                    3 => 'border-gray-200 bg-white',
+                    4 => 'border-gray-200 bg-white',
+                    default => 'border-gray-200 bg-white',
                 };
             @endphp
 
