@@ -55,6 +55,9 @@
                                             {{ __('Hoạt động lần cuối') }}
                                         </th>
                                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                            {{ __('Thời gian đăng nhập') }}
+                                        </th>
+                                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                             {{ __('Thao tác') }}
                                         </th>
                                     </tr>
@@ -72,10 +75,20 @@
                                                 {{ $session->ip_address }}
                                             </td>
                                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                                {{ $session->last_active_at->diffForHumans() }}
+                                                {{ $session->last_active_at ? $session->last_active_at->diffForHumans() : '—' }}
                                                 <div class="text-xs">
-                                                    {{ $session->last_active_at->format('d/m/Y H:i:s') }}
+                                                    {{ $session->last_active_at ? $session->last_active_at->format('d/m/Y H:i:s') : '—' }}
                                                 </div>
+                                            </td>
+                                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                {{-- created_at is when the session record was created (login time) --}}
+                                                {{ $session->created_at ? $session->created_at->diffForHumans() : '—' }}
+                                                <div class="text-xs">
+                                                    {{ $session->created_at ? $session->created_at->format('d/m/Y H:i:s') : '—' }}
+                                                </div>
+                                                @if($session->revoked_at)
+                                                    <div class="text-xs text-red-600">(Đã bị thu hồi: {{ $session->revoked_at->diffForHumans() }})</div>
+                                                @endif
                                             </td>
                                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                 <form method="POST" action="{{ route('profile.sessions.destroy', $session) }}">

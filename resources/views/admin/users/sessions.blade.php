@@ -46,6 +46,9 @@
                                         Last Active
                                     </th>
                                     <th class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
+                                        Login Time
+                                    </th>
+                                    <th class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
                                         Status
                                     </th>
                                     <th class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">
@@ -75,6 +78,17 @@
                                                 </div>
                                             @else
                                                 <span class="text-xs text-gray-500">—</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
+                                            @if($session->created_at)
+                                                {{ $session->created_at->diffForHumans() }}
+                                                <div class="text-xs text-gray-500">{{ $session->created_at->format('Y-m-d H:i:s') }}</div>
+                                            @else
+                                                <span class="text-xs text-gray-500">—</span>
+                                            @endif
+                                            @if($session->revoked_at)
+                                                <div class="text-xs text-red-600 mt-1">Revoked: {{ $session->revoked_at->diffForHumans() }}</div>
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
