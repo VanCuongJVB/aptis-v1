@@ -16,7 +16,10 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
-        'access_expires_at',
+    'access_expires_at',
+    'access_starts_at',
+    'access_ends_at',
+    'last_access_at',
         'active_devices',
     ];
 
@@ -27,7 +30,10 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'access_expires_at' => 'datetime',
+    'access_expires_at' => 'datetime',
+    'access_starts_at' => 'datetime',
+    'access_ends_at' => 'datetime',
+    'last_access_at' => 'datetime',
         'active_devices' => 'array',
         'is_active' => 'boolean',
     ];

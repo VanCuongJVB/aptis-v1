@@ -60,6 +60,9 @@
                                 <x-dropdown-link :href="route('dashboard')">
                                     {{ __('Thống kê hệ thống') }}
                                 </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.quizzes.index')">
+                                    {{ __('Quản lý Quizzes') }}
+                                </x-dropdown-link>
                                 <!-- Admin Reading/Listening links removed -->
                                 <x-dropdown-link :href="route('admin.students.index')">
                                     {{ __('Quản lý học sinh') }}
@@ -147,6 +150,9 @@
             <div class="mt-4 px-4 py-2 font-medium text-sm text-gray-700">{{ __('Admin') }}</div>
             @if(Auth::user()->is_admin)
                 <!-- Admin Reading/Listening links removed -->
+                <x-responsive-nav-link :href="route('admin.quizzes.index')" :active="request()->routeIs('admin.quizzes.*')">
+                    {{ __('Quản lý Quizzes') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.students.index')" :active="request()->routeIs('admin.students.*')">
                     {{ __('Quản lý học sinh') }}
                 </x-responsive-nav-link>

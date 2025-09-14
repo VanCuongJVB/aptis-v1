@@ -28,6 +28,7 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
     Route::get('students/import', [StudentController::class, 'importForm'])->name('students.import.form');
     Route::post('students/import', [StudentController::class, 'importStore'])->name('students.import');
     Route::get('students/{student}/extend', [StudentController::class, 'extend'])->name('students.extend');
+    Route::post('students/{student}/toggle-active', [StudentController::class, 'toggleActive'])->name('students.toggleActive');
     
     // Admin reading/listening/question routes removed
 
@@ -40,6 +41,12 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
     Route::get('quizzes/coming-soon', function () {
         return view('admin.quizzes.coming_soon');
     })->name('quizzes.coming');
+
+    // Import endpoint for quizzes JSON
+    Route::post('quizzes/import', [\App\Http\Controllers\Admin\ImportController::class, 'store'])->name('quizzes.import');
+    Route::post('quizzes/import/dry-run', [\App\Http\Controllers\Admin\ImportController::class, 'dryRun'])->name('quizzes.import.dryrun');
+    // Export current quizzes as a JSON template for users to download and edit
+    Route::get('quizzes/import/template', [\App\Http\Controllers\Admin\ImportController::class, 'exportTemplate'])->name('quizzes.import.template');
 
     // Question management (basic CRUD)
     Route::get('quizzes/questions/create', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'create'])->name('questions.create');
