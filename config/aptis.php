@@ -16,4 +16,8 @@ return [
         ],
     ],
     'question_types' => ['dropdown', 'ordering', 'matching', 'heading_matching', 'mcq_single'],
+    'sessions' => [
+        // Maximum number of distinct device fingerprints allowed concurrently per user
+        'max_devices' => env('APTIS_MAX_DEVICES', 2),
+    ],
 ];

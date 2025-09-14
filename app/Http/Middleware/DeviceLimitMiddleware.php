@@ -23,8 +23,8 @@ class DeviceLimitMiddleware
             return redirect()->route('login');
         }
         
-        // Generate a unique device fingerprint
-        $deviceFingerprint = $this->generateDeviceFingerprint($request);
+    // Generate a unique device fingerprint (use persistent device_id cookie when available)
+    $deviceFingerprint = $this->generateDeviceFingerprint($request);
         
         // Get or create session record
         $userSession = UserSession::firstOrCreate(
@@ -40,7 +40,7 @@ class DeviceLimitMiddleware
         );
         
         // Update last active time
-        if ($userSession->last_active_at->diffInMinutes(now()) > 5) {
+        if ($userSession->last_active_at && $userSession->last_active_at->diffInMinutes(now()) > 5) {
             $userSession->update(['last_active_at' => now()]);
         }
         
@@ -61,8 +61,11 @@ class DeviceLimitMiddleware
             ]);
         }
         
-        // If user already has 2 active devices and this is a different device
-        if ($activeSessions->count() > 2 && !$activeSessions->contains('device_fingerprint', $deviceFingerprint)) {
+    // If user already has > max devices and this is a different device
+    $max = (int) config('aptis.sessions.max_devices', 2);
+    if ($max < 1) $max = 2;
+
+    if ($activeSessions->count() > $max && !$activeSessions->contains('device_fingerprint', $deviceFingerprint)) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -82,13 +85,10 @@ class DeviceLimitMiddleware
      */
     private function generateDeviceFingerprint(Request $request): string
     {
-        $userAgent = $request->userAgent();
-        $ipAddress = $request->ip();
-        $sessionId = $request->session()->getId();
-        
-        // Create a hash combining user agent, IP, and a portion of the session ID
-        // This allows the same browser on the same device to be recognized
-        return hash('sha256', $userAgent . $ipAddress . substr($sessionId, 0, 8));
+    $userAgent = $request->userAgent() ?? '';
+    $deviceId = $request->cookie('device_id');
+    $seed = $userAgent . '|' . ($deviceId ?? $request->ip());
+    return hash('sha256', $seed);
     }
     
     /**
