@@ -207,9 +207,18 @@
                 }
 
 
-                const part3Els = root.querySelectorAll('select[name^="select-"]');
+                // Detect stacked Part3 selects named like part3_answer[<index>] or part3_answer[<index>][]
+                const part3Els = root.querySelectorAll('select[name^="part3_answer"]');
                 if (part3Els.length) {
-                    return { part: 'part3', value: Array.from(part3Els).map(s => s.value) };
+                    const values = Array.from(part3Els).map(s => {
+                        try {
+                            if (s.multiple) {
+                                return Array.from(s.selectedOptions).map(o => o.value);
+                            }
+                            return s.value === '' ? null : s.value;
+                        } catch (e) { return null; }
+                    });
+                    return { part: 'part3', value: values };
                 }
 
 
@@ -283,7 +292,7 @@
                 window.attemptAnswers[qid] = payload;
                 if (typeof schedulePersistAnswers === 'function') schedulePersistAnswers();
             },
-            displayFeedback(qid, payload) {
+            displayFeedback(qid, payload, rootOverride) {
                 if (!payload) return;
 
                 // Prefer persisted/stored answer for this qid — this avoids showing a stale
@@ -295,7 +304,24 @@
                 } catch (e) { }
 
                 function renderFeedback(qid, stats, rows, rowRenderer, space = 'space-y-2') {
-                        const target = findInlineFeedbackByQid(qid);
+                        // Try to find inline-feedback by qid first, then fallback to rootOverride's inline-feedback
+                        const rootBlock = (typeof rootOverride !== 'undefined' && rootOverride) ? rootOverride : (findQuestionBlockByQid(qid) || null);
+                        let target = findInlineFeedbackByQid(qid) || (rootBlock ? rootBlock.querySelector('.inline-feedback') : null);
+                        // fallback: look in parent, closest container, global first .inline-feedback
+                        if (!target && rootBlock && rootBlock.parentElement) {
+                            target = rootBlock.parentElement.querySelector('.inline-feedback') || rootBlock.closest('.container')?.querySelector('.inline-feedback') || null;
+                        }
+                        if (!target) target = document.querySelector('.inline-feedback');
+                        // If still not found, create one inside the rootBlock so feedback can show
+                        if (!target && rootBlock) {
+                            try {
+                                const created = document.createElement('div');
+                                created.className = 'inline-feedback';
+                                created.setAttribute('data-qid-feedback', qid);
+                                rootBlock.appendChild(created);
+                                target = created;
+                            } catch (e) { /* ignore DOM errors */ }
+                        }
                     if (!target) return;
 
                     if (target.hasAttribute('data-feedback-rendered')) return;
@@ -506,23 +532,160 @@
                 }
 
                 function renderPart3(qid, payload) {
-                    const meta = window.currentQuestionMeta ?? {};
-                    const items = Array.isArray(meta.items) ? meta.items : [];
+                    // Prefer per-question metadata found in the DOM (data attributes or hidden meta element).
+                    // Fallback order: question block dataset.metadata -> [data-meta-json] element -> payload.meta -> window.currentQuestionMeta
+                    let meta = {};
+                    let qBlock = null;
+                    try {
+                        qBlock = findQuestionBlockByQid(qid);
+                        if (qBlock) {
+                            if (qBlock.dataset && qBlock.dataset.metadata) {
+                                meta = JSON.parse(qBlock.dataset.metadata);
+                            } else {
+                                const metaEl = qBlock.querySelector('[data-meta-json]');
+                                if (metaEl) meta = JSON.parse(metaEl.getAttribute('data-meta-json'));
+                            }
+                        }
+                    } catch (e) { meta = {}; }
+
+                    if ((!meta || Object.keys(meta).length === 0) && payload && payload.meta) meta = payload.meta;
+                    if ((!meta || Object.keys(meta).length === 0) && window.currentQuestionMeta) meta = window.currentQuestionMeta;
+
+                    const people = Array.isArray(meta.items) ? meta.items : [];
                     const options = Array.isArray(meta.options) ? meta.options : [];
-                    const answers = Array.isArray(meta.answers) ? meta.answers.map(v => (isNaN(v) ? v : Number(v))) : [];
-                    const userArr = payload?.values ?? payload?.selected ?? payload?.value ?? [];
+                    const answersMap = meta.answers || meta.correct || {};
+
+                    // Gather user answers: prefer payload but read DOM selects as fallback so "Kiểm tra" works immediately
+                    let userArr = payload?.values ?? payload?.selected ?? payload?.value ?? null;
+                    try {
+                        if ((!userArr || (Array.isArray(userArr) && userArr.length === 0)) && qBlock) {
+                            const selEls = [...qBlock.querySelectorAll('select[name^="part3_answer"]')];
+                            if (selEls.length) {
+                                userArr = [];
+                                selEls.forEach((s, idx) => {
+                                    const v = s.value;
+                                    userArr[idx] = (v === '' || v === null) ? null : v;
+                                });
+                            }
+                        }
+                    } catch (e) { }
+
+                    // Normalize various userArr shapes into a sparse array indexed by optionIndex
+                    if (userArr && typeof userArr === 'object' && !Array.isArray(userArr)) {
+                        const keys = Object.keys(userArr || {});
+                        const hasNumeric = keys.some(k => !Number.isNaN(Number(k)));
+                        if (hasNumeric) {
+                            const arr = [];
+                            keys.forEach(k => { arr[Number(k)] = userArr[k]; });
+                            userArr = arr;
+                        } else {
+                            // shape: personLabel -> [optionIndices]
+                            const labelToPersonIndex = {};
+                            if (Array.isArray(people)) {
+                                people.forEach((p, i) => {
+                                    const lab = (p && typeof p === 'object') ? (p.label ?? p.id ?? p.name ?? String(i)) : String(p ?? i);
+                                    labelToPersonIndex[String(lab)] = i;
+                                });
+                            }
+                            const arr = [];
+                            Object.keys(userArr).forEach(personLabel => {
+                                const optList = Array.isArray(userArr[personLabel]) ? userArr[personLabel] : [userArr[personLabel]];
+                                const pIdx = labelToPersonIndex[String(personLabel)];
+                                if (typeof pIdx === 'undefined') return;
+                                optList.forEach(o => { arr[Number(o)] = String(pIdx); });
+                            });
+                            userArr = arr;
+                        }
+                    }
+
+                    // If userArr is an array but contains labels instead of indices, try to map labels to indices
+                    if (Array.isArray(userArr) && userArr.length) {
+                        const labelToPersonIndex = {};
+                        if (Array.isArray(people)) {
+                            people.forEach((p, i) => {
+                                const lab = (p && typeof p === 'object') ? (p.label ?? p.id ?? p.name ?? String(i)) : String(p ?? i);
+                                labelToPersonIndex[String(lab)] = i;
+                            });
+                        }
+                        userArr = userArr.map(v => {
+                            if (v === null || v === '' || typeof v === 'undefined') return null;
+                            // numeric string -> index
+                            if (!Number.isNaN(Number(v))) return Number(v);
+                            // label -> index
+                            if (typeof v === 'string' && typeof labelToPersonIndex[v] !== 'undefined') return labelToPersonIndex[v];
+                            return v;
+                        });
+                    }
+
+                    // Build correctPersonByOption: support both object mapping (personLabel -> [optIdx])
+                    // and array mapping (optionIndex -> personIndex)
+                    const correctPersonByOption = {};
+                    if (answersMap && typeof answersMap === 'object') {
+                        if (Array.isArray(answersMap)) {
+                            answersMap.forEach((v, idx) => {
+                                if (v === null || typeof v === 'undefined') return;
+                                if (!Number.isNaN(Number(v))) {
+                                    const pIdx = Number(v);
+                                    if (people[pIdx]) {
+                                        const lab = (people[pIdx] && typeof people[pIdx] === 'object') ? (people[pIdx].label ?? people[pIdx].id ?? people[pIdx].name ?? String(pIdx)) : String(people[pIdx]);
+                                        correctPersonByOption[idx] = String(lab);
+                                    } else {
+                                        correctPersonByOption[idx] = String(v);
+                                    }
+                                } else {
+                                    correctPersonByOption[idx] = String(v);
+                                }
+                            });
+                        } else {
+                            Object.keys(answersMap).forEach(personLabel => {
+                                const arr = Array.isArray(answersMap[personLabel]) ? answersMap[personLabel] : [answersMap[personLabel]];
+                                arr.forEach(optIdx => { correctPersonByOption[Number(optIdx)] = String(personLabel); });
+                            });
+                        }
+                    }
+
+                    // If metadata requests that part3 feedback be presented on the result page,
+                    // prefer showing a compact saved message when we're on the live question page
+                    // (to preserve the two-click navigation). If we're rendering on the result
+                    // page (no question block DOM found), continue and render full per-option
+                    // feedback instead.
+                    const feedbackOnResult = meta.part3Feedback === 'result' || meta.feedbackLocation === 'result' || meta.part3FeedbackOnResult === true;
+                    if (feedbackOnResult && qBlock) {
+                        try {
+                            const userSummary = JSON.stringify(userArr ?? '(chưa)');
+                            const statsText = `Đã lưu`;
+                            window.inlineFeedback?.show && window.inlineFeedback.show(qid, userSummary, '(Kết quả sẽ hiển thị ở trang kết quả)', statsText);
+                        } catch (e) {
+                            window.inlineFeedback?.show && window.inlineFeedback.show(qid, '(Đã lưu)', '(Kết quả sẽ hiển thị ở trang kết quả)', '');
+                        }
+                        return;
+                    }
+
+                    // Require at least one selection before showing per-option feedback
+                    const hasSelection = Array.isArray(userArr) ? userArr.some(v => v !== null && v !== '' && typeof v !== 'undefined') : false;
+                    if (!hasSelection) {
+                        // show a lightweight inline prompt so user knows they must choose an answer
+                        window.inlineFeedback?.show && window.inlineFeedback.show(qid, '(chưa chọn)', '(Vui lòng chọn ít nhất một đáp án trước khi kiểm tra)', 'Chưa lưu');
+                        return;
+                    }
 
                     let correctCount = 0;
-                    const rows = items.map((it, i) => {
-                        const raw = (userArr && typeof userArr[i] !== 'undefined') ? userArr[i] : null;
-                        const userText = (raw !== null && options[raw] !== undefined) ? options[raw] : (raw !== null ? String(raw) : '(chưa)');
-                        const corrRaw = (typeof answers[i] !== 'undefined') ? answers[i] : null;
-                        const corrText = (corrRaw !== null && options[corrRaw] !== undefined) ? options[corrRaw] : (corrRaw !== null ? String(corrRaw) : '(---)');
-                        const ok = (raw !== null && corrRaw !== null && String(raw) === String(corrRaw));
+                    const rows = options.map((optText, optIdx) => {
+                        const raw = (Array.isArray(userArr) && typeof userArr[optIdx] !== 'undefined') ? userArr[optIdx] : null;
+                        const selectedPersonIdx = raw !== null && raw !== '' ? (Number.isNaN(Number(raw)) ? null : Number(raw)) : null;
+                        const userLabel = (selectedPersonIdx !== null && people[selectedPersonIdx]) ? (people[selectedPersonIdx].label ?? people[selectedPersonIdx].id ?? (people[selectedPersonIdx].name ?? String(selectedPersonIdx))) : '(chưa)';
+
+                        const corrLabel = typeof correctPersonByOption[optIdx] !== 'undefined' ? correctPersonByOption[optIdx] : null;
+                        const corrText = corrLabel !== null ? corrLabel : '(---)';
+
+                        const ok = corrLabel !== null && String(userLabel) === String(corrLabel);
                         if (ok) correctCount++;
+
+                        const userText = (userLabel !== '(chưa)') ? `${userLabel}` : '(chưa)';
                         return { userText, correctText: corrText, ok };
                     });
-                    renderFeedback(qid, `Đúng ${correctCount} / ${items.length}`, rows, rowBuilders.twoCols);
+
+                    renderFeedback(qid, `Đúng ${correctCount} / ${options.length}`, rows, rowBuilders.twoCols);
                 }
 
                 function renderPart4(qid, payload) {
@@ -982,7 +1145,7 @@
                     if (!payload && window.attemptAnswers && window.attemptAnswers[qid]) payload = window.attemptAnswers[qid];
                 } catch(e) {}
 
-                footer.displayFeedback(qid, payload);
+                footer.displayFeedback(qid, payload, root);
                 window.__aptis_feedbackShownForQid[qid] = true;
 
                 try {
@@ -999,21 +1162,34 @@
                             } else if (payload && payload.part === 'select' && Array.isArray(payload.value)) {
                                 metaToSend = { selected: payload.value };
                             } else if (payload && payload.value !== undefined) {
-
                                 metaToSend = { selected: payload.value };
                             }
                         } catch (e) { metaToSend = payload; }
 
-                        fetch(saveUrl, {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': csrf,
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: JSON.stringify({ action: 'submit', metadata: metaToSend, client_provided: true })
-                        }).then(r => r.json()).then(resp => {}).catch(() => {});
+                        // store the save promise so navigation can await persistence before loading next page
+                        window.__aptis_savePromises = window.__aptis_savePromises || {};
+                        try {
+                            window.__aptis_savePromises[qid] = fetch(saveUrl, {
+                                method: 'POST',
+                                credentials: 'same-origin',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrf,
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: JSON.stringify({ action: 'submit', metadata: metaToSend, client_provided: true })
+                            }).then(r => r.json()).then(resp => {
+                                try {
+                                    // update local cache with saved metadata if server returns anything useful
+                                    if (resp && resp.saved_metadata) {
+                                        window.attemptAnswers = window.attemptAnswers || {};
+                                        window.attemptAnswers[qid] = { part: payload?.part || payload?.__part || null, value: resp.saved_metadata.selected ?? metaToSend.selected ?? metaToSend.value ?? metaToSend };
+                                        if (typeof schedulePersistAnswers === 'function') schedulePersistAnswers(0);
+                                    }
+                                } catch (e) { }
+                                return resp;
+                            }).catch(() => {}).finally(() => { try { delete window.__aptis_savePromises[qid]; } catch (e) {} });
+                        } catch (e) { /* ignore */ }
                     }
                 } catch (e) { }
                 if (lbl) lbl.textContent = isFinal ? 'Hoàn thành' : 'Next';
@@ -1021,6 +1197,13 @@
             }
 
             // lần 2 mới đi tiếp
+            // Before navigating, wait for any outstanding save for this qid to complete so the result page sees saved answers.
+            try {
+                if (window.__aptis_savePromises && window.__aptis_savePromises[qid]) {
+                    await window.__aptis_savePromises[qid];
+                }
+            } catch (e) { /* ignore save errors and continue navigation */ }
+
             if (isFinal) {
                 location.href = finalUrl;
             } else {

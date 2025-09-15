@@ -1,74 +1,81 @@
 <div class="space-y-6">
     @php
         $meta = $question->metadata ?? [];
-        $people = is_array($meta['people'] ?? null) ? $meta['people'] : [];
-        $items = is_array($meta['items'] ?? null) ? $meta['items'] : [];
-        $selected = is_array($answer->metadata['selected'] ?? null) ? $answer->metadata['selected'] : [];
+
+        $people = [];
+        if (is_array($question->items ?? null)) {
+            $people = $question->items;
+        } elseif (is_array($meta['items'] ?? null)) {
+            $people = $meta['items'];
+        } elseif (is_array($meta['people'] ?? null)) {
+            $people = $meta['people'];
+        }
+        $stem = $question->stem ?? ($meta['stem'] ?? null);
+        $options = is_array($question->options ?? null) ? $question->options : (is_array($meta['options'] ?? null) ? $meta['options'] : []);
     @endphp
 
-    {{-- Source texts (A, B, C...) --}}
-    @if(!empty($people))
-        <div>
-            <h4 class="text-lg font-semibold mb-3">Texts <span class="text-sm text-gray-500">(A - {{ chr(64 + count($people)) }})</span></h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                @foreach($people as $p)
-                    <div class="bg-white shadow-sm border rounded-lg p-4">
-                        <div class="flex items-start gap-3">
-                            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 font-semibold">{{ e($p['id']) }}</div>
-                            <div class="flex-1">
-                                <div class="font-medium text-sm">{{ e($p['name'] ?? '') }}</div>
-                                <div class="mt-2 text-sm text-gray-700 leading-relaxed">{!! nl2br(e($p['text'])) !!}</div>
+    {{-- Stem as main title --}}
+    @if($stem)
+        <h3 class="text-xl font-bold text-center mb-6">{{ e($stem) }}</h3>
+    @endif
+
+    <div class="grid md:grid-cols-2 gap-6">
+        {{-- Left: people texts --}}
+        <div class="space-y-4">
+            @if(!empty($people))
+                <h4 class="text-lg font-semibold">Texts <span class="text-sm text-gray-500">(A - {{ chr(64 + count($people)) }})</span></h4>
+                <div class="grid grid-cols-1 gap-4">
+                    @foreach($people as $idx => $p)
+                        @php
+                            $label = is_array($p) ? ($p['label'] ?? $p['id'] ?? $p['name'] ?? null) : $p;
+                            $displayLabel = $label ?? chr(65 + $idx);
+                            $title = is_array($p) ? ($p['name'] ?? $p['title'] ?? null) : null;
+                            $body = is_array($p) ? ($p['text'] ?? $p['prompt'] ?? '') : '';
+                        @endphp
+                        <div class="bg-white shadow-sm border rounded-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 font-semibold">
+                                    {{ e($displayLabel) }}
+                                </div>
+                                <div class="flex-1">
+                                    @if($title)
+                                        <div class="font-medium text-sm">{{ e($title) }}</div>
+                                    @endif
+                                    <div class="mt-2 text-sm text-gray-700 leading-relaxed">{!! nl2br(e($body)) !!}</div>
+                                </div>
                             </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        {{-- Right: options with dropdowns --}}
+        <div>
+            <h4 class="text-lg font-semibold mb-2">Questions</h4>
+            <div class="space-y-3">
+                @foreach($options as $i => $optText)
+                    <div class="bg-white border rounded-lg shadow-sm p-3 flex items-start justify-between gap-3">
+                        <div class="flex-1 pr-3">
+                            <div class="text-sm text-gray-700">{{ $i + 1 }}. {{ e(is_string($optText) ? $optText : json_encode($optText)) }}</div>
+                        </div>
+                        <div class="w-48 flex-shrink-0">
+                            <select name="part3_answer[{{ $i }}]" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                <option value="">- Select person -</option>
+                                @foreach($people as $pIdx => $p)
+                                    @php $plabel = is_array($p) ? ($p['label'] ?? $p['id'] ?? $p['name'] ?? $pIdx) : $p; @endphp
+                                    <option value="{{ $pIdx }}">{{ e($plabel) }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                 @endforeach
             </div>
         </div>
-    @endif
-
-    {{-- Questions --}}
-    <div>
-    <h4 class="text-lg font-semibold mb-3">Questions</h4>
-        <div class="space-y-4">
-            @foreach($items as $i => $it)
-                @php
-                    $prompt = is_array($it) ? ($it['prompt'] ?? $it['text'] ?? '') : $it;
-                    $sel = $selected[$i] ?? null;
-                @endphp
-
-                <div class="bg-white border rounded-lg shadow-sm p-4">
-                    <div class="flex items-start justify-between gap-4">
-                        <div class="flex-1">
-                            <div class="text-sm text-gray-700 mb-3">{{ $i + 1 }}. {{ e($prompt) }}</div>
-                            <select name="part3_answer[{{ $i }}]" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                                <option value="">- Select -</option>
-                                @foreach($people as $p)
-                                    <option value="{{ e($p['id']) }}" @if((string)$sel === (string)($p['id'] ?? '')) selected @endif>{{ e($p['id'] . '. ' . trim($p['name'] ?? strip_tags($p['text'] ?? ''))) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        {{-- Selected badge --}}
-                        <div class="shrink-0 flex items-center">
-                            @if(!empty($sel))
-                                @php
-                                    $match = collect($people)->firstWhere('id', $sel) ?: collect($people)->firstWhere('id', (string)$sel);
-                                    $label = $match ? ($match['id'] . ' ' . ($match['name'] ?? '')) : $sel;
-                                @endphp
-                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-sm font-medium">{{ e($label) }}</span>
-                            @else
-                                <span class="text-sm text-gray-400 italic">No answer</span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
     </div>
 
-    @includeWhen(true, 'student.reading.parts._check_helper')
+    {{-- Check result button --}}
+    <div class="flex justify-center mt-4">
+        @includeWhen(true, 'student.reading.parts._check_helper')
+    </div>
 </div>
-
-
-<div class="inline-feedback mt-3 text-sm text-gray-700" data-qid-feedback="{{ $question->id }}"></div>
-
