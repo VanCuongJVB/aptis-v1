@@ -148,9 +148,3 @@
     </div>
 </div>
 
-{{-- DEBUG --}}
-<pre style="background:#222;color:#fff;padding:8px;font-size:12px;overflow:auto;max-width:100vw;">
-Correct: {{ $perItemCorrectCount }}/{{ $perItemTotal }}
-UserArr: {{ json_encode($userArr) }}
-CorrectMap: {{ json_encode($correctByOption) }}
-</pre>
