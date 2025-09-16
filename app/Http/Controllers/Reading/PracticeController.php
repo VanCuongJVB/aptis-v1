@@ -700,26 +700,70 @@ class PracticeController extends Controller
                     $options = $meta['options'] ?? [];
                     $answersKey = $meta['answers'] ?? $meta['correct'] ?? [];
                     $ans = $answers->get($q->id);
-                    $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
-                    $userArr = [];
-                    if (is_array($ansMeta)) {
-                        if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $userArr = array_values($ansMeta['selected']);
-                        elseif (isset($ansMeta['values']) && is_array($ansMeta['values'])) $userArr = array_values($ansMeta['values']);
-                        elseif (isset($ansMeta['value']) && is_array($ansMeta['value'])) $userArr = array_values($ansMeta['value']);
-                        else $userArr = array_values($ansMeta);
-                    } elseif (is_string($ansMeta)) {
-                        $dec = json_decode($ansMeta, true);
-                        if (is_array($dec)) $userArr = array_values($dec);
+                    $ansMetaRaw = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                    // normalize answer metadata to an array when possible
+                    if (is_string($ansMetaRaw) && !empty($ansMetaRaw)) {
+                        $ansMetaArr = json_decode($ansMetaRaw, true) ?: [];
+                    } elseif (is_object($ansMetaRaw)) {
+                        $ansMetaArr = (array) $ansMetaRaw;
+                    } elseif (is_array($ansMetaRaw)) {
+                        $ansMetaArr = $ansMetaRaw;
+                    } else {
+                        $ansMetaArr = [];
                     }
-                    $count = max(count($items), count($userArr), count($answersKey));
+
+                    $userArr = [];
+                    if (is_array($ansMetaArr)) {
+                        if (isset($ansMetaArr['selected']) && is_array($ansMetaArr['selected'])) $userArr = array_values($ansMetaArr['selected']);
+                        elseif (isset($ansMetaArr['values']) && is_array($ansMetaArr['values'])) $userArr = array_values($ansMetaArr['values']);
+                        elseif (isset($ansMetaArr['value']) && is_array($ansMetaArr['value'])) $userArr = array_values($ansMetaArr['value']);
+                        else $userArr = array_values($ansMetaArr);
+                    }
+                    // (debug removed)
+
+                    // For Part 3 we compare by label (A,B,C..) like the view does.
+                    $labelMap = [];
+                    for ($k = 0; $k < count($options); $k++) {
+                        $labelMap[$k] = chr(65 + $k);
+                    }
+
+                    // build correctByOption mapping like the view does: optionIndex => label
+                    $correctByOption = [];
+                    if (is_array($answersKey)) {
+                        foreach ($answersKey as $label => $optList) {
+                            $optList = is_array($optList) ? $optList : [$optList];
+                            foreach ($optList as $opt) {
+                                if (is_numeric($opt)) $correctByOption[(int)$opt] = (string)$label;
+                            }
+                        }
+                    }
+
+                    // normalize user answers into labels
+                    $userLabels = [];
+                    foreach ($userArr as $idx => $v) {
+                        if ($v === null || $v === '') { $userLabels[$idx] = null; continue; }
+                        if (is_numeric($v)) {
+                            $vi = (int)$v;
+                            $userLabels[$idx] = $labelMap[$vi] ?? (string)$v;
+                        } elseif (in_array($v, $labelMap, true)) {
+                            $userLabels[$idx] = (string)$v;
+                        } else {
+                            // try match option text to find index
+                            $found = array_search($v, $options, true);
+                            if ($found !== false) $userLabels[$idx] = $labelMap[$found] ?? (string)$v;
+                            else $userLabels[$idx] = (string)$v;
+                        }
+                    }
+
+                    $count = max(count($items), count($userLabels), max(0, count($correctByOption)));
                     for ($i = 0; $i < $count; $i++) {
                         $totalItems++;
-                        $raw = isset($userArr[$i]) ? $userArr[$i] : null;
-                        $userText = ($raw !== null && isset($options[$raw])) ? $options[$raw] : ($raw !== null ? (string)$raw : '');
-                        $corrRaw = isset($answersKey[$i]) ? $answersKey[$i] : null;
-                        $corrText = ($corrRaw !== null && isset($options[$corrRaw])) ? $options[$corrRaw] : ($corrRaw !== null ? (string)$corrRaw : '');
-                        if ($userText !== '' && $corrText !== '' && mb_strtolower(trim($userText)) === mb_strtolower(trim($corrText))) $correctItems++;
+                        $selectedLabel = $userLabels[$i] ?? null;
+                        // compute correct label for this position using correctByOption
+                        $corrLabel = $correctByOption[$i] ?? null;
+                        if ($selectedLabel !== null && $corrLabel !== null && trim((string)$selectedLabel) === trim((string)$corrLabel)) $correctItems++;
                     }
+                    // per-question delta recorded (debug removed)
                     continue;
                 }
 
