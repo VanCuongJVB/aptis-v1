@@ -7,6 +7,14 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
+        @php
+            $pngFavicon = public_path('images/Logo_Milaedu.png');
+        @endphp
+        @if(file_exists($pngFavicon))
+            <link rel="icon" type="image/png" href="{{ asset('images/Logo_Milaedu.png') }}">
+            <link rel="apple-touch-icon" href="{{ asset('images/Logo_Milaedu.png') }}">
+        @endif
+
     <!-- Fonts: prefer Manrope then Public Sans for Vietnamese support -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=manrope:400,500,700&display=swap" rel="stylesheet" />
