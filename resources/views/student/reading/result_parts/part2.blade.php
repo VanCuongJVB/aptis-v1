@@ -6,14 +6,26 @@
         // canonical sentence list (may be in 'sentences' or 'paragraphs')
         $sentences = is_array($meta['sentences'] ?? null) ? $meta['sentences'] : (is_array($meta['paragraphs'] ?? null) ? $meta['paragraphs'] : []);
 
-        // Build correct texts for each position:
+        // Build correct texts for each position.
+        // Prefer explicit `correct_order` (indices into sentences), then `order`.
         $correctTexts = [];
-        if (!empty($meta['order']) && is_array($meta['order'])) {
-            // meta.order holds indices into sentences
-            foreach ($meta['order'] as $idx) {
-                if (isset($sentences[$idx])) $correctTexts[] = $sentences[$idx];
-                elseif (isset($meta['answers'][$idx])) $correctTexts[] = $meta['answers'][$idx];
-                else $correctTexts[] = '';
+        $orderIndices = [];
+        if (!empty($meta['correct_order']) && is_array($meta['correct_order'])) {
+            $orderIndices = $meta['correct_order'];
+        } elseif (!empty($meta['order']) && is_array($meta['order'])) {
+            $orderIndices = $meta['order'];
+        }
+
+        if (!empty($orderIndices)) {
+            // map each index to the canonical sentence text when available
+            foreach ($orderIndices as $idx) {
+                if (is_numeric($idx) && isset($sentences[(int)$idx])) {
+                    $correctTexts[] = $sentences[(int)$idx];
+                } elseif (isset($meta['answers'][$idx])) {
+                    $correctTexts[] = $meta['answers'][$idx];
+                } else {
+                    $correctTexts[] = '';
+                }
             }
         } elseif (!empty($meta['answers']) && is_array($meta['answers'])) {
             $correctTexts = array_values($meta['answers']);

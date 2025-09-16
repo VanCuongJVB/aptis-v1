@@ -59,7 +59,7 @@
         const fnext = document.getElementById('footer-next-btn');
         const spinner = document.getElementById('footer-next-spinner');
         const mainSelector = '.container.mx-auto';
-    if (!fnext) { try { /* debug removed: next button not found */ } catch (e) {} }
+    if (!fnext) { }
 
         function findQuestionBlockByQid(qid) {
             if (!qid) return null;
@@ -1110,6 +1110,64 @@
         // code can decide whether to re-fetch or re-init the container.
         window.addEventListener('popstate', (ev) => {
             window.dispatchEvent(new CustomEvent('aptis:history:pop', { detail: ev }));
+        });
+
+        // When the SPA replaces the main container, reset footer label state so the
+        // primary button shows the initial "Kiểm tra" label for the newly-loaded question
+        // (unless that question has already had feedback shown, in which case keep 'Next').
+        window.addEventListener('aptis:container:replace', (ev) => {
+            try {
+                const lbl = document.getElementById('footer-next-label');
+                // determine active qid in the newly-replaced container
+                const newQid = footer.getQid();
+                const already = window.__aptis_feedbackShownForQid && newQid && window.__aptis_feedbackShownForQid[newQid];
+                if (lbl) lbl.textContent = already ? 'Next' : 'Kiểm tra';
+
+                // Detect result page. Prefer event URL, fallback to current location,
+                // and additionally inspect the newly-replaced main container's content
+                // (some server responses may render result content while URL remains unchanged).
+                const replacedUrl = ev && ev.detail && ev.detail.url ? String(ev.detail.url) : null;
+                let isResultPage = false;
+                try {
+                    const checkUrl = replacedUrl ? new URL(replacedUrl, location.origin) : new URL(location.href);
+                    isResultPage = String(checkUrl.pathname).toLowerCase().includes('/result');
+                } catch (e) { isResultPage = false; }
+
+                try {
+                    const newMain = document.querySelector(mainSelector);
+                    if (newMain && !isResultPage) {
+                        try { /* inspect newMain text snippet */ } catch (e) {}
+                        const txt = (newMain.textContent || '').toLowerCase();
+                        if (txt.includes('kết quả') || txt.includes('kết qua')) {
+                            isResultPage = true;
+                            try { /* detected result by DOM */ } catch (e) {}
+                        }
+                    }
+                } catch (e) { /* ignore DOM inspection errors */ }
+
+                const footerEl = document.getElementById('question-footer');
+                if (footerEl) {
+                    if (isResultPage) footerEl.classList.add('hidden'); else footerEl.classList.remove('hidden');
+                }
+            } catch (e) { /* ignore */ }
+        });
+
+        // Fallback: if the URL is already a result page on initial load, hide footer.
+        document.addEventListener('DOMContentLoaded', function(){
+            try {
+                const footerEl = document.getElementById('question-footer');
+                if (!footerEl) return;
+                if (String(location.pathname).toLowerCase().includes('/result')) footerEl.classList.add('hidden');
+            } catch (e) {}
+        });
+
+        // Also respond to history pop events that may change the path without a full reload
+        window.addEventListener('aptis:history:pop', function(ev){
+            try {
+                const footerEl = document.getElementById('question-footer');
+                if (!footerEl) return;
+                if (String(location.pathname).toLowerCase().includes('/result')) footerEl.classList.add('hidden'); else footerEl.classList.remove('hidden');
+            } catch (e) {}
         });
     })();
 </script>
