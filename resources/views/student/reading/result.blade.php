@@ -12,17 +12,7 @@
             </div>
             <div class="text-right">
                 <div class="text-lg font-bold">{{ $attempt->score_percentage ?? 0 }}%</div>
-                @php
-                    $meta0 = null;
-                    if (isset($questions[0]) && (is_array($questions[0]->metadata) || is_object($questions[0]->metadata))) {
-                        $meta0 = (array)$questions[0]->metadata;
-                    } elseif (isset($questions[0]) && is_string($questions[0]->metadata)) {
-                        $meta0 = json_decode($questions[0]->metadata, true) ?: null;
-                    }
-                    $isPart3 = ($quiz->part ?? $meta0['part'] ?? null) == 3;
-                    $subTotal = ($isPart3 && isset($meta0['options']) && is_array($meta0['options'])) ? count($meta0['options']) : ($attempt->total_questions ?? count($questions));
-                @endphp
-                <div class="text-sm text-gray-600">{{ $attempt->correct_answers ?? 0 }} / {{ $subTotal }}</div>
+                <div class="text-sm text-gray-600">{{ $attempt->correct_answers ?? 0 }} / {{ $attempt->total_questions ?? count($questions) }}</div>
             </div>
         </div>
 
