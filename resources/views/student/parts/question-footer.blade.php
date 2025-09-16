@@ -553,136 +553,44 @@
 
                     const people = Array.isArray(meta.items) ? meta.items : [];
                     const options = Array.isArray(meta.options) ? meta.options : [];
-                    const answersMap = meta.answers || meta.correct || {};
+                    const answersArr = Array.isArray(meta.answers) ? meta.answers : (Array.isArray(meta.correct) ? meta.correct : []);
 
                     // Gather user answers: prefer payload but read DOM selects as fallback so "Kiểm tra" works immediately
                     let userArr = payload?.values ?? payload?.selected ?? payload?.value ?? null;
                     try {
                         if ((!userArr || (Array.isArray(userArr) && userArr.length === 0)) && qBlock) {
-                            const selEls = [...qBlock.querySelectorAll('select[name^="part3_answer"]')];
+                            const selEls = [...qBlock.querySelectorAll('select[name^="part3_answer"], select')];
                             if (selEls.length) {
                                 userArr = [];
                                 selEls.forEach((s, idx) => {
                                     const v = s.value;
-                                    userArr[idx] = (v === '' || v === null) ? null : v;
+                                    userArr[idx] = (v === '' || v === null) ? null : Number(v);
                                 });
                             }
                         }
                     } catch (e) { }
 
-                    // Normalize various userArr shapes into a sparse array indexed by optionIndex
-                    if (userArr && typeof userArr === 'object' && !Array.isArray(userArr)) {
-                        const keys = Object.keys(userArr || {});
-                        const hasNumeric = keys.some(k => !Number.isNaN(Number(k)));
-                        if (hasNumeric) {
-                            const arr = [];
-                            keys.forEach(k => { arr[Number(k)] = userArr[k]; });
-                            userArr = arr;
-                        } else {
-                            // shape: personLabel -> [optionIndices]
-                            const labelToPersonIndex = {};
-                            if (Array.isArray(people)) {
-                                people.forEach((p, i) => {
-                                    const lab = (p && typeof p === 'object') ? (p.label ?? p.id ?? p.name ?? String(i)) : String(p ?? i);
-                                    labelToPersonIndex[String(lab)] = i;
-                                });
-                            }
-                            const arr = [];
-                            Object.keys(userArr).forEach(personLabel => {
-                                const optList = Array.isArray(userArr[personLabel]) ? userArr[personLabel] : [userArr[personLabel]];
-                                const pIdx = labelToPersonIndex[String(personLabel)];
-                                if (typeof pIdx === 'undefined') return;
-                                optList.forEach(o => { arr[Number(o)] = String(pIdx); });
-                            });
-                            userArr = arr;
-                        }
-                    }
-
-                    // If userArr is an array but contains labels instead of indices, try to map labels to indices
-                    if (Array.isArray(userArr) && userArr.length) {
-                        const labelToPersonIndex = {};
-                        if (Array.isArray(people)) {
-                            people.forEach((p, i) => {
-                                const lab = (p && typeof p === 'object') ? (p.label ?? p.id ?? p.name ?? String(i)) : String(p ?? i);
-                                labelToPersonIndex[String(lab)] = i;
-                            });
-                        }
-                        userArr = userArr.map(v => {
-                            if (v === null || v === '' || typeof v === 'undefined') return null;
-                            // numeric string -> index
-                            if (!Number.isNaN(Number(v))) return Number(v);
-                            // label -> index
-                            if (typeof v === 'string' && typeof labelToPersonIndex[v] !== 'undefined') return labelToPersonIndex[v];
-                            return v;
-                        });
-                    }
-
-                    // Build correctPersonByOption: support both object mapping (personLabel -> [optIdx])
-                    // and array mapping (optionIndex -> personIndex)
-                    const correctPersonByOption = {};
-                    if (answersMap && typeof answersMap === 'object') {
-                        if (Array.isArray(answersMap)) {
-                            answersMap.forEach((v, idx) => {
-                                if (v === null || typeof v === 'undefined') return;
-                                if (!Number.isNaN(Number(v))) {
-                                    const pIdx = Number(v);
-                                    if (people[pIdx]) {
-                                        const lab = (people[pIdx] && typeof people[pIdx] === 'object') ? (people[pIdx].label ?? people[pIdx].id ?? people[pIdx].name ?? String(pIdx)) : String(people[pIdx]);
-                                        correctPersonByOption[idx] = String(lab);
-                                    } else {
-                                        correctPersonByOption[idx] = String(v);
-                                    }
-                                } else {
-                                    correctPersonByOption[idx] = String(v);
-                                }
-                            });
-                        } else {
-                            Object.keys(answersMap).forEach(personLabel => {
-                                const arr = Array.isArray(answersMap[personLabel]) ? answersMap[personLabel] : [answersMap[personLabel]];
-                                arr.forEach(optIdx => { correctPersonByOption[Number(optIdx)] = String(personLabel); });
-                            });
-                        }
-                    }
-
-                    // If metadata requests that part3 feedback be presented on the result page,
-                    // prefer showing a compact saved message when we're on the live question page
-                    // (to preserve the two-click navigation). If we're rendering on the result
-                    // page (no question block DOM found), continue and render full per-option
-                    // feedback instead.
-                    const feedbackOnResult = meta.part3Feedback === 'result' || meta.feedbackLocation === 'result' || meta.part3FeedbackOnResult === true;
-                    if (feedbackOnResult && qBlock) {
-                        try {
-                            const userSummary = JSON.stringify(userArr ?? '(chưa)');
-                            const statsText = `Đã lưu`;
-                            window.inlineFeedback?.show && window.inlineFeedback.show(qid, userSummary, '(Kết quả sẽ hiển thị ở trang kết quả)', statsText);
-                        } catch (e) {
-                            window.inlineFeedback?.show && window.inlineFeedback.show(qid, '(Đã lưu)', '(Kết quả sẽ hiển thị ở trang kết quả)', '');
-                        }
-                        return;
+                    // Đảm bảo userArr là mảng số hoặc null
+                    if (Array.isArray(userArr)) {
+                        userArr = userArr.map(v => (v === null || v === '' || typeof v === 'undefined' || Number.isNaN(Number(v))) ? null : Number(v));
                     }
 
                     // Require at least one selection before showing per-option feedback
                     const hasSelection = Array.isArray(userArr) ? userArr.some(v => v !== null && v !== '' && typeof v !== 'undefined') : false;
                     if (!hasSelection) {
-                        // show a lightweight inline prompt so user knows they must choose an answer
                         window.inlineFeedback?.show && window.inlineFeedback.show(qid, '(chưa chọn)', '(Vui lòng chọn ít nhất một đáp án trước khi kiểm tra)', 'Chưa lưu');
                         return;
                     }
 
                     let correctCount = 0;
                     const rows = options.map((optText, optIdx) => {
-                        const raw = (Array.isArray(userArr) && typeof userArr[optIdx] !== 'undefined') ? userArr[optIdx] : null;
-                        const selectedPersonIdx = raw !== null && raw !== '' ? (Number.isNaN(Number(raw)) ? null : Number(raw)) : null;
-                        const userLabel = (selectedPersonIdx !== null && people[selectedPersonIdx]) ? (people[selectedPersonIdx].label ?? people[selectedPersonIdx].id ?? (people[selectedPersonIdx].name ?? String(selectedPersonIdx))) : '(chưa)';
-
-                        const corrLabel = typeof correctPersonByOption[optIdx] !== 'undefined' ? correctPersonByOption[optIdx] : null;
-                        const corrText = corrLabel !== null ? corrLabel : '(---)';
-
-                        const ok = corrLabel !== null && String(userLabel) === String(corrLabel);
+                        const userIdx = (Array.isArray(userArr) && typeof userArr[optIdx] !== 'undefined') ? userArr[optIdx] : null;
+                        const correctIdx = (Array.isArray(answersArr) && typeof answersArr[optIdx] !== 'undefined') ? answersArr[optIdx] : null;
+                        const userLabel = (userIdx !== null && typeof people[userIdx] !== 'undefined') ? (people[userIdx].label ?? people[userIdx].id ?? people[userIdx].name ?? String(userIdx)) : '(chưa)';
+                        const corrLabel = (correctIdx !== null && typeof people[correctIdx] !== 'undefined') ? (people[correctIdx].label ?? people[correctIdx].id ?? people[correctIdx].name ?? String(correctIdx)) : '(---)';
+                        const ok = userIdx !== null && correctIdx !== null && userIdx === correctIdx;
                         if (ok) correctCount++;
-
-                        const userText = (userLabel !== '(chưa)') ? `${userLabel}` : '(chưa)';
-                        return { userText, correctText: corrText, ok };
+                        return { userText: userLabel, correctText: corrLabel, ok };
                     });
 
                     renderFeedback(qid, `Đúng ${correctCount} / ${options.length}`, rows, rowBuilders.twoCols);
@@ -757,7 +665,7 @@
                             meta = JSON.parse(questionBlock.dataset.metadata);
                         }
                     } catch (e) {
-                        console.error('Error parsing metadata:', e);
+                        /* error parsing metadata */
                     }
 
 
@@ -813,7 +721,7 @@
                             meta = JSON.parse(questionBlock.dataset.metadata);
                         }
                     } catch (e) {
-                        console.error('Error parsing metadata:', e);
+                        /* error parsing metadata */
                     }
 
                     meta = meta || window.currentQuestionMeta || {};
@@ -876,7 +784,7 @@
                             meta = JSON.parse(questionBlock.dataset.metadata);
                         }
                     } catch (e) {
-                        console.error('Error parsing metadata:', e);
+                        /* error parsing metadata */
                     }
 
 
@@ -931,7 +839,7 @@
                             meta = JSON.parse(questionBlock.dataset.metadata);
                         }
                     } catch (e) {
-                        console.error('Error parsing metadata:', e);
+                        /* error parsing metadata */
                     }
 
 
@@ -997,7 +905,6 @@
 
                 let p = payload?.part || payload?.__part;
 
-
                 if (useListening && p === 'choice') {
                     const partNum = (window.currentQuestionMeta && window.currentQuestionMeta.part) ? window.currentQuestionMeta.part : (payload?.__part ?? 1);
                     p = 'part' + partNum;
@@ -1005,44 +912,41 @@
 
                 const dispatcher = useListening ? listeningRenderers : renderers;
 
+                // console.log removed
 
-                return dispatcher[p] ? dispatcher[p](qid, payload) : (
-                    window.inlineFeedback?.show && window.inlineFeedback.show(qid, JSON.stringify(payload.value ?? '(Chưa có đáp án)'), '', '')
-                );
+                if (dispatcher[p]) {
+                    // console.log removed
+                    return dispatcher[p](qid, payload);
+                } else {
+                    // console.log removed
+                    return window.inlineFeedback?.show && window.inlineFeedback.show(qid, JSON.stringify(payload.value ?? '(Chưa có đáp án)'), '', '');
+                }
             },
             async navigate(url) {
                 if (!url) return;
                 this.setLoading(true);
                 try {
 
-                    try { console.debug('APTIS_DEBUG_NAVIGATE_START', { url }); } catch (e) {}
+                    // console.debug removed
 
                     if (typeof schedulePersistAnswers === 'function') schedulePersistAnswers(0);
 
                     const res = await fetch(url, { credentials: 'same-origin' });
                     if (!res.ok) throw new Error('fetch-not-ok:' + res.status);
-                    try { console.debug('APTIS_DEBUG_NAVIGATE_FETCHED', { url, status: res.status }); } catch (e) {}
+                    // console.debug removed
 
                     const html = await res.text();
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     const newMain = doc.querySelector(mainSelector);
                     const oldMain = document.querySelector(mainSelector);
-                    try {
-                        console.debug('APTIS_DEBUG_NAVIGATE_DOM', {
-                            url,
-                            newMainExists: !!newMain,
-                            oldMainExists: !!oldMain,
-                            newMainDataset: newMain ? Object.assign({}, newMain.dataset) : null,
-                            oldMainDataset: oldMain ? Object.assign({}, oldMain.dataset) : null
-                        });
-                    } catch (e) {}
+                    // console.debug removed
 
                     if (newMain && oldMain) {
                         oldMain.replaceWith(newMain);
                         history.pushState({}, '', url);
-                        try { console.debug('APTIS_DEBUG_NAVIGATE_SUCCESS', { url }); } catch (e) {}
+                        // console.debug removed
                     } else {
-                        try { console.debug('APTIS_DEBUG_NAVIGATE_NO_REPLACE', { url }); } catch (e) {}
+                        // console.debug removed
                     }
 
                     document.querySelectorAll('[data-feedback-rendered]').forEach(el => {
@@ -1050,7 +954,7 @@
                     });
 
                     window.dispatchEvent(new CustomEvent('aptis:container:replace', { detail: { url } }));
-                } catch (e) { try { console.debug('APTIS_DEBUG_NAVIGATE_ERROR', { url, err: String(e) }); } catch (ee) {} location.href = url; }
+                } catch (e) { /* console.debug removed */ location.href = url; }
                 finally { this.setLoading(false); }
             }
         };
@@ -1126,17 +1030,7 @@
             const nextUrl = datasetNext || bladeNext || window.nextUrl || null;
             const finalUrl = datasetFinal || '{{ route('reading.practice.result', ['attempt' => $attempt->id]) }}';
             const isFinal = !nextUrl;
-
-            try {
-                console.debug('APTIS_DEBUG_NEXT_COMPUTE', {
-                    bladeNext: bladeNext,
-                    datasetNext: datasetNext,
-                    datasetFinal: datasetFinal,
-                    resolvedNext: nextUrl,
-                    isFinal: isFinal,
-                    mainDataset: mainElForNext ? Object.assign({}, mainElForNext.dataset) : null
-                });
-            } catch (e) { }
+            // console.debug removed
 
             const alreadyShown = window.__aptis_feedbackShownForQid[qid] === true;
 

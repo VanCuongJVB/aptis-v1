@@ -22,6 +22,37 @@
         @endif
     </div>
 
+
+    {{-- Description toggle --}}
+    @php $desc = $question->metadata['description'] ?? null; @endphp
+    @if(!empty($desc))
+        <div class="mb-4">
+            <a href="#" id="desc-toggle-{{ $question->id }}" data-qid="{{ $question->id }}" class="desc-toggle-link text-blue-600 underline text-sm">Hiển thị mô tả</a>
+            <div id="desc-box-{{ $question->id }}" class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-gray-800 text-sm" style="display:none;">
+                {{ $desc }}
+            </div>
+        </div>
+        <script>
+            document.addEventListener('click', function(e) {
+                var btn = e.target;
+                if (btn.matches('.desc-toggle-link')) {
+                    e.preventDefault();
+                    var qid = btn.getAttribute('data-qid');
+                    var box = document.getElementById('desc-box-' + qid);
+                    if (box) {
+                        if (box.style.display === 'none' || box.style.display === '') {
+                            box.style.display = 'block';
+                            btn.textContent = 'Ẩn mô tả';
+                        } else {
+                            box.style.display = 'none';
+                            btn.textContent = 'Hiển thị mô tả';
+                        }
+                    }
+                }
+            });
+        </script>
+    @endif
+
     {{-- Options --}}
     <form class="space-y-3">
         @php

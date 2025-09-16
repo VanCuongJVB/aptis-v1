@@ -36,9 +36,7 @@
         </div>
 
         <div class="mt-6">
-            <a href="{{ route('student.dashboard') }}" class="btn">Thoát</a>
-            <a href="{{ route('student.listening.dashboard') }}" class="btn">Listening</a>
-            <button id="finalize-btn" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Hoàn thành & Gửi kết quả</button>
+            <a href="{{ route('student.listening.dashboard') }}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Quay lại bộ đề</a>
         </div>
     </div>
 </div>

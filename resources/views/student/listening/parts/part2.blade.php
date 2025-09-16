@@ -24,7 +24,15 @@
 
 		@foreach($speakers as $idx => $speaker)
 			<div class="p-3 border rounded-md">
-				<div class="text-sm font-medium mb-2">{{ $speaker['label'] }}</div>
+				<div class="text-sm font-medium mb-2 flex items-center">
+					{{ $speaker['label'] }}
+					@if(!empty($speaker['description']))
+						<button type="button" class="ml-2 text-blue-500 underline text-xs toggle-desc-btn" data-speaker-idx="{{ $idx }}">[Xem mô tả]</button>
+					@endif
+				</div>
+				@if(!empty($speaker['description']))
+					<div class="speaker-desc text-gray-600 text-sm mb-2 hidden" id="desc-{{ $question->id }}-{{ $idx }}">{{ $speaker['description'] }}</div>
+				@endif
 				<select class="w-full border rounded p-2 speaker-select part2-select" data-index="{{ $idx }}">
 					<option value="">- Chọn câu mô tả -</option>
 					@foreach($optionIndices as $newIdx => $originalIdx)
@@ -48,6 +56,20 @@ document.addEventListener('DOMContentLoaded', function() {
 			questionBlock.setAttribute('data-metadata', JSON.stringify(metadata));
 		} catch (e) {
 			console.error('Error updating metadata:', e);
+		}
+	}
+});
+
+document.addEventListener('click', function(e) {
+	if (e.target && e.target.classList.contains('toggle-desc-btn')) {
+		const btn = e.target;
+		const questionBlock = btn.closest('.question-block');
+		const idx = btn.getAttribute('data-speaker-idx');
+		const qid = questionBlock?.getAttribute('data-qid');
+		const desc = questionBlock?.querySelector(`#desc-${qid}-${idx}`);
+		if (desc) {
+			desc.classList.toggle('hidden');
+			btn.textContent = desc.classList.contains('hidden') ? '[Xem mô tả]' : '[Ẩn mô tả]';
 		}
 	}
 });
