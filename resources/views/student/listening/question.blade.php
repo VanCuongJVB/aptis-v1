@@ -15,7 +15,7 @@
 
         <div class="mb-4">
             @php
-                $audio = $question->metadata['audio_path'] ?? null;
+                $audio = $question->metadata['audio'] ?? null;
                 $audio_text = $question->metadata['audio_text'] ?? null;
             @endphp
 

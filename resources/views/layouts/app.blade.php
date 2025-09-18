@@ -49,7 +49,7 @@
 
         <style>
             /* font variable requested by user */
-            :root{--font-inter: 'Manrope','Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji';}
+            :root { --font-inter: 'Roboto', Arial, sans-serif; }
             /* Minimal fallback button styles (kept for safety) */
             .btn-base{display:flex;align-items:center;justify-content: center; padding:0.5rem 0.75rem;border-radius:0.375rem;font-size:0.875rem;font-weight:500;border:1px solid #d1d5db}
             .btn-primary{background-color:#23085a;color:#fff;border-color:transparent}
