@@ -57,7 +57,7 @@
                             <rect x="3" y="3" width="6" height="6" rx="1" fill="currentColor"></rect>
                         </svg>
                         <div class="flex-1 text-sm break-words whitespace-normal leading-snug">
-                            {{ e($label) }}
+                            {!! $label !!}
                         </div>
                     </div>
                 @endforeach

@@ -18,8 +18,8 @@ class DashboardController extends Controller
         $user = $request->user();
         $quizzes = Quiz::published()->orderBy('id', 'desc')->get();
 
-        // Lấy thông tin gói truy cập
-        $expiresAt = $user->access_expires_at ? Carbon::parse($user->access_expires_at) : null;
+        // Lấy thông tin gói truy cập (dùng access_ends_at cho đồng bộ import)
+        $expiresAt = $user->access_ends_at ? Carbon::parse($user->access_ends_at) : null;
 
         // compute integer days and remaining hours until expiry
         $now = now();
@@ -81,23 +81,16 @@ class DashboardController extends Controller
      */
     private function calculateAccessPercentage($user)
     {
-        if (!$user->access_expires_at) {
+        if (!$user->access_ends_at) {
             return null; // Không giới hạn thời gian
         }
 
-        // Giả sử rằng gói đăng ký có thời hạn 30, 90 hoặc 180 ngày
         $createdAt = $user->created_at;
-        $expiresAt = $user->access_expires_at;
+        $expiresAt = $user->access_ends_at;
 
-        // Tính tổng số ngày của gói
         $totalDays = $createdAt->diffInDays($expiresAt);
-
-        // Tính số ngày đã sử dụng
         $usedDays = $createdAt->diffInDays(now());
-
-        // Tính phần trăm đã sử dụng
-        $percentage = min(100, round(($usedDays / $totalDays) * 100));
-
+        $percentage = $totalDays > 0 ? min(100, round(($usedDays / $totalDays) * 100)) : null;
         return $percentage;
     }
 }

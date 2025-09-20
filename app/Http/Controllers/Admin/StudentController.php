@@ -71,11 +71,11 @@ class StudentController extends Controller
         $student->email = strtolower($data['email']);
         $student->role = 'student';
         $student->is_active = $request->boolean('is_active', true);
-    // normalize empty date inputs to null to avoid saving empty strings
-    $start = trim($data['access_starts_at'] ?? '');
-    $end = trim($data['access_ends_at'] ?? '');
-    $student->access_starts_at = $start !== '' ? Carbon::parse($start) : null;
-    $student->access_ends_at = $end !== '' ? Carbon::parse($end) : null;
+        // normalize empty date inputs to null to avoid saving empty strings
+        $start = trim($data['access_starts_at'] ?? '');
+        $end = trim($data['access_ends_at'] ?? '');
+        $student->access_starts_at = $start !== '' ? Carbon::parse($start) : null;
+        $student->access_ends_at = $end !== '' ? Carbon::parse($end) : null;
         $student->password = Hash::make('123456');
         $student->email_verified_at = now();
         $student->save();
@@ -150,86 +150,104 @@ class StudentController extends Controller
 
     public function importStore(Request $request)
     {
-        $request->validate(['file' => ['required', 'file', 'mimes:csv,txt,xlsx']]);
+        $request->validate(['file' => ['required', 'file', 'mimes:xlsx']]);
         $file = $request->file('file');
-        $ext = strtolower($file->getClientOriginalExtension());
         $rows = [];
 
-        if ($ext === 'csv' || $ext === 'txt') {
-            if (($handle = fopen($file->getRealPath(), "r")) !== false) {
-                $header = null;
-                while (($data = fgetcsv($handle)) !== false) {
-                    // skip completely empty rows
-                    if ($data === null || (count($data) === 1 && trim((string)$data[0]) === '')) {
-                        continue;
-                    }
+        // Helper: strip BOM
+        $stripBom = fn($s) => preg_replace('/^\x{FEFF}/u', '', (string)$s);
 
-                    // header row
-                    if ($header === null) {
-                        // strip BOM from first cell
-                        if (isset($data[0])) {
-                            $data[0] = preg_replace('/^\x{FEFF}/u', '', $data[0]);
-                        }
-                        $header = array_map('trim', $data);
-                        $lower = array_map('strtolower', $header);
-                        if (!in_array('email', $lower, true)) {
-                            fclose($handle);
-                            return back()->withErrors(['file' => 'Header file phải chứa cột "email".']);
-                        }
-                        continue;
-                    }
+        // Helper: normalize header keys
+        $normalizeKey = function (string $key) use ($stripBom): string {
+            $key = strtolower($stripBom($key));
+            $key = preg_replace('/[^a-z0-9]+/i', '_', trim($key));
+            $key = trim($key, '_');
+            $map = [
+                'e_mail' => 'email', 'mail' => 'email',
+                'full_name' => 'name', 'username' => 'name',
+                'active' => 'is_active', 'status' => 'is_active',
+                'access_start' => 'access_starts_at', 'access_start_at' => 'access_starts_at',
+                'start' => 'access_starts_at', 'start_at' => 'access_starts_at',
+                'access_end' => 'access_ends_at', 'access_end_at' => 'access_ends_at',
+                'end' => 'access_ends_at', 'end_at' => 'access_ends_at',
+            ];
+            return $map[$key] ?? $key;
+        };
 
-                    // skip commented rows starting with #
-                    if (isset($data[0]) && preg_match('/^\s*#/', (string)$data[0])) {
-                        continue;
-                    }
+        // Helper: parse boolean
+        $boolish = function ($v): bool {
+            if (is_bool($v)) return $v;
+            $s = strtolower(trim((string)$v));
+            if ($s === '') return true;
+            if (is_numeric($s)) return ((int)$s) > 0;
+            return in_array($s, ['1', 'y', 'yes', 'true', 'on'], true);
+        };
 
-                    // normalize row length
-                    $hCount = count($header);
-                    $dCount = count($data);
-                    if ($dCount < $hCount) {
-                        $data = array_pad($data, $hCount, null);
-                    } elseif ($dCount > $hCount) {
-                        $data = array_slice($data, 0, $hCount);
-                    }
-
-                    $row = @array_combine($header, $data);
-                    if ($row) $rows[] = $row;
-                }
-                fclose($handle);
+        // Helper: parse date (Excel serial or string)
+        $parseDate = function ($v) {
+            if ($v === null) return null;
+            if ($v instanceof \DateTimeInterface) return \Carbon\Carbon::instance(\Carbon\Carbon::parse($v));
+            $s = is_string($v) ? trim($v) : $v;
+            if (is_numeric($s)) {
+                $base = \Carbon\Carbon::create(1899, 12, 30, 0, 0, 0, 'UTC');
+                $days = (float)$s;
+                $whole = (int)floor($days);
+                $frac  = $days - $whole;
+                $dt = $base->copy()->addDays($whole)->addSeconds((int)round($frac * 86400));
+                return $dt;
             }
-        } elseif ($ext === 'xlsx') {
-            if (class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
-                $sheets = \Maatwebsite\Excel\Facades\Excel::toArray([], $file);
-                $sheet = $sheets[0] ?? [];
-                $header = array_map(function($v){ return trim((string)$v); }, $sheet[0] ?? []);
-                if (isset($header[0])) {
-                    $header[0] = preg_replace('/^\x{FEFF}/u', '', $header[0]);
+            if (!is_string($s) || $s === '') return null;
+            try {
+                $tryFormats = [
+                    'Y-m-d H:i:s','Y-m-d H:i','Y-m-d','d/m/Y H:i','d/m/Y','m/d/Y H:i','m/d/Y',
+                    'd-m-Y H:i','d-m-Y','m-d-Y H:i','m-d-Y','Y/m/d H:i','Y/m/d',
+                ];
+                foreach ($tryFormats as $fmt) {
+                    $dt = \Carbon\Carbon::createFromFormat($fmt, $s);
+                    if ($dt !== false) return $dt;
                 }
-                $lower = array_map('strtolower', $header);
-                if (!in_array('email', $lower, true)) {
-                    return back()->withErrors(['file' => 'Header file phải chứa cột "email".']);
-                }
-                foreach (array_slice($sheet, 1) as $line) {
-                    if ($line === null || (count($line) === 1 && trim((string)$line[0]) === '')) continue;
-                    if (isset($line[0]) && preg_match('/^\s*#/', (string)$line[0])) continue;
-                    $dCount = count($line);
-                    $hCount = count($header);
-                    if ($dCount < $hCount) {
-                        $line = array_pad($line, $hCount, null);
-                    } elseif ($dCount > $hCount) {
-                        $line = array_slice($line, 0, $hCount);
-                    }
-                    $row = @array_combine($header, $line);
-                    if ($row) $rows[] = $row;
-                }
-            } else {
-                return back()->withErrors(['file' => 'Chưa cài maatwebsite/excel. Dùng CSV hoặc cài: composer require maatwebsite/excel']);
+                return \Carbon\Carbon::parse($s);
+            } catch (\Throwable $e) { return null; }
+        };
+
+        // Only XLSX supported
+        if (!class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
+            return back()->withErrors(['file' => 'Chưa cài maatwebsite/excel. Dùng CSV hoặc cài: composer require maatwebsite/excel']);
+        }
+        $sheets = \Maatwebsite\Excel\Facades\Excel::toArray([], $file);
+        $sheet  = $sheets[0] ?? [];
+        if (empty($sheet) || empty($sheet[0])) {
+            return back()->withErrors(['file' => 'File không có dữ liệu.']);
+        }
+        $headerRaw = array_map(fn($v) => $stripBom(trim((string)$v)), $sheet[0]);
+        $keys = [];
+        $seen = [];
+        foreach ($headerRaw as $h) {
+            $k = $normalizeKey($h);
+            if ($k === '') $k = 'col';
+            $base = $k;
+            $i = 2;
+            while (isset($seen[$k])) {
+                $k = $base . '_' . $i++;
             }
-        } else {
-            return back()->withErrors(['file' => 'Định dạng không hỗ trợ.']);
+            $seen[$k] = true;
+            $keys[] = $k;
+        }
+        if (!in_array('email', $keys, true)) {
+            return back()->withErrors(['file' => 'Header file phải chứa cột "email".']);
+        }
+        foreach (array_slice($sheet, 1) as $line) {
+            if ($line === null || (count($line) === 1 && trim((string)$line[0]) === '')) continue;
+            if (isset($line[0]) && preg_match('/^\s*#/', (string)$line[0])) continue;
+            $dCount = count($line);
+            $hCount = count($keys);
+            if ($dCount < $hCount) $line = array_pad($line, $hCount, null);
+            elseif ($dCount > $hCount) $line = array_slice($line, 0, $hCount);
+            $row = array_combine($keys, $line);
+            if ($row) $rows[] = $row;
         }
 
+        // --- Persist ---
         $created = 0;
         $updated = 0;
         $errors = 0;
@@ -240,10 +258,12 @@ class StudentController extends Controller
                     $errors++;
                     continue;
                 }
-                $name = $r['name'] ?? null;
-                $is_active = isset($r['is_active']) ? (bool)intval($r['is_active']) : true;
-                $start = trim($r['access_starts_at'] ?? '') ?: null;
-                $end = trim($r['access_ends_at'] ?? '') ?: null;
+
+                $name      = isset($r['name']) ? trim((string)$r['name']) : null;
+                $is_active = isset($r['is_active']) ? $boolish($r['is_active']) : true;
+
+                $startDt = $parseDate($r['access_starts_at'] ?? null);
+                $endDt   = $parseDate($r['access_ends_at'] ?? null);
 
                 $user = User::where('email', $email)->first();
                 if (!$user) {
@@ -252,22 +272,23 @@ class StudentController extends Controller
                     $user->name = $name;
                     $user->role = 'student';
                     $user->is_active = $is_active;
-                    $user->access_starts_at = $start ? \Carbon\Carbon::parse($start) : null;
-                    $user->access_ends_at = $end ? \Carbon\Carbon::parse($end) : null;
+                    $user->access_starts_at = $startDt;
+                    $user->access_ends_at = $endDt;
                     $user->password = \Illuminate\Support\Facades\Hash::make('123456');
                     $user->email_verified_at = now();
                     $user->save();
                     $created++;
                 } else {
-                    $user->name = $name ?: $user->name;
+                    if ($name) $user->name = $name;
                     $user->is_active = $is_active;
-                    $user->access_starts_at = $start ? \Carbon\Carbon::parse($start) : $user->access_starts_at;
-                    $user->access_ends_at = $end ? \Carbon\Carbon::parse($end) : $user->access_ends_at;
+                    if ($startDt) $user->access_starts_at = $startDt;
+                    if ($endDt)   $user->access_ends_at   = $endDt;
                     $user->save();
                     $updated++;
                 }
             } catch (\Throwable $e) {
                 $errors++;
+                // \Log::warning('Import row failed', ['row' => $r, 'ex' => $e->getMessage()]);
             }
         }
 
@@ -275,7 +296,9 @@ class StudentController extends Controller
         return redirect()->route('admin.students.index')->with('ok', "Import xong: tạo {$created}, cập nhật {$updated}, lỗi {$errors}");
     }
 
-    public function show($id){
+
+    public function show($id)
+    {
         // Define later
     }
 }

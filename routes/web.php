@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index']);
 
 // Protected Routes (Requires Authentication)
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'account.active'])->group(function () {
     Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
     
     // User Profile Routes

@@ -27,9 +27,40 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
+
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
+
+        $user = Auth::user();
+        // Ưu tiên kiểm tra hết hạn truy cập trước
+        if ($user->access_ends_at && now()->gt($user->access_ends_at)) {
+            Auth::logout();
+            return back()->withErrors(['email' => 'Thời hạn truy cập của bạn đã hết. Vui lòng liên hệ quản trị viên để gia hạn.']);
+        }
+        // Sau đó mới kiểm tra active
+        if (!$user->is_active) {
+            Auth::logout();
+            return back()->withErrors(['email' => 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.']);
+        }
+
+        // Enforce device/session limit at login
+        $max = (int) config('aptis.sessions.max_devices', 2);
+        if ($max < 1) $max = 2;
+        $existingDeviceId = $request->cookie('device_id');
+        $fingerprintCandidate = sha1(($request->userAgent() ?? 'ua') . '|' . ($existingDeviceId ?? $request->ip()));
+        $activeFingerprints = \App\Models\UserSession::where('user_id', $user->id)
+            ->whereNull('revoked_at')
+            ->where('last_active_at', '>=', now()->subMinutes(30))
+            ->select('device_fingerprint')
+            ->groupBy('device_fingerprint')
+            ->pluck('device_fingerprint')
+            ->toArray();
+        $isNewDevice = (!$existingDeviceId || !in_array($fingerprintCandidate, $activeFingerprints));
+        if ($isNewDevice && count($activeFingerprints) >= $max) {
+            Auth::logout();
+            return back()->withErrors(['email' => 'Bạn đã đăng nhập trên quá số lượng thiết bị cho phép. Vui lòng đăng xuất khỏi thiết bị khác trước khi tiếp tục.']);
+        }
 
         $request->session()->regenerate();
 

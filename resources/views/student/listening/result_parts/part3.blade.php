@@ -81,7 +81,7 @@
                 @endphp
 
                 <div class="border rounded-lg p-4 bg-white">
-                    <div class="text-sm text-gray-800 mb-2">{{ $i+1 }}. {{ e($prompt) }}</div>
+                    <div class="text-sm text-gray-800 mb-2">{{ $i+1 }}. {!! e($prompt) !!}</div>
                     <div class="flex items-center gap-3">
                         <div class="flex-1">
                             <div class="px-3 py-2 rounded {{ $isCorrect ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800' }} text-sm">{{ $userText === '' ? 'Chưa trả lời' : e($userText) }}</div>

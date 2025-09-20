@@ -42,13 +42,13 @@
                     <div class="custom-select-panel hidden absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-56 overflow-auto text-sm leading-normal">
                         <div class="px-3 py-1 hover:bg-blue-600 hover:text-white cursor-pointer select-option text-sm" data-value="">- Select -</div>
                         @foreach($pairs as $pair)
-                            <div class="px-3 py-1 hover:bg-blue-600 hover:text-white cursor-pointer select-option whitespace-normal break-words text-sm" data-value="{{ e($pair['idx']) }}">{{ e($pair['label']) }}</div>
+                            <div class="px-3 py-1 hover:bg-blue-600 hover:text-white cursor-pointer select-option whitespace-normal break-words text-sm" data-value="{{ e($pair['idx']) }}">{!! $pair['label'] !!}</div>
                         @endforeach
                     </div>
                 </div>
             </div>
 
-            <div class="mt-3 text-sm text-gray-700">{!! nl2br(e($p)) !!}</div>
+            <div class="mt-3 text-sm text-gray-700">{!! nl2br($p) !!}</div>
         </div>
     @endforeach
 

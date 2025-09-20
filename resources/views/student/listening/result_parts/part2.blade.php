@@ -80,7 +80,9 @@
     }
 @endphp
 
-<div class="prose mb-2">{!! $question->stem ?? '' !!}</div>
+@if(!empty($question->stem))
+    <div class="prose mb-2">{!! $question->stem !!}</div>
+@endif
 
 @php
     // detect mapping-style answers for speakers (arrays of selections)
@@ -160,11 +162,11 @@
                 <div class="grid grid-cols-2 gap-4 items-start bg-white border rounded p-3">
                     <div>
                         <div class="text-xs text-gray-500">{{ $speakerLabel }} — Lựa chọn của bạn</div>
-                        <div class="mt-1 px-3 py-2 rounded {{ $rowCorrect ? 'bg-green-50 text-green-800' : (empty($userLabel) ? 'bg-gray-50 text-gray-500' : 'bg-red-50 text-red-800') }} text-sm">{{ empty($userLabel) ? 'Chưa trả lời' : e($userLabel) }}</div>
+                        <div class="mt-1 px-3 py-2 rounded {{ $rowCorrect ? 'bg-green-50 text-green-800' : (empty($userLabel) ? 'bg-gray-50 text-gray-500' : 'bg-red-50 text-red-800') }} text-sm">{!! empty($userLabel) ? 'Chưa trả lời' : e($userLabel) !!}</div>
                     </div>
                     <div>
                         <div class="text-xs text-gray-500">Đáp án đúng</div>
-                        <div class="mt-1 px-3 py-2 rounded bg-white border text-sm text-gray-700">{{ $corrLabel === null ? '(không có)' : e($corrLabel) }}</div>
+                        <div class="mt-1 px-3 py-2 rounded bg-white border text-sm text-gray-700">{!! $corrLabel === null ? '(không có)' : e($corrLabel) !!}</div>
                     </div>
                 </div>
             @endforeach
@@ -175,7 +177,7 @@
                 <div class="ml-2 text-gray-600">Chưa trả lời</div>
             @else
                 <div class="flex items-center gap-3 mt-2">
-                    <div class="px-3 py-1 rounded {{ $isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }} text-sm">{{ e($selectedLabel) }}</div>
+                    <div class="px-3 py-1 rounded {{ $isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }} text-sm">{!! e($selectedLabel) !!}</div>
                     @if($isCorrect)
                         <div class="text-sm text-green-700">Đúng</div>
                     @else
@@ -184,7 +186,7 @@
                 </div>
 
                 @if(!$isCorrect && $correctLabel !== null)
-                    <div class="mt-2 text-xs text-gray-500">Đáp án đúng: <span class="ml-1 font-medium">{{ e($correctLabel) }}</span></div>
+                    <div class="mt-2 text-xs text-gray-500">Đáp án đúng: <span class="ml-1 font-medium">{!! e($correctLabel) !!}</span></div>
                 @endif
             @endif
         </div>

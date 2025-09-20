@@ -91,10 +91,10 @@
                         <select disabled class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm mb-3">
                             <option value="">- Select -</option>
                             @foreach($options as $optIdx => $optText)
-                                <option value="{{ e($optIdx) }}" @if((string)($sel ?? '') === (string)$optIdx) selected @endif>{{ e($optText) }}</option>
+                                <option value="{{ e($optIdx) }}" @if((string)($sel ?? '') === (string)$optIdx) selected @endif>{!! $optText !!}</option>
                             @endforeach
                         </select>
-                        <div class="text-sm text-gray-700 leading-relaxed">{!! nl2br(e($p)) !!}</div>
+                        <div class="text-sm text-gray-700 leading-relaxed">{!! nl2br($p) !!}</div>
 
                         {{-- badges and correct answer below so long labels wrap naturally --}}
                         <div class="mt-3">
@@ -114,7 +114,7 @@
 
                             @if(!empty($correctLabel) && $isCorrect !== true)
                                 <div class="mt-2 text-xs text-gray-500">Đáp án đúng</div>
-                                <div class="mt-1 block text-sm text-green-700 bg-green-50 px-2 py-1 rounded break-words whitespace-normal">{{ e($correctLabel) }}</div>
+                                <div class="mt-1 block text-sm text-green-700 bg-green-50 px-2 py-1 rounded break-words whitespace-normal">{!! $correctLabel !!}</div>
                             @endif
                         </div>
                     </div>

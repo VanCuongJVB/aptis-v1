@@ -30,7 +30,7 @@
 
                     <div class="p-4 border-t bg-gray-50 flex items-center justify-between">
                         <a href="{{ route('listening.quiz.start', ['quiz' => $set->quiz_id, 'set_id' => $set->id]) }}" class="btn-base btn-primary px-4 py-2">Làm bài</a>
-                        <a href="{{ route('listening.sets.show', $set->id) }}" class="text-sm text-gray-700 hover:underline">Xem bộ đề</a>
+                        {{-- <a href="{{ route('listening.sets.show', $set->id) }}" class="text-sm text-gray-700 hover:underline">Xem bộ đề</a> --}}
                     </div>
                 </div>
             @endforeach

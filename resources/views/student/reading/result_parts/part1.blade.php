@@ -51,7 +51,7 @@
                 @endphp
 
                 <div class="flex items-center gap-3">
-                    <div class="px-3 py-1 rounded {{ $itemClass }} text-sm flex-1">{{ e($u) }}</div>
+                    <div class="px-3 py-1 rounded {{ $itemClass }} text-sm flex-1">{!! $u !!}</div>
                     <div class="shrink-0 text-sm">
                         @if($isCorrect === true)
                             <span class="inline-flex items-center gap-1 text-green-700">✓</span>
@@ -63,7 +63,7 @@
                     </div>
 
                     @if($isCorrect === false && $correctRaw !== null)
-                        <div class="text-xs text-gray-500">Đáp án đúng: <span class="ml-1 font-medium">{{ e($correctRaw) }}</span></div>
+                        <div class="text-xs text-gray-500">Đáp án đúng: <span class="ml-1 font-medium">{!! $correctRaw !!}</span></div>
                     @endif
                 </div>
             @endforeach

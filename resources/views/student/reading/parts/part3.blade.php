@@ -42,7 +42,7 @@
 
     {{-- Stem as main title --}}
     @if($stem)
-        <h3 class="text-xl font-bold text-center mb-6">{{ e($stem) }}</h3>
+        <h3 class="text-xl font-bold text-center mb-6">{!! $stem !!}</h3>
     @endif
 
     <div class="grid md:grid-cols-2 gap-6" data-metadata="@json($metadataForJs)">
@@ -83,7 +83,7 @@
                 @foreach($options as $i => $optText)
                     <div class="bg-white border rounded-lg shadow-sm p-3 flex items-start justify-between gap-3">
                         <div class="flex-1 pr-3">
-                            <div class="text-sm text-gray-700">{{ $i + 1 }}. {{ e(is_string($optText) ? $optText : json_encode($optText)) }}</div>
+                            <div class="text-sm text-gray-700">{{ $i + 1 }}. {!! is_string($optText) ? $optText : json_encode($optText) !!}</div>
                         </div>
                         <div class="w-48 flex-shrink-0">
                             <select name="part3_answer[{{ $i }}]" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-200">

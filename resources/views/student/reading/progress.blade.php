@@ -91,7 +91,7 @@
 
                 <div class="mt-3 flex items-center justify-between">
                     <div class="text-xs text-slate-500">Lần làm gần nhất: {{ $data['last_attempt_at'] ? $data['last_attempt_at']->format('Y-m-d') : '-' }}</div>
-                    <a href="{{ route('student.reading.sets.index') }}?part={{ $part }}" class="text-xs text-indigo-600 hover:underline">Xem bộ đề</a>
+                    {{-- <a href="{{ route('student.reading.sets.index') }}?part={{ $part }}" class="text-xs text-indigo-600 hover:underline">Xem bộ đề</a> --}}
                 </div>
             </div>
         @endforeach

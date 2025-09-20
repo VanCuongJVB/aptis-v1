@@ -28,24 +28,21 @@ class StudentAccessMiddleware
             return $next($request);
         }
         
-        // Check if user is active
+        // Ưu tiên kiểm tra access_ends_at (hạn sử dụng)
+        if ($user->access_ends_at && now()->gt($user->access_ends_at)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect()->route('login')
+                ->with('error', 'Thời hạn truy cập của bạn đã hết. Vui lòng liên hệ quản trị viên để gia hạn.');
+        }
+        // Sau đó mới kiểm tra active
         if (!$user->is_active) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            
             return redirect()->route('login')
                 ->with('error', 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.');
-        }
-        
-        // Check if access has expired
-        if ($user->access_expires_at && $user->access_expires_at->isPast()) {
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            
-            return redirect()->route('login')
-                ->with('error', 'Thời hạn truy cập của bạn đã hết. Vui lòng liên hệ quản trị viên để gia hạn.');
         }
 
         // Students should only access test/practice related routes.

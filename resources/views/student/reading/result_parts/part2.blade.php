@@ -51,11 +51,11 @@
                 <div class="grid grid-cols-2 gap-4 items-start bg-white border rounded p-3">
                     <div>
                         <div class="text-xs text-gray-500">Bạn (Vị trí {{ $i + 1 }})</div>
-                        <div class="mt-1 px-3 py-2 rounded {{ $leftClass }} text-sm">{{ $u === '' ? 'Chưa trả lời' : e($u) }}</div>
+                        <div class="mt-1 px-3 py-2 rounded {{ $leftClass }} text-sm">{!! $u === '' ? 'Chưa trả lời' : $u !!}</div>
                     </div>
                     <div>
                         <div class="text-xs text-gray-500">Đáp án đúng (Vị trí {{ $i + 1 }})</div>
-                        <div class="mt-1 px-3 py-2 rounded bg-white border text-sm text-gray-700">{{ $c === '' ? '(không có)' : e($c) }}</div>
+                        <div class="mt-1 px-3 py-2 rounded bg-white border text-sm text-gray-700">{!! $c === '' ? '(không có)' : $c !!}</div>
                     </div>
                 </div>
             @endfor

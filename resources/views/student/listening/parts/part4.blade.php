@@ -77,7 +77,7 @@
 
                 <div class="mb-2 border rounded-lg p-3">
                     @if($subStem)
-                        <div class="font-medium text-gray-800 mb-2">{{ $subStem }}</div>
+                        <div class="font-medium text-gray-800 mb-2">{!! $subStem !!}</div>
                     @endif
 
                     @foreach($subOptions as $idx => $option)
@@ -91,7 +91,7 @@
                                    value="{{ $idx }}"
                                    class="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                                    @checked($sel !== null && $sel === (string)$idx)>
-                            <span class="text-gray-800">{{ e($option) }}</span>
+                            <span class="text-gray-800">{!! $option !!}</span>
                         </label>
                     @endforeach
                 </div>
@@ -116,7 +116,7 @@
                            value="{{ $idx }}"
                            class="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                            @checked($sel !== null && $sel === (string)$idx)>
-                    <span class="text-gray-800">{{ e($option) }}</span>
+                    <span class="text-gray-800">{!! $option !!}</span>
                 </label>
             @endforeach
         </form>

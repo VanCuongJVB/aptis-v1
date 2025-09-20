@@ -82,7 +82,7 @@
         <div class="ml-2 text-gray-600">Chưa trả lời</div>
     @else
         <div class="flex items-center gap-3 mt-2">
-            <div class="px-3 py-1 rounded {{ $isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }} text-sm">{{ e($selectedLabel) }}</div>
+            <div class="px-3 py-1 rounded {{ $isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }} text-sm">{!! e($selectedLabel) !!}</div>
             @if($isCorrect)
                 <div class="text-sm text-green-700">Đúng</div>
             @else
@@ -91,7 +91,7 @@
         </div>
 
         @if(!$isCorrect && $correctLabel !== null)
-            <div class="mt-2 text-xs text-gray-500">Đáp án đúng: <span class="ml-1 font-medium">{{ e($correctLabel) }}</span></div>
+            <div class="mt-2 text-xs text-gray-500">Đáp án đúng: <span class="ml-1 font-medium">{!! e($correctLabel) !!}</span></div>
         @endif
     @endif
 </div>

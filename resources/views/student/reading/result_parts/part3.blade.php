@@ -86,8 +86,8 @@
                 @foreach($items as $pi)
                     @if(isset($pi['label'], $pi['text']))
                         <div class="border rounded p-3 bg-gray-50">
-                            <div class="font-semibold mb-1">{{ $pi['label'] }}</div>
-                            <div style="white-space:pre-line;word-break:break-word;">{{ $pi['text'] }}</div>
+                            <div class="font-semibold mb-1">{!! $pi['label'] !!}</div>
+                            <div style="white-space:pre-line;word-break:break-word;">{!! $pi['text'] !!}</div>
                         </div>
                     @endif
                 @endforeach
@@ -110,7 +110,7 @@
                 style="{{ $isCorrect ? 'background-color:#ecfdf5;' : ($selectedLabel ? 'background-color:#fff1f2;' : '#ffffff') }}">
                 <div class="flex-1">
                     <div class="text-sm text-gray-800 mb-2" style="white-space:pre-line;word-break:break-word;">
-                        {{ $i + 1 }}. {{ $optionText }}
+                        {{ $i + 1 }}. {!! $optionText !!}
                     </div>
                     <div class="flex items-center gap-3">
                         <select disabled
@@ -118,7 +118,7 @@
                             <option value="">-</option>
                             @foreach($labelMap as $pid)
                                 <option value="{{ $pid }}" @if($selectedLabel === $pid) selected @endif>
-                                    {{ $pid }}
+                                    {!! $pid !!}
                                 </option>
                             @endforeach
                         </select>
@@ -138,7 +138,7 @@
                     @if($correctLabel && !$isCorrect)
                         <div class="text-xs text-gray-500">Đáp án đúng</div>
                         <div class="mt-1 inline-flex items-center gap-2 px-2 py-1 rounded bg-green-50 text-green-700 text-sm">
-                            {{ $correctLabel }}
+                            {!! $correctLabel !!}
                         </div>
                     @endif
 

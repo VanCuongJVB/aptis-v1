@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.role' => \App\Http\Middleware\AdminRoleMiddleware::class,
             'student.access' => \App\Http\Middleware\StudentAccessMiddleware::class,
             'device.limit' => \App\Http\Middleware\DeviceLimitMiddleware::class,
+            'account.active' => \App\Http\Middleware\EnsureAccountActive::class, // Đăng ký alias cho middleware kiểm tra hết hạn
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

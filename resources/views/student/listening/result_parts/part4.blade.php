@@ -190,7 +190,7 @@
                                             {{ $subLetter }}
                                         </span>
                                         <div class="text-gray-800 font-medium leading-5">
-                                            <span class="text-gray-500 mr-1">#{{ $displayIndex }}</span>{{ e($stem) }}
+                                            <span class="text-gray-500 mr-1">#{{ $displayIndex }}</span>{!! e($stem) !!}
                                         </div>
                                     </div>
 
@@ -215,7 +215,7 @@
                                             Hiện đoạn văn
                                         </summary>
                                         <div class="mt-2 text-sm text-gray-700 whitespace-pre-line">
-                                            {{ e($textBlock) }}
+                                            {!! e($textBlock) !!}
                                         </div>
                                     </details>
                                 @endif
@@ -226,7 +226,7 @@
                                         @if($userRaw !== null && $userRaw !== '')
                                             <div class="px-3 py-2 bg-gray-50 border rounded text-sm break-words whitespace-normal
                                                 {{ $isCorrect === true ? 'text-green-700 border-green-200 bg-green-50' : 'text-gray-800 border-gray-200' }}">
-                                                {{ e($selectedText) }}
+                                                {!! e($selectedText) !!}
                                             </div>
                                         @else
                                             <div class="px-3 py-2 bg-gray-50 border rounded text-sm text-gray-500 italic">Chưa trả lời</div>
@@ -237,7 +237,7 @@
                                         <div>
                                             <div class="text-xs text-gray-500 mb-1">Đáp án đúng</div>
                                             <div class="px-3 py-2 bg-green-50 border border-green-200 rounded text-sm text-green-700 break-words whitespace-normal">
-                                                {{ e($correctText) }}
+                                                {!! e($correctText) !!}
                                             </div>
                                         </div>
                                     @endif

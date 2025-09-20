@@ -52,11 +52,10 @@
                             {!! $tab('expired', 'Đã hết hạn') !!}
                         </div>
 
-                        {{-- Submit --}}
-                        <button
-                            class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium shadow-sm transition">
+                        {{-- Submit --}}<button
+                            class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-emerald-400">
                             Lọc
-                        </button>
+                            </button>
                     </form>
 
 
