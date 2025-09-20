@@ -402,8 +402,8 @@ class PracticeController extends Controller
                     $meta = $q->metadata ?? [];
                     $part = $q->part ?? ($meta['part'] ?? null);
 
-                    // multiple choice: single item (include part 4)
-                    if (in_array($part, [1,4,16,17]) || ($meta['type'] ?? '') === 'mc') {
+                    // multiple choice single items (parts 1,16,17 and other MC types)
+                    if (in_array($part, [1,16,17]) || ($meta['type'] ?? '') === 'mc') {
                         $totalItems++;
                         $correctIndex = $meta['correct_index'] ?? $meta['correct'] ?? null;
                         // normalize scalar correct index
@@ -415,6 +415,48 @@ class PracticeController extends Controller
 
                         if (!is_null($correctIndex) && !is_null($selected)) {
                             if ((is_scalar($selected) && is_scalar($correctIndex) && ((string)$selected === (string)$correctIndex || (int)$selected === (int)$correctIndex))) {
+                                $correctItems++;
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Part 4 grouped/pair items: metadata may include 'questions' array with per-sub correct_index
+                    if ($part == 4) {
+                        if (isset($meta['questions']) && is_array($meta['questions'])) {
+                            // normalize user's selected answers for this question
+                            $ans = $answers->get($q->id);
+                            $ansMeta = $ans && isset($ans->metadata) ? $ans->metadata : null;
+                            $selectedList = [];
+                            if (is_array($ansMeta)) {
+                                if (isset($ansMeta['selected']) && is_array($ansMeta['selected'])) $selectedList = array_values($ansMeta['selected']);
+                                elseif (isset($ansMeta['selected'])) $selectedList = [$ansMeta['selected']];
+                            } elseif (is_string($ansMeta)) {
+                                $dec = json_decode($ansMeta, true);
+                                if (is_array($dec) && isset($dec['selected']) && is_array($dec['selected'])) $selectedList = array_values($dec['selected']);
+                            }
+
+                            $subQs = $meta['questions'];
+                            for ($i = 0; $i < count($subQs); $i++) {
+                                $sub = $subQs[$i];
+                                $correctIdx = $sub['correct_index'] ?? $sub['correct'] ?? null;
+                                $userSel = $selectedList[$i] ?? null;
+                                $totalItems++;
+                                if ($correctIdx !== null && $userSel !== null) {
+                                    if ((string)$userSel === (string)$correctIdx || ((is_numeric($userSel) || is_numeric($correctIdx)) && (int)$userSel === (int)$correctIdx)) {
+                                        $correctItems++;
+                                    }
+                                }
+                            }
+                            continue;
+                        }
+                        // fallback: treat as single MC when no 'questions' array present
+                        $totalItems++;
+                        $correctIndex = $meta['correct_index'] ?? $meta['correct'] ?? null;
+                        $ans = $answers->get($q->id);
+                        $selected = $normalizeSelected($ans);
+                        if (!is_null($correctIndex) && !is_null($selected)) {
+                            if ((string)$selected === (string)$correctIndex || ((is_numeric($selected) || is_numeric($correctIndex)) && (int)$selected === (int)$correctIndex)) {
                                 $correctItems++;
                             }
                         }
@@ -615,8 +657,51 @@ class PracticeController extends Controller
         $result = ['is_correct' => false, 'correct_data' => null];
 
         try {
-            // Multiple choice (parts 1,4,16,17 and others)
-            if (in_array($part, [1,4,16,17]) || ($meta['type'] ?? '') === 'mc') {
+            // Multiple choice (parts 1,16,17 and others) OR Part 4 grouped pairs
+            if (in_array($part, [1,16,17]) || ($meta['type'] ?? '') === 'mc') {
+                $correctIndex = $meta['correct_index'] ?? $meta['correct'] ?? null;
+                $selected = $answerMeta['selected']['option_id'] ?? $answerMeta['selected'] ?? ($answerMeta['option_id'] ?? null);
+                $result['is_correct'] = !is_null($correctIndex) && ((string)$selected === (string)$correctIndex || (int)$selected === (int)$correctIndex);
+                $result['correct_data'] = $correctIndex;
+                return $result;
+            }
+
+            // Part 4: support grouped/pair questions shape where metadata contains 'questions' array
+            if ($part == 4) {
+                // if metadata has a 'questions' array, treat as grouped items
+                if (isset($meta['questions']) && is_array($meta['questions'])) {
+                    $subQs = $meta['questions'];
+                    // normalize selected array
+                    $selectedList = [];
+                    if (is_array($answerMeta) && isset($answerMeta['selected']) && is_array($answerMeta['selected'])) {
+                        $selectedList = array_values($answerMeta['selected']);
+                    } elseif (is_array($answerMeta) && isset($answerMeta['selected'])) {
+                        $selectedList = [$answerMeta['selected']];
+                    } elseif (is_string($answerMeta)) {
+                        $dec = json_decode($answerMeta, true);
+                        if (is_array($dec) && isset($dec['selected']) && is_array($dec['selected'])) $selectedList = array_values($dec['selected']);
+                    }
+
+                    $allCorrect = true;
+                    $correctData = [];
+                    for ($i = 0; $i < count($subQs); $i++) {
+                        $sub = $subQs[$i];
+                        $correctIdx = $sub['correct_index'] ?? $sub['correct'] ?? null;
+                        $userSel = $selectedList[$i] ?? null;
+                        $correctData[] = $correctIdx;
+                        if ($correctIdx === null) { $allCorrect = false; continue; }
+                        if ((string)$userSel === (string)$correctIdx || ((is_numeric($userSel) || is_numeric($correctIdx)) && (int)$userSel === (int)$correctIdx)) {
+                            // ok
+                        } else {
+                            $allCorrect = false;
+                        }
+                    }
+
+                    $result['is_correct'] = $allCorrect;
+                    $result['correct_data'] = $correctData;
+                    return $result;
+                }
+                // fallback: treat as single MC when no 'questions' array present
                 $correctIndex = $meta['correct_index'] ?? $meta['correct'] ?? null;
                 $selected = $answerMeta['selected']['option_id'] ?? $answerMeta['selected'] ?? ($answerMeta['option_id'] ?? null);
                 $result['is_correct'] = !is_null($correctIndex) && ((string)$selected === (string)$correctIndex || (int)$selected === (int)$correctIndex);

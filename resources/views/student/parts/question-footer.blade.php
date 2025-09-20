@@ -851,62 +851,57 @@
                 }
 
                 function renderListeningPart4(qid, payload) {
-
-
-
                     const questionBlock = findQuestionBlockByQid(qid);
 
-
                     let meta = null;
-                    try {
-
-                        if (questionBlock && questionBlock.dataset.metadata) {
-                            meta = JSON.parse(questionBlock.dataset.metadata);
-                        }
-                    } catch (e) {
-                        /* error parsing metadata */
+                    if (questionBlock && questionBlock.dataset.metadata) {
+                        meta = JSON.parse(questionBlock.dataset.metadata);
                     }
-
-
                     meta = meta || window.currentQuestionMeta || {};
-
-                    const options = meta.options || [];
-                    const optionMapping = meta.optionMapping || {};
-                    const stem = meta.stem || questionBlock?.querySelector('.prose')?.textContent || '';
-
-                    let selectedDisplayIdx = null;
-                    if (payload && (typeof payload.value !== 'undefined') && payload.value !== null && payload.value !== '') {
-                        selectedDisplayIdx = payload.value;
-                    } else if (payload && (typeof payload.selected !== 'undefined') && payload.selected !== null) {
-                        selectedDisplayIdx = payload.selected;
+                    console.log('meta', meta);
+                    // New structure: meta.questions is an array of sub-questions
+                    const subQuestions = Array.isArray(meta.questions) ? meta.questions : [];
+                    // User answers: try to map by question id if possible
+                    let userVals = Array.isArray(payload?.value) ? payload.value : (Array.isArray(payload?.selected) ? payload.selected : []);
+                    // If payload.answers is an array of {question_id, value}, map to subQuestions order
+                    if (Array.isArray(payload?.answers)) {
+                        const idToIndex = {};
+                        subQuestions.forEach((q, idx) => { if (q.id) idToIndex[q.id] = idx; });
+                        const mapped = Array(subQuestions.length).fill(null);
+                        payload.answers.forEach(ans => {
+                            if (ans.question_id && typeof idToIndex[ans.question_id] !== 'undefined') {
+                                mapped[idToIndex[ans.question_id]] = ans.value;
+                            }
+                        });
+                        userVals = mapped;
                     }
 
-                    const selectedOriginalIdx = selectedDisplayIdx !== null && optionMapping[selectedDisplayIdx] !== undefined
-                        ? optionMapping[selectedDisplayIdx]
-                        : selectedDisplayIdx;
-
-                    const userText = (selectedOriginalIdx !== null && options[selectedOriginalIdx] !== undefined)
-                        ? options[selectedOriginalIdx]
-                        : (selectedDisplayIdx !== null ? String(selectedDisplayIdx) : '(chưa)');
-
-                    const corrRaw = (typeof meta.correct_index !== 'undefined' && meta.correct_index !== null)
-                        ? meta.correct_index
-                        : (Array.isArray(meta.correct) ? meta.correct[0] : null);
-
-                    const corrText = (corrRaw !== null && options[corrRaw] !== undefined)
-                        ? options[corrRaw]
-                        : (corrRaw !== null ? String(corrRaw) : '(---)');
-
-
-                    const ok = selectedOriginalIdx !== null && corrRaw !== null && String(selectedOriginalIdx) === String(corrRaw);
-
-
-                    renderFeedback(qid, `Đúng ${ok ? 1 : 0} / 1`, [{
-                        para: stem,
-                        userText: userText,
-                        corrText: corrText,
-                        ok: ok
-                    }], rowBuilders.paragraph);
+                    let correctCount = 0;
+                    const rows = subQuestions.map((sq, i) => {
+                        const options = Array.isArray(sq.options) ? sq.options : [];
+                        const userRaw = typeof userVals[i] !== 'undefined' ? userVals[i] : null;
+                        let userText = '(chưa chọn)';
+                        if (userRaw !== null && userRaw !== '') {
+                            const idx = Number(userRaw);
+                            userText = (!Number.isNaN(idx) && typeof options[idx] !== 'undefined') ? options[idx] : String(userRaw);
+                        }
+                        const corrIdx = typeof sq.correct_index !== 'undefined' ? sq.correct_index : null;
+                        let corrText = '';
+                        if (corrIdx !== null && typeof options[corrIdx] !== 'undefined') {
+                            corrText = options[corrIdx];
+                        } else if (corrIdx !== null) {
+                            corrText = String(corrIdx);
+                        }
+                        const ok = (userRaw !== null && corrIdx !== null && String(userRaw) === String(corrIdx));
+                        if (ok) correctCount++;
+                        return {
+                            para: (sq.sub ? sq.sub + '. ' : '') + (sq.stem || sq.text || ''),
+                            userText,
+                            corrText,
+                            ok
+                        };
+                    });
+                    renderFeedback(qid, `Đúng ${correctCount} / ${subQuestions.length}`, rows, rowBuilders.paragraph, 'space-y-4');
                 }
 
                 const listeningRenderers = {
@@ -1051,11 +1046,9 @@
             const mainElForNext = document.querySelector(mainSelector);
             const datasetNext = mainElForNext?.dataset?.nextUrl || null;
             const datasetFinal = mainElForNext?.dataset?.finalUrl || null;
-            // Use the freshly-rendered container's dataset as the authoritative next URL.
             const nextUrl = datasetNext || bladeNext || window.nextUrl || null;
             const finalUrl = datasetFinal || '{{ route('reading.practice.result', ['attempt' => $attempt->id]) }}';
             const isFinal = !nextUrl;
-            // console.debug removed
 
             const alreadyShown = window.__aptis_feedbackShownForQid[qid] === true;
 

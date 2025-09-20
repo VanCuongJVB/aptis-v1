@@ -123,6 +123,39 @@ class ImportController extends Controller
             $audioPath = $ques['audio'];
         }
 
+        // Handle grouped/pair questions (Part 4 style). If the incoming question object contains
+        // a 'questions' array (sub-questions) we want to preserve that structure in metadata so
+        // downstream views/controllers which expect metadata['questions'] continue to work.
+        // Also, if the set provided an audio at set-level and individual question/sub-question
+        // lack an 'audio' field, copy the set audio into the question metadata (and into each
+        // sub-question's metadata if they don't have one). This normalizes different JSON
+        // flavours so import doesn't break the student UI.
+        if (!empty($ques['questions']) && is_array($ques['questions'])) {
+            // Ensure metadata is an array
+            $qMeta = is_array($qMeta) ? $qMeta : (array)$qMeta;
+            // Preserve the sub-questions array in metadata (useful for paired Part 4)
+            $qMeta['questions'] = $ques['questions'];
+
+            // If set-level audio exists and question-level audio absent, copy it
+            $setAudio = $sData['audio'] ?? ($sData['metadata']['audio'] ?? null);
+            if ($setAudio && empty($qMeta['audio'])) {
+                $qMeta['audio'] = $setAudio;
+                // also set audioPath so question.audio_path column gets populated
+                $audioPath = $setAudio;
+            }
+
+            // Ensure each sub-question has audio in metadata if missing (preserve any per-sub audio)
+            foreach ($qMeta['questions'] as $subIdx => $subQ) {
+                if (is_array($subQ)) {
+                    $subAudio = $subQ['audio'] ?? ($subQ['metadata']['audio'] ?? null);
+                    if (empty($subAudio) && !empty($qMeta['audio'])) {
+                        // copy pair-level audio into sub-question metadata
+                        $qMeta['questions'][$subIdx]['audio'] = $qMeta['audio'];
+                    }
+                }
+            }
+        }
+
         $rawSkill = $ques['skill'] ?? $sData['skill'] ?? $quiz->skill ?? null;
         $qSkill = $this->normalizeSkill($rawSkill, $set->skill ?? 'reading');
 
@@ -131,12 +164,52 @@ class ImportController extends Controller
 
         $point = $this->coerceInt($ques['point'] ?? null, 1);
 
+        // If this is a grouped/pair question (contains nested 'questions'), preserve the
+        // entire sub-questions array inside metadata and create ONE Question row that
+        // represents the pair. The front-end expects a single Question with
+        // metadata['questions'] for Part 4 style items.
+        if (!empty($ques['questions']) && is_array($ques['questions'])) {
+            // Ensure metadata is array and contains the sub-questions (we may have set audio earlier)
+            $qMeta = is_array($qMeta) ? $qMeta : (array)$qMeta;
+            $qMeta['questions'] = $ques['questions'];
+
+            // Ensure we have a non-null stem (DB requires stem non-null). Prefer top-level stem,
+            // otherwise take first sub-question's stem/title as the parent stem so DB insert succeeds.
+            $parentStem = $ques['stem'] ?? $qMeta['stem'] ?? null;
+            if (empty($parentStem) && !empty($qMeta['questions'][0])) {
+                $first = $qMeta['questions'][0];
+                $parentStem = $first['stem'] ?? $first['title'] ?? $first['text'] ?? 'Part 4';
+            }
+
+            // Determine type (must not be null). Use provided or fallback to single_choice.
+            $parentType = $ques['type'] ?? ($qMeta['type'] ?? 'single_choice');
+
+            // audioPath should already be set from earlier logic (top-level ques audio or set audio), use it
+            $question = Question::create([
+                'quiz_id' => $quiz->id,
+                'reading_set_id' => $set->id,
+                'title' => $ques['title'] ?? null,
+                'stem' => $parentStem,
+                'type' => $parentType,
+                'order' => $qOrder,
+                'skill' => $qSkill,
+                'part' => $qPart,
+                'point' => $point,
+                'audio_path' => $audioPath,
+                'metadata' => $qMeta,
+            ]);
+
+            // Do not create Option rows at the parent level; sub-question options are kept inside metadata
+            return;
+        }
+
+        // Single (non-grouped) question insert
         $question = Question::create([
             'quiz_id' => $quiz->id,
             'reading_set_id' => $set->id,
             'title' => $ques['title'] ?? null,
             'stem' => $ques['stem'] ?? null,
-            'type' => $ques['type'] ?? null,
+            'type' => $ques['type'] ?? ($qMeta['type'] ?? 'single_choice'),
             'order' => $qOrder,
             'skill' => $qSkill,
             'part' => $qPart,
@@ -260,8 +333,29 @@ class ImportController extends Controller
                         $problems[] = "Quiz #{$qIdx} Set #{$sIdx} is missing a title";
                     }
                     if (!empty($s['questions']) && is_array($s['questions'])) {
-                        $questionsCount += count($s['questions']);
                         foreach ($s['questions'] as $tIdx => $t) {
+                            // If this question is a grouped/pair (contains nested 'questions') then
+                            // treat each nested sub-question as an individual question for counting
+                            // and validation purposes.
+                            if (!empty($t['questions']) && is_array($t['questions'])) {
+                                foreach ($t['questions'] as $subIdx => $sub) {
+                                    $questionsCount++;
+                                    // validate nested MCQ
+                                    if (isset($sub['type']) && strtolower($sub['type']) === 'mcq') {
+                                        if (empty($sub['options']) || !is_array($sub['options']) || count($sub['options']) < 2) {
+                                            $problems[] = "Quiz #{$qIdx} Set #{$sIdx} Question #{$tIdx}.{$subIdx} (mcq) should have at least 2 options";
+                                        }
+                                    } else {
+                                        if (empty($sub['stem']) && empty($sub['title'])) {
+                                            $problems[] = "Quiz #{$qIdx} Set #{$sIdx} Question #{$tIdx}.{$subIdx} is missing stem/title";
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
+
+                            // Normal single question handling
+                            $questionsCount++;
                             // Basic heuristics: MCQ should have options; written should have stem/content
                             if (isset($t['type']) && strtolower($t['type']) === 'mcq') {
                                 if (empty($t['options']) || !is_array($t['options']) || count($t['options']) < 2) {
