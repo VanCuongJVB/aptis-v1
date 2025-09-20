@@ -12,6 +12,32 @@
         }
         $stem = $question->stem ?? ($meta['stem'] ?? null);
         $options = is_array($question->options ?? null) ? $question->options : (is_array($meta['options'] ?? null) ? $meta['options'] : []);
+
+    // Build correct answers array for JS feedback
+    $correct = [];
+    if (!empty($meta['answers']) && is_array($meta['answers'])) {
+        // answers dạng: label => [option indices]
+        // Chuyển về: mỗi option ứng với index người đúng
+        $labelToIdx = [];
+        foreach ($people as $idx => $p) {
+            $label = is_array($p) ? ($p['label'] ?? $p['id'] ?? $p['name'] ?? chr(65 + $idx)) : $p;
+            $labelToIdx[$label] = $idx;
+        }
+        foreach ($options as $optIdx => $optText) {
+            $found = null;
+            foreach ($meta['answers'] as $label => $arr) {
+                if (is_array($arr) && in_array($optIdx, $arr)) {
+                    $found = $labelToIdx[$label] ?? null;
+                    break;
+                }
+            }
+            $correct[] = $found;
+        }
+    } elseif (!empty($meta['correct']) && is_array($meta['correct'])) {
+        $correct = $meta['correct'];
+    }
+    $metadataForJs = $meta;
+    $metadataForJs['answers'] = $correct;
     @endphp
 
     {{-- Stem as main title --}}
@@ -19,7 +45,7 @@
         <h3 class="text-xl font-bold text-center mb-6">{{ e($stem) }}</h3>
     @endif
 
-    <div class="grid md:grid-cols-2 gap-6">
+    <div class="grid md:grid-cols-2 gap-6" data-metadata="@json($metadataForJs)">
         {{-- Left: people texts --}}
         <div class="space-y-4">
             @if(!empty($people))

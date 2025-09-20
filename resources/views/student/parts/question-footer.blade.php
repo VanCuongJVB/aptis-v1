@@ -553,10 +553,34 @@
 
                     const people = Array.isArray(meta.items) ? meta.items : [];
                     const options = Array.isArray(meta.options) ? meta.options : [];
-                    const answersArr = Array.isArray(meta.answers) ? meta.answers : (Array.isArray(meta.correct) ? meta.correct : []);
+                    let answersArr = [];
+                    if (Array.isArray(meta.answers)) {
+                        answersArr = meta.answers;
+                    } else if (Array.isArray(meta.correct)) {
+                        answersArr = meta.correct;
+                    } else if (meta.answers && typeof meta.answers === 'object') {
+                        // Convert object {label: [optionIdx,...]} to array: answersArr[optionIdx] = personIdx
+                        const labelToIdx = {};
+                        people.forEach((p, idx) => {
+                            const label = p.label ?? p.id ?? p.name ?? String.fromCharCode(65 + idx);
+                            labelToIdx[label] = idx;
+                        });
+                        answersArr = options.map((_, optIdx) => {
+                            let found = null;
+                            for (const label in meta.answers) {
+                                if (Array.isArray(meta.answers[label]) && meta.answers[label].includes(optIdx)) {
+                                    found = labelToIdx[label] ?? null;
+                                    break;
+                                }
+                            }
+                            return found;
+                        });
+                    }
+                    // ...
 
                     // Gather user answers: prefer payload but read DOM selects as fallback so "Kiểm tra" works immediately
                     let userArr = payload?.values ?? payload?.selected ?? payload?.value ?? null;
+                    // ...
                     try {
                         if ((!userArr || (Array.isArray(userArr) && userArr.length === 0)) && qBlock) {
                             const selEls = [...qBlock.querySelectorAll('select[name^="part3_answer"], select')];
@@ -569,6 +593,7 @@
                             }
                         }
                     } catch (e) { }
+                    // ...
 
                     // Đảm bảo userArr là mảng số hoặc null
                     if (Array.isArray(userArr)) {
