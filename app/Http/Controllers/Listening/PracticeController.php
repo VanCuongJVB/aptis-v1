@@ -206,17 +206,17 @@ class PracticeController extends Controller
             $response = ['success' => true, 'is_correct' => $isCorrect, 'correct' => $correctData];
 
             if ($answeredCount >= $totalQuestions) {
-                $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)->whereIn('question_id', $order)->where('is_correct', true)->count();
-                $scorePercentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
 
-                $attempt->update([
-                    'status' => 'submitted',
-                    'submitted_at' => now(),
-                    'total_questions' => $totalQuestions,
-                    'correct_answers' => $correctAnswers,
-                    'score_percentage' => $scorePercentage,
-                    'score_points' => $correctAnswers
-                ]);
+                $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)
+                    ->whereIn('question_id', $order)
+                    ->where('is_correct', true)
+                    ->count();
+                $attempt->status = 'submitted';
+                $attempt->submitted_at = now();
+                $attempt->total_questions = $totalQuestions;
+                $attempt->correct_answers = $correctAnswers;
+                $attempt->calculateScore();
+                $attempt->save();
 
                 $response['submitted'] = true;
                 $response['redirect'] = route('listening.practice.result', $attempt);
@@ -230,22 +230,20 @@ class PracticeController extends Controller
         }
 
         if ($request->ajax()) {
+
             if ($request->input('action') === 'finish') {
                 $order = $attempt->metadata['question_order'] ?? $attempt->quiz->questions()->orderBy('order')->pluck('id')->toArray();
                 $totalQuestions = count($order);
-
-                $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)->whereIn('question_id', $order)->where('is_correct', true)->count();
-                $scorePercentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
-
-                $attempt->update([
-                    'status' => 'submitted',
-                    'submitted_at' => now(),
-                    'total_questions' => $totalQuestions,
-                    'correct_answers' => $correctAnswers,
-                    'score_percentage' => $scorePercentage,
-                    'score_points' => $correctAnswers
-                ]);
-
+                $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)
+                    ->whereIn('question_id', $order)
+                    ->where('is_correct', true)
+                    ->count();
+                $attempt->status = 'submitted';
+                $attempt->submitted_at = now();
+                $attempt->total_questions = $totalQuestions;
+                $attempt->correct_answers = $correctAnswers;
+                $attempt->calculateScore();
+                $attempt->save();
                 return response()->json(['success' => true, 'redirect' => route('listening.practice.result', $attempt)]);
             }
 
@@ -270,19 +268,16 @@ class PracticeController extends Controller
 
         $order = $attempt->metadata['question_order'] ?? $attempt->quiz->questions()->orderBy('order')->pluck('id')->toArray();
         $totalQuestions = count($order);
-
-        $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)->whereIn('question_id', $order)->where('is_correct', true)->count();
-        $scorePercentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 2) : 0;
-
-        $attempt->update([
-            'status' => 'submitted',
-            'submitted_at' => now(),
-            'total_questions' => $totalQuestions,
-            'correct_answers' => $correctAnswers,
-            'score_percentage' => $scorePercentage,
-            'score_points' => $correctAnswers
-        ]);
-
+        $correctAnswers = AttemptAnswer::where('attempt_id', $attempt->id)
+            ->whereIn('question_id', $order)
+            ->where('is_correct', true)
+            ->count();
+        $attempt->status = 'submitted';
+        $attempt->submitted_at = now();
+        $attempt->total_questions = $totalQuestions;
+        $attempt->correct_answers = $correctAnswers;
+        $attempt->calculateScore();
+        $attempt->save();
         return redirect()->route('listening.practice.result', $attempt);
     }
 
@@ -296,6 +291,7 @@ class PracticeController extends Controller
 
         $payload = $request->input('answers', []);
         $final = $request->boolean('final', false);
+
 
         DB::transaction(function() use ($attempt, $payload, $final, &$total, &$correct) {
             $total = 0;
@@ -327,22 +323,14 @@ class PracticeController extends Controller
                 if ($isCorrect) $correct += 1;
             }
 
-            $scorePercentage = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
-
-            // update totals, only finalize when final flag is true
-            $updateData = [
-                'total_questions' => $total,
-                'correct_answers' => $correct,
-                'score_percentage' => $scorePercentage,
-                'score_points' => $correct
-            ];
-
+            $attempt->total_questions = $total;
+            $attempt->correct_answers = $correct;
+            $attempt->calculateScore();
             if ($final) {
-                $updateData['status'] = 'submitted';
-                $updateData['submitted_at'] = now();
+                $attempt->status = 'submitted';
+                $attempt->submitted_at = now();
             }
-
-            $attempt->update($updateData);
+            $attempt->save();
         });
 
         $response = ['success' => true, 'message' => 'Batch saved', 'submitted' => (bool)$final, 'total' => $total ?? 0, 'correct' => $correct ?? 0];
