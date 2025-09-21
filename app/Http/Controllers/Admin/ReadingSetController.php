@@ -53,9 +53,11 @@ class ReadingSetController extends Controller
      */
     public function questions($setId)
     {
-        $set = ReadingSet::with(['quiz', 'questions' => function($q) {
+        $part = request('part');
+        $set = ReadingSet::with(['quiz', 'questions' => function($q) use ($part) {
             $q->orderBy('order');
+            if ($part) $q->where('part', $part);
         }])->findOrFail($setId);
-        return view('admin.quizzes.set_questions', compact('set'));
+        return view('admin.quizzes.set_questions', compact('set', 'part'));
     }
 }

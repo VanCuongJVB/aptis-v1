@@ -4,8 +4,13 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
+
     <div class="mb-6 flex items-center justify-between">
         <h1 class="text-2xl font-semibold">Questions — Quản lý</h1>
+        <div class="flex gap-2">
+            <a href="{{ route('admin.questions.part1.create') }}" class="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">Tạo câu hỏi Part 1</a>
+            <a href="{{ route('admin.questions.part2.create') }}" class="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Tạo câu hỏi Part 2</a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -157,10 +162,20 @@
                         </td>
 
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
-                            <a href="{{ route('admin.questions.edit', $q) }}"
-                               class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                Edit
-                            </a>
+
+                            @if($q->part == 1)
+                                <a href="{{ route('admin.questions.part1.edit', $q) }}"
+                                   class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                    Edit
+                                </a>
+                            @elseif($q->part == 2)
+                                <a href="{{ route('admin.questions.part2.edit', $q) }}"
+                                   class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                    Edit
+                                </a>
+                            @else
+                                <span class="text-gray-400">Edit</span>
+                            @endif
 
                             <form action="{{ route('admin.questions.part1.destroy', $q) }}" method="POST" class="inline">
                                 @csrf

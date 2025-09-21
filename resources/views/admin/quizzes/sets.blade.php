@@ -44,8 +44,13 @@
                                     {{ $set->quiz ? $set->quiz->part : '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
                                     {{ $set->questions()->count() }}
-                                    <a href="{{ route('admin.questions.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
-                                    <a href="{{ route('admin.sets.questions', $set->id) }}" class="ml-2 px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs">Xem câu hỏi</a>
+                                    @php $defaultPart = $set->quiz ? $set->quiz->part : 1; @endphp
+                                    @if($defaultPart == 2)
+                                        <a href="{{ route('admin.questions.part2.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                    @else
+                                        <a href="{{ route('admin.questions.part1.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                    @endif
+                                    <a href="{{ route('admin.sets.questions', [$set->id, 'part' => $set->quiz ? $set->quiz->part : 1]) }}" class="ml-2 px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs">Xem câu hỏi</a>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
                                     <a href="{{ route('admin.sets.edit', $set) }}"

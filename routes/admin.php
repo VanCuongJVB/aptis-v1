@@ -71,4 +71,11 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
     Route::get('quizzes/questions/part1/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editReadingPart1'])->name('questions.part1.edit');
     Route::put('quizzes/questions/part1/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateReadingPart1'])->name('questions.part1.update');
     Route::delete('quizzes/questions/part1/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyReadingPart1'])->name('questions.part1.destroy');
+
+    // CRUD cho Part 2 (Reading Matching)
+    Route::get('quizzes/questions/part2/create', [\App\Http\Controllers\Admin\QuestionPartController::class, 'createReadingPart2'])->name('questions.part2.create');
+    Route::post('quizzes/questions/part2', [\App\Http\Controllers\Admin\QuestionPartController::class, 'storeReadingPart2'])->name('questions.part2.store');
+    Route::get('quizzes/questions/part2/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editReadingPart2'])->name('questions.part2.edit');
+    Route::put('quizzes/questions/part2/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateReadingPart2'])->name('questions.part2.update');
+    Route::delete('quizzes/questions/part2/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyReadingPart2'])->name('questions.part2.destroy');
 });
