@@ -43,7 +43,10 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                     {{ $set->quiz ? $set->quiz->part : '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                                    {{ $set->questions()->count() }}</td>
+                                    {{ $set->questions()->count() }}
+                                    <a href="{{ route('admin.questions.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                    <a href="{{ route('admin.sets.questions', $set->id) }}" class="ml-2 px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs">Xem câu hỏi</a>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
                                     <a href="{{ route('admin.sets.edit', $set) }}"
                                         class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">Edit</a>
@@ -61,9 +64,12 @@
                                 <td colspan="6" class="px-6 py-8 text-center text-gray-500">Không có set nào</td>
                             </tr>
                         @endforelse
+
+                        {{-- Không còn accordion, chuyển sang page mới --}}
                     </tbody>
                 </table>
-            </div>
+
+            {{-- Không còn JS accordion --}}
 
             <div class="mt-4 w-100">
                 <div class="flex justify-between">

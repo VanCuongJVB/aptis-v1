@@ -15,17 +15,15 @@ class ReadingSetController extends Controller
         return view('admin.quizzes.sets_form', ['set' => new ReadingSet(), 'quizzes' => $quizzes]);
     }
 
+
     public function store(Request $request)
     {
         $data = $request->validate([
-            'quiz_id' => 'nullable|exists:quizzes,id',
+            'quiz_id' => 'required|exists:quizzes,id',
             'title' => 'required|string|max:255',
-            'skill' => 'nullable|string|max:50',
-            'order' => 'nullable|integer',
+            'skill' => 'required|in:reading,listening',
         ]);
-
         ReadingSet::create($data);
-
         return redirect()->route('admin.quizzes.sets')->with('success', 'Set created');
     }
 
@@ -38,14 +36,9 @@ class ReadingSetController extends Controller
     public function update(Request $request, ReadingSet $set)
     {
         $data = $request->validate([
-            'quiz_id' => 'nullable|exists:quizzes,id',
             'title' => 'required|string|max:255',
-            'skill' => 'nullable|string|max:50',
-            'order' => 'nullable|integer',
         ]);
-
-        $set->update($data);
-
+        $set->update(['title' => $data['title']]);
         return redirect()->route('admin.quizzes.sets')->with('success', 'Set updated');
     }
 
@@ -53,5 +46,16 @@ class ReadingSetController extends Controller
     {
         $set->delete();
         return redirect()->route('admin.quizzes.sets')->with('success', 'Set removed');
+    }
+
+    /**
+     * Hiển thị danh sách câu hỏi của 1 set (mọi part)
+     */
+    public function questions($setId)
+    {
+        $set = ReadingSet::with(['quiz', 'questions' => function($q) {
+            $q->orderBy('order');
+        }])->findOrFail($setId);
+        return view('admin.quizzes.set_questions', compact('set'));
     }
 }

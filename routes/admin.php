@@ -16,24 +16,25 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->group(function () {
-    
+
     // User Management Routes
     Route::resource('users', UserController::class);
     Route::get('users/{user}/sessions', [UserController::class, 'sessions'])->name('users.sessions');
     Route::post('users/{user}/logout-all-devices', [UserController::class, 'logoutAllDevices'])->name('users.logout-all');
     Route::delete('sessions/{session}', [UserController::class, 'logoutDevice'])->name('sessions.destroy');
-    
+
     // Student Management Routes
     Route::resource('students', StudentController::class)->except(['show']);
     Route::get('students/import', [StudentController::class, 'importForm'])->name('students.import.form');
     Route::post('students/import', [StudentController::class, 'importStore'])->name('students.import');
     Route::get('students/{student}/extend', [StudentController::class, 'extend'])->name('students.extend');
     Route::post('students/{student}/toggle-active', [StudentController::class, 'toggleActive'])->name('students.toggleActive');
-    
+
     // Admin reading/listening/question routes removed
 
-    // Quizzes admin UI (placeholder views)
-    Route::get('quizzes', [\App\Http\Controllers\Admin\QuizAdminController::class, 'index'])->name('quizzes.index');
+    // Quizzes CRUD
+    Route::resource('quizzes', \App\Http\Controllers\Admin\QuizController::class)->except(['show']);
+    // (Nếu cần giữ các route sets/questions tổng quan thì thêm lại dưới đây)
     Route::get('quizzes/sets', [\App\Http\Controllers\Admin\QuizAdminController::class, 'sets'])->name('quizzes.sets');
     Route::get('quizzes/questions', [\App\Http\Controllers\Admin\QuizAdminController::class, 'questions'])->name('quizzes.questions');
 
@@ -61,4 +62,13 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
     Route::get('quizzes/sets/{set}/edit', [\App\Http\Controllers\Admin\ReadingSetController::class, 'edit'])->name('sets.edit');
     Route::put('quizzes/sets/{set}', [\App\Http\Controllers\Admin\ReadingSetController::class, 'update'])->name('sets.update');
     Route::delete('quizzes/sets/{set}', [\App\Http\Controllers\Admin\ReadingSetController::class, 'destroy'])->name('sets.destroy');
+
+    Route::get('ajax/sets/{set}/questions', [\App\Http\Controllers\Admin\ReadingSetController::class, 'questions'])->name('sets.questions');
+
+    // CRUD cho Part 1 (Reading Gap Filling) - gom về 1 controller đa part
+    Route::get('quizzes/questions/part1/create', [\App\Http\Controllers\Admin\QuestionPartController::class, 'createReadingPart1'])->name('questions.part1.create');
+    Route::post('quizzes/questions/part1', [\App\Http\Controllers\Admin\QuestionPartController::class, 'storeReadingPart1'])->name('questions.part1.store');
+    Route::get('quizzes/questions/part1/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editReadingPart1'])->name('questions.part1.edit');
+    Route::put('quizzes/questions/part1/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateReadingPart1'])->name('questions.part1.update');
+    Route::delete('quizzes/questions/part1/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyReadingPart1'])->name('questions.part1.destroy');
 });
