@@ -22,7 +22,13 @@
                                 sinh</a>
                         </div>
                     </div>
-
+                    @php
+                        $totalStudents = \App\Models\User::where('role', 'student')->count();
+                        $totalAdmins = \App\Models\User::where('role', 'admin')->count();
+                    @endphp
+                    <div class="text-xs text-slate-600 ml-auto mb-2">
+                        Tổng: <b>{{ $totalStudents }}</b> học sinh, <b>{{ $totalAdmins }}</b> admin
+                    </div>
                     <form method="GET" class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
                         {{-- Search --}}
                         <div class="flex-1">
@@ -58,11 +64,15 @@
                             </button>
                     </form>
 
+                    <p class="mt-4 text-xs text-slate-500">
+                        Gợi ý: mật khẩu mặc định của học sinh là <code>123456</code>
+                    </p>
 
                     <div class="bg-white rounded shadow overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-100 text-sm">
                             <thead class="bg-slate-50 text-left">
                                 <tr class="text-xs text-slate-500 uppercase">
+                                    <th class="px-4 py-3">STT</th>
                                     <th class="px-4 py-3">Email</th>
                                     <th class="px-4 py-3">Tên</th>
                                     <th class="px-4 py-3">Trạng thái</th>
@@ -73,12 +83,14 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-100">
                                 @php $now = \Carbon\Carbon::now(); @endphp
+                                @php $stt = ($students->currentPage() - 1) * $students->perPage() + 1; @endphp
                                 @foreach($students as $st)
                                     @php
                                         $expired = $st->access_ends_at && $st->access_ends_at->lt($now);
                                         $expiring = $st->access_ends_at && $st->access_ends_at->between($now, (clone $now)->addDays(7));
                                     @endphp
                                     <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3 text-center">{{ $stt++ }}</td>
                                         <td class="px-4 py-3 font-medium text-slate-800">{{ $st->email }}</td>
                                         <td class="px-4 py-3">{{ $st->name }}</td>
                                         <td class="px-4 py-3">
@@ -179,21 +191,16 @@
                             </tbody>
                         </table>
                     </div>
-
                     <div class="mt-4 w-100">
-                        <div class="flex justify-between">
-                            <style>
-                                nav {
-                                    width: 100% !important;
-                                }
-                            </style>
-                            {{ $students->links() }}
-                        </div>
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <style>
+                            nav {
+                                width: 100% !important;
+                            }
+                        </style>
+                        {{ $students->links() }}
+                        
                     </div>
-
-                    <p class="mt-4 text-xs text-slate-500">
-                        Gợi ý: mật khẩu mặc định của học sinh là <code>123456</code>
-                    </p>
                 </div>
             </div>
         </div>
