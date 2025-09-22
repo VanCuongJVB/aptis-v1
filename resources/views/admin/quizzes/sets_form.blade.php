@@ -18,10 +18,10 @@
 
             <div class="mb-4">
                 <label class="block text-sm">Quiz</label>
-                <select name="quiz_id" class="w-full border p-2 rounded" @if($set->exists) disabled @endif required>
+                <select name="quiz_id" id="quiz_id_select" class="w-full border p-2 rounded" @if($set->exists) disabled @endif required>
                     <option value="">-- Chọn quiz --</option>
                     @foreach($quizzes as $q)
-                        <option value="{{ $q->id }}" {{ $q->id == old('quiz_id', $set->quiz_id) ? 'selected' : '' }}>{{ $q->title }}</option>
+                        <option value="{{ $q->id }}" data-skill="{{ $q->skill }}" {{ $q->id == old('quiz_id', $set->quiz_id) ? 'selected' : '' }}>{{ $q->title }}</option>
                     @endforeach
                 </select>
                 @if($set->exists)
@@ -31,14 +31,8 @@
 
             <div class="mb-4">
                 <label class="block text-sm">Kỹ năng</label>
-                <select name="skill" class="w-full border p-2 rounded" @if($set->exists) disabled @endif required>
-                    <option value="">-- Chọn kỹ năng --</option>
-                    <option value="reading" {{ old('skill', $set->skill) == 'reading' ? 'selected' : '' }}>Đọc hiểu</option>
-                    <option value="listening" {{ old('skill', $set->skill) == 'listening' ? 'selected' : '' }}>Nghe hiểu</option>
-                </select>
-                @if($set->exists)
-                    <input type="hidden" name="skill" value="{{ $set->skill }}" />
-                @endif
+                <input type="text" id="skill_display" class="w-full border p-2 rounded bg-gray-100 text-gray-400" value="{{ old('skill', $set->skill) == 'reading' ? 'Đọc hiểu' : (old('skill', $set->skill) == 'listening' ? 'Nghe hiểu' : '') }}" placeholder="Chọn quiz để tự động hiển thị kỹ năng" readonly />
+                <input type="hidden" name="skill" id="skill_select" value="{{ old('skill', $set->skill) }}" />
             </div>
 
             <div class="flex items-center justify-end">
@@ -50,3 +44,37 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var quizSelect = document.getElementById('quiz_id_select');
+    var skillInput = document.getElementById('skill_select');
+    var skillDisplay = document.getElementById('skill_display');
+    function skillLabel(skill) {
+        if (skill === 'reading') return 'Đọc hiểu';
+        if (skill === 'listening') return 'Nghe hiểu';
+        return '';
+    }
+    if (quizSelect && skillInput && skillDisplay && !quizSelect.disabled) {
+        quizSelect.addEventListener('change', function() {
+            var selected = quizSelect.options[quizSelect.selectedIndex];
+            var skill = selected.getAttribute('data-skill');
+            skillInput.value = skill || '';
+            skillDisplay.value = skillLabel(skill);
+            if (!skill) {
+                skillDisplay.classList.add('text-gray-400');
+            } else {
+                skillDisplay.classList.remove('text-gray-400');
+            }
+        });
+        // Set initial style
+        if (!skillInput.value) {
+            skillDisplay.classList.add('text-gray-400');
+        } else {
+            skillDisplay.classList.remove('text-gray-400');
+        }
+    }
+});
+</script>
+@endpush

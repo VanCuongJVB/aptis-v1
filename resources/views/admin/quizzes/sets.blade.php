@@ -13,6 +13,22 @@
             <div class="mb-4 p-3 bg-green-100 text-green-800 rounded">{{ session('success') }}</div>
         @endif
 
+        <div class="mb-4 flex gap-2">
+            @php $activeSkill = request('skill', 'reading'); @endphp
+            <a href="?skill=reading" class="px-4 py-2 rounded-t bg-white border-b-2 {{ $activeSkill=='reading' ? 'border-blue-600 font-bold text-blue-700' : 'border-transparent text-gray-500' }}">Reading</a>
+            <a href="?skill=listening" class="px-4 py-2 rounded-t bg-white border-b-2 {{ $activeSkill=='listening' ? 'border-blue-600 font-bold text-blue-700' : 'border-transparent text-gray-500' }}">Listening</a>
+        </div>
+        <form method="get" class="mb-4 flex flex-wrap gap-2 items-end">
+            <input type="hidden" name="skill" value="{{ $activeSkill }}">
+            <div>
+                <label class="block text-xs font-semibold mb-1">Tìm kiếm Set</label>
+                <input type="text" name="q" value="{{ request('q') }}" class="border rounded p-1 min-w-[180px]" placeholder="Tên set...">
+            </div>
+            <div>
+                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Lọc</button>
+                <a href="?skill={{ $activeSkill }}" class="ml-2 text-gray-500 underline">Reset</a>
+            </div>
+        </form>
         <div class="bg-white rounded shadow p-4">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -33,10 +49,20 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-100">
-                        @forelse($sets as $set)
+                        @php
+                            $filteredSets = $sets->filter(function($set) use ($activeSkill) {
+                                return optional($set->quiz)->skill === $activeSkill;
+                            });
+                            $q = trim(request('q'));
+                            if ($q !== '') {
+                                $filteredSets = $filteredSets->filter(function($set) use ($q) {
+                                    return mb_stripos($set->title, $q) !== false;
+                            });
+                        }
+                        @endphp
+                        @forelse($filteredSets as $set)
                             <tr class="even:bg-gray-50">
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    {{ $sets->firstItem() + $loop->index }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">{{ $loop->iteration }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $set->title }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                     {{ optional($set->quiz)->title ?? '-' }}</td>
@@ -60,8 +86,11 @@
                                         @else
                                             <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Không xác định part">Tạo Question</a>
                                         @endif
+                                    @elseif($defaultSkill === 'listening')
+                                        {{-- Thêm route tạo question cho listening nếu có --}}
+                                        <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chưa hỗ trợ tạo câu hỏi cho Listening">Tạo Question</a>
                                     @else
-                                        <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chỉ hỗ trợ tạo câu hỏi cho Reading">Tạo Question</a>
+                                        <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chỉ hỗ trợ tạo câu hỏi cho Reading/Listening">Tạo Question</a>
                                     @endif
                                     <a href="{{ route('admin.sets.questions', [$set->id, 'part' => $set->quiz ? $set->quiz->part : 1]) }}" class="ml-2 px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs">Xem câu hỏi</a>
                                 </td>
