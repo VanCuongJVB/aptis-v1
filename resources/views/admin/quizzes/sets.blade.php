@@ -44,11 +44,24 @@
                                     {{ $set->quiz ? $set->quiz->part : '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
                                     {{ $set->questions()->count() }}
-                                    @php $defaultPart = $set->quiz ? $set->quiz->part : 1; @endphp
-                                    @if($defaultPart == 2)
-                                        <a href="{{ route('admin.questions.part2.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                    @php
+                                        $defaultPart = $set->quiz ? $set->quiz->part : 1;
+                                        $defaultSkill = $set->quiz ? $set->quiz->skill : 'reading';
+                                    @endphp
+                                    @if($defaultSkill === 'reading')
+                                        @if($defaultPart == 1)
+                                            <a href="{{ route('admin.questions.part1.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        @elseif($defaultPart == 2)
+                                            <a href="{{ route('admin.questions.part2.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        @elseif($defaultPart == 3)
+                                            <a href="{{ route('admin.questions.part3.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        @elseif($defaultPart == 4)
+                                            <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chưa hỗ trợ tạo câu hỏi cho Part 4">Tạo Question</a>
+                                        @else
+                                            <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Không xác định part">Tạo Question</a>
+                                        @endif
                                     @else
-                                        <a href="{{ route('admin.questions.part1.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chỉ hỗ trợ tạo câu hỏi cho Reading">Tạo Question</a>
                                     @endif
                                     <a href="{{ route('admin.sets.questions', [$set->id, 'part' => $set->quiz ? $set->quiz->part : 1]) }}" class="ml-2 px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs">Xem câu hỏi</a>
                                 </td>

@@ -219,4 +219,145 @@ class QuestionPartController extends Controller
         $question->delete();
         return redirect()->route('admin.quizzes.questions')->with('success', 'Xoá câu hỏi part 2 thành công');
     }
+
+    public function createReadingPart3()
+    {
+        $quizzes = Quiz::orderBy('title')->get();
+        $sets = ReadingSet::orderBy('title')->get();
+        $quizId = request('quiz_id');
+        $setId = request('reading_set_id');
+        $setObj = $sets->where('id', $setId)->first();
+        $quizObj = $setObj ? $quizzes->where('id', $setObj->quiz_id)->first() : null;
+        $quizTitle = $quizObj ? $quizObj->title : '---';
+        $setTitle = $setObj ? $setObj->title : '---';
+        return view('admin.quizzes.question_form_part3', [
+            'question' => new Question(),
+            'quizzes' => $quizzes,
+            'sets' => $sets,
+            'quizTitle' => $quizTitle,
+            'setTitle' => $setTitle,
+        ]);
+    }
+
+    public function storeReadingPart3(Request $request)
+    {
+        $data = $request->validate([
+            'quiz_id' => 'required|exists:quizzes,id',
+            'reading_set_id' => 'required|exists:sets,id',
+            'stem' => 'required|string',
+            'order' => 'nullable|integer',
+            'items' => 'required|array|min:1',
+            'items.*.text' => 'required|string',
+            'items.*.label' => 'required|string',
+            'options' => 'required|array|min:1',
+            'options.*' => 'required|string',
+            'answers' => 'required|array',
+        ], [
+            'quiz_id.required' => 'Vui lòng chọn quiz',
+            'reading_set_id.required' => 'Vui lòng chọn set',
+            'stem.required' => 'Nhập tiêu đề',
+            'items.required' => 'Nhập ít nhất 1 đoạn văn',
+            'items.*.text.required' => 'Không được để trống đoạn văn',
+            'items.*.label.required' => 'Không được để trống label',
+            'options.required' => 'Nhập ít nhất 1 option',
+            'options.*.required' => 'Không được để trống option',
+            'answers.required' => 'Phải nhập đáp án cho từng label',
+        ]);
+        $data['type'] = 'reading_paragraph_matching';
+        // Ép kiểu answers về int
+        $answers = [];
+        foreach ($data['answers'] as $label => $arr) {
+            $answers[$label] = array_map('intval', (array)$arr);
+        }
+        $metadata = [
+            'items' => $data['items'],
+            'options' => $data['options'],
+            'answers' => $answers,
+        ];
+        $question = new Question();
+        $question->quiz_id = $data['quiz_id'];
+        $question->reading_set_id = $data['reading_set_id'];
+        $question->stem = $data['stem'];
+        $question->type = $data['type'];
+        $question->order = $data['order'] ?? 1;
+        $question->skill = 'reading';
+        $question->part = 3;
+        $question->metadata = $metadata;
+        $question->save();
+        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi part 3 thành công');
+    }
+
+    public function editReadingPart3(Question $question)
+    {
+        $quizzes = Quiz::orderBy('title')->get();
+        $sets = ReadingSet::orderBy('title')->get();
+        $quizId = $question->quiz_id;
+        $setId = $question->reading_set_id;
+        $setObj = $sets->where('id', $setId)->first();
+        $quizObj = $setObj ? $quizzes->where('id', $setObj->quiz_id)->first() : null;
+        $quizTitle = $quizObj ? $quizObj->title : '---';
+        $setTitle = $setObj ? $setObj->title : '---';
+        return view('admin.quizzes.question_form_part3', [
+            'question' => $question,
+            'quizzes' => $quizzes,
+            'sets' => $sets,
+            'quizTitle' => $quizTitle,
+            'setTitle' => $setTitle,
+        ]);
+    }
+
+    public function updateReadingPart3(Request $request, Question $question)
+    {
+        $data = $request->validate([
+            'quiz_id' => 'required|exists:quizzes,id',
+            'reading_set_id' => 'required|exists:sets,id',
+            'stem' => 'required|string',
+            'order' => 'nullable|integer',
+            'items' => 'required|array|min:1',
+            'items.*.text' => 'required|string',
+            'items.*.label' => 'required|string',
+            'options' => 'required|array|min:1',
+            'options.*' => 'required|string',
+            'answers' => 'required|array',
+        ], [
+            'quiz_id.required' => 'Vui lòng chọn quiz',
+            'reading_set_id.required' => 'Vui lòng chọn set',
+            'stem.required' => 'Nhập tiêu đề',
+            'items.required' => 'Nhập ít nhất 1 đoạn văn',
+            'items.*.text.required' => 'Không được để trống đoạn văn',
+            'items.*.label.required' => 'Không được để trống label',
+            'options.required' => 'Nhập ít nhất 1 option',
+            'options.*.required' => 'Không được để trống option',
+            'answers.required' => 'Phải nhập đáp án cho từng label',
+        ]);
+        $data['type'] = 'reading_paragraph_matching';
+        // Ép kiểu answers về int
+        $answers = [];
+        foreach ($data['answers'] as $label => $arr) {
+            $answers[$label] = array_map('intval', (array)$arr);
+        }
+        $metadata = [
+            'items' => $data['items'],
+            'options' => $data['options'],
+            'answers' => $answers,
+        ];
+        $question->quiz_id = $data['quiz_id'];
+        $question->reading_set_id = $data['reading_set_id'];
+        $question->stem = $data['stem'];
+        $question->type = $data['type'];
+        $question->order = $data['order'] ?? 1;
+        $question->skill = 'reading';
+        $question->part = 3;
+        $question->metadata = $metadata;
+        $question->save();
+        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi part 3 thành công');
+    }
+
+    public function destroyReadingPart3(Question $question)
+    {
+        $question->delete();
+        return redirect()->route('admin.quizzes.questions')->with('success', 'Xoá câu hỏi part 3 thành công');
+    }
+
+    // ...existing code...
 }

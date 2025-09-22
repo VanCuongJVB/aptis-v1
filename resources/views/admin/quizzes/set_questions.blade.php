@@ -12,6 +12,7 @@
                 <select name="part" id="partSelect" class="border rounded px-2 py-1">
                     <option value="1" {{ ($part ?? request('part', 1)) == 1 ? 'selected' : '' }}>Part 1</option>
                     <option value="2" {{ ($part ?? request('part')) == 2 ? 'selected' : '' }}>Part 2</option>
+                    <option value="3" {{ ($part ?? request('part')) == 3 ? 'selected' : '' }}>Part 3</option>
                 </select>
             </form>
             <a id="createBtn" href="{{ route('admin.questions.part1.create', ['reading_set_id' => $set->id]) }}" class="px-3 py-2 bg-green-600 text-white rounded">Tạo Question mới</a>
@@ -27,6 +28,9 @@
             if (part == 2) {
                 createBtn.href = "{{ route('admin.questions.part2.create') }}" + '?reading_set_id=' + setId;
                 createBtn.className = 'px-3 py-2 bg-blue-600 text-white rounded';
+            } else if (part == 3) {
+                createBtn.href = "{{ route('admin.questions.part3.create') }}" + '?reading_set_id=' + setId;
+                createBtn.className = 'px-3 py-2 bg-purple-600 text-white rounded';
             } else {
                 createBtn.href = "{{ route('admin.questions.part1.create') }}" + '?reading_set_id=' + setId;
                 createBtn.className = 'px-3 py-2 bg-green-600 text-white rounded';
@@ -73,6 +77,13 @@
                             @elseif($currentPart == 2)
                                 <a href="{{ route('admin.questions.part2.edit', $q) }}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">Edit</a>
                                 <form action="{{ route('admin.questions.part2.destroy', $q) }}" method="POST" style="display:inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100" onclick="return confirm('Delete this question?')">Delete</button>
+                                </form>
+                            @elseif($currentPart == 3)
+                                <a href="{{ route('admin.questions.part3.edit', $q) }}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">Edit</a>
+                                <form action="{{ route('admin.questions.part3.destroy', $q) }}" method="POST" style="display:inline">
                                     @csrf
                                     @method('DELETE')
                                     <button class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100" onclick="return confirm('Delete this question?')">Delete</button>
