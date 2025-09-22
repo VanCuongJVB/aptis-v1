@@ -88,6 +88,13 @@
                                     @method('DELETE')
                                     <button class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100" onclick="return confirm('Delete this question?')">Delete</button>
                                 </form>
+                            @elseif($currentPart == 4)
+                                <a href="{{ route('admin.questions.part4.edit', $q) }}" class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">Edit</a>
+                                <form action="{{ route('admin.questions.part4.destroy', $q) }}" method="POST" style="display:inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100" onclick="return confirm('Delete this question?')">Delete</button>
+                                </form>
                             @endif
                         </td>
                     </tr>

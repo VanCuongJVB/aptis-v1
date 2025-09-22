@@ -56,7 +56,7 @@
                                         @elseif($defaultPart == 3)
                                             <a href="{{ route('admin.questions.part3.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
                                         @elseif($defaultPart == 4)
-                                            <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chưa hỗ trợ tạo câu hỏi cho Part 4">Tạo Question</a>
+                                            <a href="{{ route('admin.questions.part4.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
                                         @else
                                             <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Không xác định part">Tạo Question</a>
                                         @endif

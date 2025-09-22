@@ -359,5 +359,124 @@ class QuestionPartController extends Controller
         return redirect()->route('admin.quizzes.questions')->with('success', 'Xoá câu hỏi part 3 thành công');
     }
 
-    // ...existing code...
+    // Reading Part 4
+    public function createReadingPart4()
+    {
+        $quizzes = Quiz::orderBy('title')->get();
+        $sets = ReadingSet::orderBy('title')->get();
+        $quizId = request('quiz_id');
+        $setId = request('reading_set_id');
+        $setObj = $sets->where('id', $setId)->first();
+        $quizObj = $setObj ? $quizzes->where('id', $setObj->quiz_id)->first() : null;
+        $quizTitle = $quizObj ? $quizObj->title : '---';
+        $setTitle = $setObj ? $setObj->title : '---';
+        return view('admin.quizzes.question_form_part4', [
+            'question' => new Question(),
+            'quizzes' => $quizzes,
+            'sets' => $sets,
+            'quizTitle' => $quizTitle,
+            'setTitle' => $setTitle,
+        ]);
+    }
+
+    public function storeReadingPart4(Request $request)
+    {
+        $data = $request->validate([
+            'quiz_id' => 'required|exists:quizzes,id',
+            'reading_set_id' => 'required|exists:sets,id',
+            'stem' => 'required|string',
+            'order' => 'nullable|integer',
+            'paragraphs' => 'required|array|size:7',
+            'paragraphs.*' => 'required|string',
+            'options' => 'required|array|size:7',
+            'options.*' => 'required|string',
+            'correct' => 'required|array|size:7',
+            'correct.*' => 'required|integer',
+        ], [
+            'quiz_id.required' => 'Vui lòng chọn quiz',
+            'reading_set_id.required' => 'Vui lòng chọn set',
+            'stem.required' => 'Nhập tiêu đề',
+            'paragraphs.required' => 'Nhập đủ 7 đoạn văn',
+            'options.required' => 'Nhập đủ 7 heading',
+            'correct.required' => 'Mapping đủ 7 đáp án',
+        ]);
+        $data['type'] = 'reading_heading_matching';
+        // Ép kiểu correct về int
+        $correct = array_map('intval', $data['correct']);
+        $metadata = [
+            'paragraphs' => $data['paragraphs'],
+            'options' => $data['options'],
+            'correct' => $correct,
+        ];
+        $question = new Question();
+        $question->quiz_id = $data['quiz_id'];
+        $question->reading_set_id = $data['reading_set_id'];
+        $question->stem = $data['stem'];
+        $question->type = $data['type'];
+        $question->order = $data['order'] ?? 1;
+        $question->skill = 'reading';
+        $question->part = 4;
+        $question->metadata = $metadata;
+        $question->save();
+        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi part 4 thành công');
+    }
+
+    public function editReadingPart4(Question $question)
+    {
+        $quizzes = Quiz::orderBy('title')->get();
+        $sets = ReadingSet::orderBy('title')->get();
+        $quizId = $question->quiz_id;
+        $setId = $question->reading_set_id;
+        $setObj = $sets->where('id', $setId)->first();
+        $quizObj = $setObj ? $quizzes->where('id', $setObj->quiz_id)->first() : null;
+        $quizTitle = $quizObj ? $quizObj->title : '---';
+        $setTitle = $setObj ? $setObj->title : '---';
+        return view('admin.quizzes.question_form_part4', [
+            'question' => $question,
+            'quizzes' => $quizzes,
+            'sets' => $sets,
+            'quizTitle' => $quizTitle,
+            'setTitle' => $setTitle,
+        ]);
+    }
+
+    public function updateReadingPart4(Request $request, Question $question)
+    {
+        $data = $request->validate([
+            'quiz_id' => 'required|exists:quizzes,id',
+            'reading_set_id' => 'required|exists:sets,id',
+            'stem' => 'required|string',
+            'order' => 'nullable|integer',
+            'paragraphs' => 'required|array|size:7',
+            'paragraphs.*' => 'required|string',
+            'options' => 'required|array|size:7',
+            'options.*' => 'required|string',
+            'correct' => 'required|array|size:7',
+            'correct.*' => 'required|integer',
+        ], [
+            'quiz_id.required' => 'Vui lòng chọn quiz',
+            'reading_set_id.required' => 'Vui lòng chọn set',
+            'stem.required' => 'Nhập tiêu đề',
+            'paragraphs.required' => 'Nhập đủ 7 đoạn văn',
+            'options.required' => 'Nhập đủ 7 heading',
+            'correct.required' => 'Mapping đủ 7 đáp án',
+        ]);
+        $data['type'] = 'reading_heading_matching';
+        $correct = array_map('intval', $data['correct']);
+        $metadata = [
+            'paragraphs' => $data['paragraphs'],
+            'options' => $data['options'],
+            'correct' => $correct,
+        ];
+        $question->quiz_id = $data['quiz_id'];
+        $question->reading_set_id = $data['reading_set_id'];
+        $question->stem = $data['stem'];
+        $question->type = $data['type'];
+        $question->order = $data['order'] ?? 1;
+        $question->skill = 'reading';
+        $question->part = 4;
+        $question->metadata = $metadata;
+        $question->save();
+        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi part 4 thành công');
+    }
 }
