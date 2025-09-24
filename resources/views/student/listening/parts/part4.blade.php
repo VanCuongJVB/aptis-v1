@@ -39,7 +39,7 @@
 
     <div class="mb-4">
         <h2 class="text-lg font-semibold text-gray-800">Câu hỏi {{ $question->order_no }}</h2>
-
+        
         @if(!empty($question->stem))
             <p class="text-gray-800 font-medium">{{ $question->stem }}</p>
         @endif

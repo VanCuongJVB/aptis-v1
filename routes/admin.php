@@ -86,10 +86,39 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
     Route::put('quizzes/questions/part3/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateReadingPart3'])->name('questions.part3.update');
     Route::delete('quizzes/questions/part3/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyReadingPart3'])->name('questions.part3.destroy');
 
+
     // CRUD cho Part 4 (Reading Heading Matching)
     Route::get('quizzes/questions/part4/create', [\App\Http\Controllers\Admin\QuestionPartController::class, 'createReadingPart4'])->name('questions.part4.create');
     Route::post('quizzes/questions/part4', [\App\Http\Controllers\Admin\QuestionPartController::class, 'storeReadingPart4'])->name('questions.part4.store');
     Route::get('quizzes/questions/part4/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editReadingPart4'])->name('questions.part4.edit');
     Route::put('quizzes/questions/part4/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateReadingPart4'])->name('questions.part4.update');
     Route::delete('quizzes/questions/part4/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyReadingPart4'])->name('questions.part4.destroy');
+
+    // CRUD cho Listening Part 1
+    Route::get('quizzes/questions/listening/part1/create', [\App\Http\Controllers\Admin\QuestionPartController::class, 'createListeningPart1'])->name('questions.listening.part1.create');
+    Route::post('quizzes/questions/listening/part1', [\App\Http\Controllers\Admin\QuestionPartController::class, 'storeListeningPart1'])->name('questions.listening.part1.store');
+    Route::get('quizzes/questions/listening/part1/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editListeningPart1'])->name('questions.listening.part1.edit');
+    Route::put('quizzes/questions/listening/part1/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateListeningPart1'])->name('questions.listening.part1.update');
+    Route::delete('quizzes/questions/listening/part1/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyListeningPart1'])->name('questions.listening.part1.destroy');
+
+    // CRUD cho Listening Part 2
+    Route::get('quizzes/questions/listening/part2/create', [\App\Http\Controllers\Admin\QuestionPartController::class, 'createListeningPart2'])->name('questions.listening.part2.create');
+    Route::post('quizzes/questions/listening/part2', [\App\Http\Controllers\Admin\QuestionPartController::class, 'storeListeningPart2'])->name('questions.listening.part2.store');
+    Route::get('quizzes/questions/listening/part2/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editListeningPart2'])->name('questions.listening.part2.edit');
+    Route::put('quizzes/questions/listening/part2/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateListeningPart2'])->name('questions.listening.part2.update');
+    Route::delete('quizzes/questions/listening/part2/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyListeningPart2'])->name('questions.listening.part2.destroy');
+
+    // CRUD cho Listening Part 3
+    Route::get('quizzes/questions/listening/part3/create', [\App\Http\Controllers\Admin\QuestionPartController::class, 'createListeningPart3'])->name('questions.listening.part3.create');
+    Route::post('quizzes/questions/listening/part3', [\App\Http\Controllers\Admin\QuestionPartController::class, 'storeListeningPart3'])->name('questions.listening.part3.store');
+    Route::get('quizzes/questions/listening/part3/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editListeningPart3'])->name('questions.listening.part3.edit');
+    Route::put('quizzes/questions/listening/part3/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateListeningPart3'])->name('questions.listening.part3.update');
+    Route::delete('quizzes/questions/listening/part3/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyListeningPart3'])->name('questions.listening.part3.destroy');
+
+    // CRUD cho Listening Part 4
+    Route::get('quizzes/questions/listening/part4/create', [\App\Http\Controllers\Admin\QuestionPartController::class, 'createListeningPart4'])->name('questions.listening.part4.create');
+    Route::post('quizzes/questions/listening/part4', [\App\Http\Controllers\Admin\QuestionPartController::class, 'storeListeningPart4'])->name('questions.listening.part4.store');
+    Route::get('quizzes/questions/listening/part4/{question}/edit', [\App\Http\Controllers\Admin\QuestionPartController::class, 'editListeningPart4'])->name('questions.listening.part4.edit');
+    Route::put('quizzes/questions/listening/part4/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'updateListeningPart4'])->name('questions.listening.part4.update');
+    Route::delete('quizzes/questions/listening/part4/{question}', [\App\Http\Controllers\Admin\QuestionPartController::class, 'destroyListeningPart4'])->name('questions.listening.part4.destroy');
 });

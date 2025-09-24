@@ -200,12 +200,42 @@
 
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
 
-                                    @if($q->part == 1)
+                                    @if($q->skill == 'listening' && $q->part == 1)
+                                        <a href="{{ route('admin.questions.listening.part1.edit', $q) }}"
+                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                            Edit
+                                        </a>
+                                        <form action="{{ route('admin.questions.listening.part1.destroy', $q) }}" method="POST"
+                                            class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                                onclick="return confirm('Delete this question?')">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    @elseif($q->part == 1)
                                         <a href="{{ route('admin.questions.part1.edit', $q) }}"
                                             class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
                                             Edit
                                         </a>
                                         <form action="{{ route('admin.questions.part1.destroy', $q) }}" method="POST"
+                                            class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                                onclick="return confirm('Delete this question?')">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    @elseif($q->skill == 'listening' && $q->part == 2)
+                                        <a href="{{ route('admin.questions.listening.part2.edit', $q) }}"
+                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                            Edit
+                                        </a>
+                                        <form action="{{ route('admin.questions.listening.part2.destroy', $q) }}" method="POST"
                                             class="inline">
                                             @csrf
                                             @method('DELETE')
@@ -230,6 +260,21 @@
                                                 Delete
                                             </button>
                                         </form>
+                                    @elseif($q->skill == 'listening' && $q->part == 3)
+                                        <a href="{{ route('admin.questions.listening.part3.edit', $q) }}"
+                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                            Edit
+                                        </a>
+                                        <form action="{{ route('admin.questions.listening.part3.destroy', $q) }}" method="POST"
+                                            class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                                onclick="return confirm('Delete this question?')">
+                                                Delete
+                                            </button>
+                                        </form>
                                     @elseif($q->part == 3)
                                         <a href="{{ route('admin.questions.part3.edit', $q) }}"
                                             class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
@@ -245,12 +290,27 @@
                                                 Delete
                                             </button>
                                         </form>
+                                    @elseif($q->skill == 'listening' && $q->part == 4)
+                                        <a href="{{ route('admin.questions.listening.part4.edit', $q) }}"
+                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                                            Edit
+                                        </a>
+                                        <form action="{{ route('admin.questions.listening.part4.destroy', $q) }}" method="POST"
+                                            class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                                onclick="return confirm('Delete this question?')">
+                                                Delete
+                                            </button>
+                                        </form>
                                     @elseif($q->part == 4)
                                         <a href="{{ route('admin.questions.part4.edit', $q) }}"
                                             class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
                                             Edit
                                         </a>
-                                        <form action="{{ route('admin.questions.part3.destroy', $q) }}" method="POST"
+                                        <form action="{{ route('admin.questions.part4.destroy', $q) }}" method="POST"
                                             class="inline">
                                             @csrf
                                             @method('DELETE')

@@ -87,8 +87,17 @@
                                             <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Không xác định part">Tạo Question</a>
                                         @endif
                                     @elseif($defaultSkill === 'listening')
-                                        {{-- Thêm route tạo question cho listening nếu có --}}
-                                        <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chưa hỗ trợ tạo câu hỏi cho Listening">Tạo Question</a>
+                                        @if($defaultPart == 1)
+                                            <a href="{{ route('admin.questions.listening.part1.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        @elseif($defaultPart == 2)
+                                            <a href="{{ route('admin.questions.listening.part2.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        @elseif($defaultPart == 3)
+                                            <a href="{{ route('admin.questions.listening.part3.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        @elseif($defaultPart == 4)
+                                            <a href="{{ route('admin.questions.listening.part4.create', ['reading_set_id' => $set->id]) }}" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs">Tạo Question</a>
+                                        @else
+                                            <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Không xác định part">Tạo Question</a>
+                                        @endif
                                     @else
                                         <a href="#" class="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs opacity-60 cursor-not-allowed" title="Chỉ hỗ trợ tạo câu hỏi cho Reading/Listening">Tạo Question</a>
                                     @endif
