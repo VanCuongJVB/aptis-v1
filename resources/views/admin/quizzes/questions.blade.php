@@ -4,25 +4,23 @@
 
 @section('content')
     <div class="container mx-auto px-4 py-8">
-
-        <div class="mb-6 flex items-center justify-between">
+        <div class="flex items-center justify-between mb-6">
             <h1 class="text-2xl font-semibold">Questions — Quản lý</h1>
-            <div class="flex gap-2">
-                <button id="create-question-btn" type="button"
-                    class="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">Tạo câu hỏi</button>
-            </div>
+            <button id="create-question-btn" type="button" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-white shadow hover:bg-emerald-700">Tạo câu hỏi</button>
         </div>
 
         @if(session('success'))
-            <div class="mb-4 p-3 bg-green-100 text-green-800 rounded">{{ session('success') }}</div>
+            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">
+                {{ session('success') }}
+            </div>
         @endif
 
-        <div class="bg-white rounded shadow p-4">
+        <div class="rounded-2xl bg-white shadow-sm border border-slate-200 p-4">
             {{-- FILTER FORM --}}
-            <form method="get" class="mb-4 flex flex-wrap gap-2 items-end" id="filterForm">
-                <div>
-                    <label class="block text-xs font-semibold mb-1">Quiz</label>
-                    <select name="quiz_id" id="filter_quiz_id" class="border rounded p-1 min-w-[120px]">
+            <form method="get" class="mb-6 rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm backdrop-blur flex flex-wrap gap-4 items-end" id="filterForm">
+                <div class="min-w-[180px] space-y-1">
+                    <label class="block text-xs font-semibold tracking-wide text-slate-600">Quiz</label>
+                    <select name="quiz_id" id="filter_quiz_id" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 min-w-[120px]">
                         <option value="">-- All --</option>
                         @foreach($quizzes as $quiz)
                             <option value="{{ $quiz->id }}" @if(request('quiz_id') == $quiz->id) selected @endif>
@@ -31,10 +29,9 @@
                         @endforeach
                     </select>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold mb-1">Set</label>
-                    <select name="reading_set_id" id="filter_set_id" class="border rounded p-1 min-w-[120px]">
+                <div class="min-w-[180px] space-y-1">
+                    <label class="block text-xs font-semibold tracking-wide text-slate-600">Set</label>
+                    <select name="reading_set_id" id="filter_set_id" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 min-w-[120px]">
                         <option value="">-- All --</option>
                         @foreach($sets as $set)
                             <option value="{{ $set->id }}" data-quiz="{{ $set->quiz_id }}"
@@ -45,18 +42,24 @@
                         @endforeach
                     </select>
                 </div>
-
-                {{-- Đã tối giản, chỉ giữ filter Quiz/Set --}}
-
-                <div>
-                    <label class="block text-xs font-semibold mb-1">Tìm kiếm</label>
-                    <input type="text" name="q" value="{{ request('q') }}" class="border rounded p-1 min-w-[180px]"
-                        placeholder="Nội dung...">
+                <div class="min-w-[180px] space-y-1">
+                    <label class="block text-xs font-semibold tracking-wide text-slate-600">Tìm kiếm</label>
+                    <input type="text" name="q" value="{{ request('q') }}" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40" placeholder="Nội dung...">
                 </div>
-
                 <div>
-                    <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Lọc</button>
-                    <a href="{{ route('admin.quizzes.questions') }}" class="ml-2 text-gray-500 underline">Reset</a>
+                    <button type="submit" class="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500/60">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 -ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6h18M4 12h16M6 18h12" />
+                        </svg>
+                        <span>Lọc</span>
+                    </button>
+                    <a href="{{ route('admin.quizzes.questions') }}"
+                        class="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white shadow hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/60 ml-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m-5 0a8.001 8.001 0 0015.356 2m0 0V15m0-4h-5" />
+                        </svg>
+                        Reset
+                    </a>
                 </div>
             </form>
 
@@ -154,171 +157,79 @@
                         // thêm nếu có
                     ];
                 @endphp
-
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                <table class="min-w-full border border-slate-200 rounded-2xl divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STT
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stem
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Skill
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quiz
-                                / Set</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Actions</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">#</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Stem</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Skill</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Quiz / Set</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-100">
+                    <tbody class="bg-white divide-y divide-slate-100">
                         @forelse($questions as $q)
-                            <tr class="even:bg-gray-50">
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    {{ $questions->firstItem() + $loop->index }}
-                                </td>
-
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ Str::limit($q->stem ?? $q->title ?? '-', 140) }}
-                                </td>
-
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    {{ $typeLabels[$q->type] ?? ($q->type ?? '-') }}
-                                </td>
-
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    {{ $skillLabels[$q->skill] ?? ($q->skill ? ucfirst($q->skill) : '-') }}
-                                </td>
-
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    {{ optional($q->quiz)->title ?? '-' }}
-                                    @if(optional($q->readingSet)->title)
-                                        / {{ $q->readingSet->title }}
-                                    @endif
-                                </td>
-
+                            <tr class="even:bg-slate-50/60">
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{{ $questions->firstItem() + $loop->index }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ Str::limit($q->stem ?? $q->title ?? '-', 140) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{{ $skillLabels[$q->skill] ?? ($q->skill ? ucfirst($q->skill) : '-') }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{{ optional($q->quiz)->title ?? '-' }}@if(optional($q->readingSet)->title) / {{ $q->readingSet->title }}@endif</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
-
                                     @if($q->skill == 'listening' && $q->part == 1)
-                                        <a href="{{ route('admin.questions.listening.part1.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.listening.part1.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.listening.part1.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.listening.part1.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @elseif($q->part == 1)
-                                        <a href="{{ route('admin.questions.part1.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.part1.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.part1.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.part1.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @elseif($q->skill == 'listening' && $q->part == 2)
-                                        <a href="{{ route('admin.questions.listening.part2.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.listening.part2.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.listening.part2.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.listening.part2.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @elseif($q->part == 2)
-                                        <a href="{{ route('admin.questions.part2.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.part2.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.part2.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.part2.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @elseif($q->skill == 'listening' && $q->part == 3)
-                                        <a href="{{ route('admin.questions.listening.part3.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.listening.part3.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.listening.part3.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.listening.part3.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @elseif($q->part == 3)
-                                        <a href="{{ route('admin.questions.part3.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.part3.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.part3.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.part3.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @elseif($q->skill == 'listening' && $q->part == 4)
-                                        <a href="{{ route('admin.questions.listening.part4.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.listening.part4.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.listening.part4.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.listening.part4.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @elseif($q->part == 4)
-                                        <a href="{{ route('admin.questions.part4.edit', $q) }}"
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
-                                            Edit
-                                        </a>
-                                        <form action="{{ route('admin.questions.part4.destroy', $q) }}" method="POST"
-                                            class="inline">
+                                        <a href="{{ route('admin.questions.part4.edit', $q) }}" class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                        <form action="{{ route('admin.questions.part4.destroy', $q) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button
-                                                class="inline-flex items-center px-3 py-1 ml-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                                onclick="return confirm('Delete this question?')">
-                                                Delete
-                                            </button>
+                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2" onclick="return confirm('Delete this question?')">Delete</button>
                                         </form>
                                     @else
                                         <span class="text-gray-400">Edit</span>
@@ -327,25 +238,20 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
-                                    Không có dữ liệu.
-                                </td>
+                                <td colspan="5" class="px-6 py-8 text-center text-slate-500">Không có dữ liệu.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
 
-            {{-- PAGINATION --}}
-            <div class="mt-4 w-100">
-                <div class="flex justify-between">
-                    <style>
-                        nav {
-                            width: 100% !important;
-                        }
-                    </style>
-                    {{ $questions->links() }}
-                </div>
+            <div class="mt-4">
+                <style>
+                    nav {
+                        width: 100% !important;
+                    }
+                </style>
+                {{ $questions->links() }}
             </div>
         </div>
     </div>

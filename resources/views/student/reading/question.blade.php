@@ -16,6 +16,8 @@
             </div>
         </div>
 
+        <div>{!! $question->stem ?? $question->metadata['stem'] !!}</div>
+
         <!-- Question content -->
         <div class="mb-4">
             @if(isset($question))

@@ -404,7 +404,7 @@ class QuestionPartController extends Controller
             'options.required' => 'Nhập đủ 7 heading',
             'correct.required' => 'Mapping đủ 7 đáp án',
         ]);
-        $data['type'] = 'reading_heading_matching';
+        $data['type'] = 'reading_long_text';
         // Ép kiểu correct về int
         $correct = array_map('intval', $data['correct']);
         $metadata = [
@@ -465,7 +465,7 @@ class QuestionPartController extends Controller
             'options.required' => 'Nhập đủ 7 heading',
             'correct.required' => 'Mapping đủ 7 đáp án',
         ]);
-        $data['type'] = 'reading_heading_matching';
+        $data['type'] = 'reading_long_text';
         $correct = array_map('intval', $data['correct']);
         $metadata = [
             'paragraphs' => $data['paragraphs'],

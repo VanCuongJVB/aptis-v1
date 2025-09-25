@@ -13,7 +13,7 @@ class ReadingSet extends Model
 
     protected $fillable = [
         'quiz_id',
-    'skill',
+        'skill',
         'title',
         'description',
         'is_public',

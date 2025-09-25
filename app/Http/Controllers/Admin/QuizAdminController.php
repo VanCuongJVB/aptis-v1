@@ -23,7 +23,7 @@ class QuizAdminController extends Controller
             'top_quizzes_by_questions' => Quiz::withCount('questions')->orderBy('questions_count', 'desc')->limit(10)->get(),
             'sets_count' => ReadingSet::count(),
             'questions_count' => Question::count(),
-        ];
+        ]; 
 
         return view('admin.quizzes.index', $data);
     }

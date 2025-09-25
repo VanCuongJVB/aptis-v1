@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container mx-auto py-6">
-    <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
         <form method="POST" enctype="multipart/form-data" action="{{ isset($question->id) ? route('admin.questions.listening.part3.update', $question) : route('admin.questions.listening.part3.store') }}">
             @csrf
             @if(isset($question->id)) @method('PUT') @endif
