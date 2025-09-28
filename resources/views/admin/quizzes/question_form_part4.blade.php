@@ -58,7 +58,20 @@
                 <div class="mb-6">
                     <label class="block text-base font-semibold text-slate-700 mb-1">Tiêu đề câu hỏi (stem) <span class="text-red-500">*</span></label>
                     @php
-                        $stemValue = old('stem', is_array($question->metadata) ? ($question->metadata['stem'] ?? '') : ($question->metadata->stem ?? ''));
+                        // Ưu tiên old('stem'), sau đó đến $question->stem, cuối cùng mới đến $question->metadata['stem']
+                        $stemValue = old('stem');
+                        if ($stemValue === null) {
+                            $stemValue = $question->stem ?? null;
+                        }
+                        if ($stemValue === null) {
+                            if (is_array($question->metadata)) {
+                                $stemValue = $question->metadata['stem'] ?? '';
+                            } elseif (is_object($question->metadata)) {
+                                $stemValue = $question->metadata->stem ?? '';
+                            } else {
+                                $stemValue = '';
+                            }
+                        }
                         if (is_array($stemValue)) $stemValue = reset($stemValue) ?: '';
                     @endphp
                     <input type="text" name="stem"

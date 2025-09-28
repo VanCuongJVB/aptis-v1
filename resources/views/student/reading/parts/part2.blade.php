@@ -1,8 +1,9 @@
 <div>
     @php
-        $meta = $question->metadata ?? [];
-        $sentences = $meta['sentences'] ?? [];
-        $selected = $answer->metadata['selected'] ?? null;
+    $meta = $question->metadata ?? [];
+    $sentences = $meta['sentences'] ?? [];
+    $displayOrder = $meta['display_order'] ?? null;
+    $selected = $answer->metadata['selected'] ?? null;
     @endphp
 
     {{-- <p class="mb-2 font-medium">
@@ -34,10 +35,19 @@
             <div class="mb-3 font-medium">Các câu (kéo từ đây)</div>
             <div id="pool" class="space-y-3 min-h-[240px] overflow-auto border p-3 rounded-lg">
                 @php
+                    // Sắp xếp lại các câu theo display_order nếu có
                     $pairs = [];
-                    foreach ($sentences as $origIdx => $s) {
-                        $label = is_array($s) && isset($s['text']) ? $s['text'] : $s;
-                        $pairs[] = ['idx' => $origIdx, 'label' => $label];
+                    if (is_array($displayOrder) && count($displayOrder) === count($sentences)) {
+                        foreach ($displayOrder as $origIdx) {
+                            $s = $sentences[$origIdx] ?? '';
+                            $label = is_array($s) && isset($s['text']) ? $s['text'] : $s;
+                            $pairs[] = ['idx' => $origIdx, 'label' => $label];
+                        }
+                    } else {
+                        foreach ($sentences as $origIdx => $s) {
+                            $label = is_array($s) && isset($s['text']) ? $s['text'] : $s;
+                            $pairs[] = ['idx' => $origIdx, 'label' => $label];
+                        }
                     }
                 @endphp
                 @foreach($pairs as $pair)
