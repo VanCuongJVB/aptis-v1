@@ -57,9 +57,13 @@
 
                 <div class="mb-6">
                     <label class="block text-base font-semibold text-slate-700 mb-1">Tiêu đề câu hỏi (stem) <span class="text-red-500">*</span></label>
+                    @php
+                        $stemValue = old('stem', is_array($question->metadata) ? ($question->metadata['stem'] ?? '') : ($question->metadata->stem ?? ''));
+                        if (is_array($stemValue)) $stemValue = reset($stemValue) ?: '';
+                    @endphp
                     <input type="text" name="stem"
                         class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition"
-                        value="{{ old('stem', $question->metadata ?? '') }}"
+                        value="{{ $stemValue }}"
                         placeholder="Ví dụ: Match each paragraph to the most suitable heading.">
                     <div class="text-xs text-gray-500 mt-1">Hiển thị ở trên cùng khi người thi làm bài.</div>
                     @error('stem')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror

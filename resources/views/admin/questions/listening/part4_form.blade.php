@@ -10,8 +10,12 @@
                 @if(isset($question->id)) @method('PUT') @endif
                 <div class="mb-4">
                     <label class="block font-medium mb-1">Tiêu đề câu hỏi</label>
-                    <input type="text" name="title" class="form-input w-full"
-                        value="{{ old('stem', $question->metadata['stem'] ?? $question->stem ?? '') }}" required>
+                    @php
+                        $stemValue = old('stem', $question->metadata['stem'] ?? $question->stem ?? '');
+                        if (is_array($stemValue))
+                            $stemValue = reset($stemValue) ?: '';
+                    @endphp
+                    <input type="text" name="title" class="form-input w-full" value="{{ $stemValue }}" required>
                 </div>
                 <div class="mb-4">
                     <label class="block font-medium mb-1">Quiz</label>
@@ -29,7 +33,8 @@
                         <option value="">-- Chọn Quiz --</option>
                         @foreach($quizzes as $quiz)
                             <option value="{{ $quiz->id }}" {{ $selectedQuizId == $quiz->id ? 'selected' : '' }}>
-                                {{ $quiz->title }}</option>
+                                {{ $quiz->title }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -82,10 +87,14 @@
                         <div class="mb-6 border rounded p-4 bg-gray-50">
                             <div class="mb-2 font-semibold text-blue-700">Câu hỏi {{ $idx + 1 }} <span
                                     class="text-gray-500">(sub: {{ $q['sub'] ?? chr(65 + $idx) }})</span></div>
-                            <div class="mb-3">
-                                <label class="block mb-1">Stem</label>
-                                <input type="text" name="questions[{{ $idx }}][stem]" class="form-input w-full"
-                                    value="{{ $q['stem'] ?? '' }}" required>
+                            <div class="mb-4">
+                                <label class="block font-medium mb-1">Tiêu đề câu hỏi</label>
+                                @php
+                                    $stemValue = old('stem', $question->metadata['stem'] ?? $question->stem ?? '');
+                                    if (is_array($stemValue)) $stemValue = reset($stemValue) ?: '';
+                                @endphp
+                                <input type="text" name="title" class="form-input w-full"
+                                    value="{{ $stemValue }}" required>
                             </div>
                             <div class="mb-3">
                                 <label class="block mb-1">Text (đoạn văn)</label>
