@@ -63,7 +63,9 @@
                                 <x-dropdown-link :href="route('admin.quizzes.index')">
                                     {{ __('Quản lý Quizzes') }}
                                 </x-dropdown-link>
-                                <!-- Admin Reading/Listening links removed -->
+                                <x-dropdown-link :href="route('admin.quizzes.sets')">
+                                    {{ __('Quản lý Sets') }}
+                                </x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.students.index')">
                                     {{ __('Quản lý học sinh') }}
                                 </x-dropdown-link>

@@ -5,17 +5,16 @@
         $selected = $answer->metadata['selected'] ?? null;
     @endphp
 
-    <p class="mb-2 font-medium">
-        The sentences below are from a report. Put the sentences in the right order.
-        The first sentence is done for you:
-    </p>
+    {{-- <p class="mb-2 font-medium">
+        {{ $question->stem }}
+    </p> --}}
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Slots -->
         <div class="flex flex-col">
-            <div class="mb-3 font-medium">
+            {{-- <div class="mb-3 font-medium">
                 Correct order (drag here according to position 1..{{ count($sentences) }})
-            </div>
+            </div> --}}
             <div id="slot-container" class="space-y-3 min-h-[320px] overflow-auto border p-3 rounded-lg">
                 @for($i = 0; $i < count($sentences); $i++)
                     <div class="slot border-2 border-dashed rounded flex items-start px-3 py-2

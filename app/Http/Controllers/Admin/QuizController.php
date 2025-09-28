@@ -72,6 +72,7 @@ class QuizController extends Controller
             'skill' => 'required|in:reading,listening',
             'part' => 'required|integer|min:1|max:4',
             'is_published' => 'boolean',
+            'duration_minutes' => 'nullable',
             'show_explanation' => 'boolean',
         ]);
         $data['is_published'] = $request->has('is_published');
@@ -93,7 +94,7 @@ class QuizController extends Controller
             'skill' => 'required|in:reading,listening',
             'part' => 'required|integer|min:1|max:4',
             'is_published' => 'boolean',
-            'duration_minutes' => 'required|integer|min:1',
+            'duration_minutes' => 'nullable',
             'show_explanation' => 'boolean',
         ]);
         $data['is_published'] = $request->has('is_published');

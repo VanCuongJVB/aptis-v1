@@ -7,10 +7,10 @@
     use Illuminate\Support\Facades\Storage;
     use Illuminate\Support\Str;
 
-    // Lấy đường dẫn audio từ nhiều nguồn
-    $audioPath = $question->audio_path
-        ?? $question->audio
-        ?? data_get($question->metadata, 'audio');
+    // Lấy đường dẫn audio: ưu tiên metadata mới nhất
+    $audioPath = data_get($question->metadata, 'audio')
+        ?? $question->audio_path
+        ?? $question->audio;
 
     // Convert sang URL phát được
     $audioUrl = null;

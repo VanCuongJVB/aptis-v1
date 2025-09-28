@@ -1,7 +1,9 @@
 <?php
 
 
+
 namespace App\Http\Controllers\Admin;
+
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -661,15 +663,16 @@ class QuestionPartController extends Controller
             return back()->withErrors($e->validator)->withInput();
         }
 
-        // Xử lý upload audio cho từng speaker
+        // Upload audio vào folder tạm, sau khi tạo xong sẽ move sang folder question_id
+    $tmpFolder = 'listening/part2/set1/tmp_' . uniqid();
         $speakers = $data['speakers'];
         foreach ($speakers as $i => &$sp) {
             if ($request->hasFile("speakers.$i.audio_file")) {
                 $file = $request->file("speakers.$i.audio_file");
-                $uniqueName = md5(uniqid() . '_' . $file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-                $sp['audio'] = $file->storeAs('listening/part2/set2/', $uniqueName, 'public');
+                $ext = $file->getClientOriginalExtension();
+                $fileName = 'speaker' . ($i+1) . '.' . $ext;
+                $sp['audio'] = $file->storeAs($tmpFolder, $fileName, 'public');
             }
-            // Nếu không upload thì giữ nguyên đường dẫn nhập vào
         }
         unset($sp);
 
@@ -690,6 +693,28 @@ class QuestionPartController extends Controller
             'order' => $data['order'] ?? 1,
             'metadata' => $metadata,
         ]);
+
+        // Nếu có file audio, move sang folder question_id
+        $qid = $question->id;
+    $finalFolder = 'listening/part2/set1/' . $qid;
+        $newSpeakers = $speakers;
+        $needUpdate = false;
+        foreach ($speakers as $i => $sp) {
+            if (!empty($sp['audio']) && strpos($sp['audio'], $tmpFolder) === 0) {
+                $oldPath = $sp['audio'];
+                $ext = pathinfo($oldPath, PATHINFO_EXTENSION);
+                $newPath = $finalFolder . '/speaker' . ($i+1) . '.' . $ext;
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->move($oldPath, $newPath);
+                    $newSpeakers[$i]['audio'] = $newPath;
+                    $needUpdate = true;
+                }
+            }
+        }
+        if ($needUpdate) {
+            $question->metadata = array_merge($question->metadata, ['speakers' => $newSpeakers]);
+            $question->save();
+        }
 
         return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi Listening Part 2 thành công!');
     }
@@ -727,13 +752,16 @@ class QuestionPartController extends Controller
 
         // Xử lý upload audio cho từng speaker
         $speakers = $data['speakers'];
+        $qid = $question->id;
+    $finalFolder = 'listening/part2/set1/' . $qid;
+        $speakers = $data['speakers'];
         foreach ($speakers as $i => &$sp) {
             if ($request->hasFile("speakers.$i.audio_file")) {
                 $file = $request->file("speakers.$i.audio_file");
-                $uniqueName = md5(uniqid() . '_' . $file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-                $sp['audio'] = $file->storeAs('listening/part2/set/2/', $uniqueName, 'public');
+                $ext = $file->getClientOriginalExtension();
+                $fileName = 'speaker' . ($i+1) . '.' . $ext;
+                $sp['audio'] = $file->storeAs($finalFolder, $fileName, 'public');
             }
-            // Nếu không upload thì giữ nguyên đường dẫn nhập vào
         }
         unset($sp);
 
@@ -755,6 +783,12 @@ class QuestionPartController extends Controller
 
     public function destroyListeningPart2(Question $question)
     {
+        // Xóa folder audio speakers nếu có
+        $qid = $question->id;
+    $finalFolder = 'listening/part2/set1/' . $qid;
+        if (Storage::disk('public')->exists($finalFolder)) {
+            Storage::disk('public')->deleteDirectory($finalFolder);
+        }
         $question->delete();
         return redirect()->route('admin.quizzes.questions')->with('success', 'Đã xóa câu hỏi Listening Part 2!');
     }
@@ -803,7 +837,7 @@ class QuestionPartController extends Controller
         if ($request->hasFile('audio_file')) {
             $file = $request->file('audio_file');
             $uniqueName = md5(uniqid() . '_' . $file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-            $audioPath = $file->storeAs('listening/part3/set' . ($data['reading_set_id'] ?? '0') . '/', $uniqueName, 'public');
+            $audioPath = $file->storeAs('listening/part3/set1/', $uniqueName, 'public');
         }
         $metadata = [
             'audio' => $audioPath,
@@ -853,11 +887,21 @@ class QuestionPartController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->validator)->withInput();
         }
-        $audioPath = $data['audio'] ?? $question->metadata['audio'] ?? null;
+        $audioPath = $question->metadata['audio'] ?? null;
         if ($request->hasFile('audio_file')) {
+            // Xóa file cũ nếu có
+            if ($audioPath && Storage::disk('public')->exists($audioPath)) {
+                Storage::disk('public')->delete($audioPath);
+            }
             $file = $request->file('audio_file');
             $uniqueName = md5(uniqid() . '_' . $file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-            $audioPath = $file->storeAs('listening/part3/set' . ($question->reading_set_id ?? '0') . '/', $uniqueName, 'public');
+            $audioPath = $file->storeAs('listening/part3/set1/', $uniqueName, 'public');
+        } else if (isset($data['audio']) && $data['audio'] !== $audioPath) {
+            // Nếu truyền audio rỗng (xóa audio)
+            if ($audioPath && Storage::disk('public')->exists($audioPath)) {
+                Storage::disk('public')->delete($audioPath);
+            }
+            $audioPath = null;
         }
         $metadata = [
             'audio' => $audioPath,
@@ -876,6 +920,11 @@ class QuestionPartController extends Controller
 
     public function destroyListeningPart3(Question $question)
     {
+        // Xóa file audio nếu có
+        $audioPath = $question->metadata['audio'] ?? null;
+        if ($audioPath && Storage::disk('public')->exists($audioPath)) {
+            Storage::disk('public')->delete($audioPath);
+        }
         $question->delete();
         return redirect()->route('admin.quizzes.questions')->with('success', 'Đã xóa câu hỏi Listening Part 3!');
     }
@@ -922,9 +971,13 @@ class QuestionPartController extends Controller
         }
         $audioPath = $data['audio'] ?? null;
         if ($request->hasFile('audio_file')) {
+            // Nếu có file cũ thì xóa trước (chỉ khi tạo mới mà có file cũ do nhập tay)
+            if ($audioPath && Storage::disk('public')->exists($audioPath)) {
+                Storage::disk('public')->delete($audioPath);
+            }
             $file = $request->file('audio_file');
             $uniqueName = md5(uniqid() . '_' . $file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-            $audioPath = $file->storeAs('listening/part4/set' . ($data['reading_set_id'] ?? '0') . '/', $uniqueName, 'public');
+            $audioPath = $file->storeAs('listening/part4/set1/', $uniqueName, 'public');
         }
         $metadata = [
             'stem' => $request->input('title', ''),
@@ -971,11 +1024,21 @@ class QuestionPartController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors($e->validator)->withInput();
         }
-        $audioPath = $data['audio'] ?? $question->metadata['audio'] ?? null;
+        $audioPath = $question->metadata['audio'] ?? null;
         if ($request->hasFile('audio_file')) {
+            // Xóa file cũ nếu có
+            if ($audioPath && Storage::disk('public')->exists($audioPath)) {
+                Storage::disk('public')->delete($audioPath);
+            }
             $file = $request->file('audio_file');
             $uniqueName = md5(uniqid() . '_' . $file->getClientOriginalName()) . '.' . $file->getClientOriginalExtension();
-            $audioPath = $file->storeAs('listening/part4/set' . ($question->reading_set_id ?? '0') . '/', $uniqueName, 'public');
+            $audioPath = $file->storeAs('listening/part4/set1/', $uniqueName, 'public');
+        } else if (isset($data['audio']) && $data['audio'] !== $audioPath) {
+            // Nếu truyền audio rỗng (xóa audio)
+            if ($audioPath && Storage::disk('public')->exists($audioPath)) {
+                Storage::disk('public')->delete($audioPath);
+            }
+            $audioPath = null;
         }
         $metadata = [
             'stem' => $request->input('title', $question->metadata['title'] ?? ''),
@@ -992,6 +1055,11 @@ class QuestionPartController extends Controller
 
     public function destroyListeningPart4(Question $question)
     {
+        // Xóa file audio nếu có
+        $audioPath = $question->metadata['audio'] ?? null;
+        if ($audioPath && Storage::disk('public')->exists($audioPath)) {
+            Storage::disk('public')->delete($audioPath);
+        }
         $question->delete();
         return redirect()->route('admin.quizzes.questions')->with('success', 'Đã xóa câu hỏi Listening Part 4!');
     }

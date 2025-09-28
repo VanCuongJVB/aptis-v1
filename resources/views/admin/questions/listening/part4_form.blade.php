@@ -11,7 +11,7 @@
                 <div class="mb-4">
                     <label class="block font-medium mb-1">Tiêu đề câu hỏi</label>
                     <input type="text" name="title" class="form-input w-full"
-                        value="{{ old('stem', $question->metadata['stem'] ?? '') }}" required>
+                        value="{{ old('stem', $question->metadata['stem'] ?? $question->stem ?? '') }}" required>
                 </div>
                 <div class="mb-4">
                     <label class="block font-medium mb-1">Quiz</label>

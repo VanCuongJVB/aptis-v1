@@ -49,12 +49,7 @@ Route::middleware(['auth', 'admin.role'])->prefix('admin')->name('admin.')->grou
     // Export current quizzes as a JSON template for users to download and edit
     Route::get('quizzes/import/template', [\App\Http\Controllers\Admin\ImportController::class, 'exportTemplate'])->name('quizzes.import.template');
 
-    // Question management (basic CRUD)
-    Route::get('quizzes/questions/create', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'create'])->name('questions.create');
-    Route::post('quizzes/questions', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'store'])->name('questions.store');
-    Route::get('quizzes/questions/{question}/edit', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'edit'])->name('questions.edit');
-    Route::put('quizzes/questions/{question}', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'update'])->name('questions.update');
-    Route::delete('quizzes/questions/{question}', [\App\Http\Controllers\Admin\QuestionAdminController::class, 'destroy'])->name('questions.destroy');
+    // Question management (tổng quan, không còn CRUD ở controller cũ)
 
     // ReadingSet management (CRUD for Sets)
     Route::get('quizzes/sets/create', [\App\Http\Controllers\Admin\ReadingSetController::class, 'create'])->name('sets.create');

@@ -15,14 +15,20 @@
                 {{ $attempt->started_at ? $attempt->started_at->format('H:i d/m/Y') : '' }}
             </div>
         </div>
-
-        <div>{!! $question->stem ?? $question->metadata['stem'] !!}</div>
-
         <!-- Question content -->
-        <div class="mb-4">
-            @if(isset($question))
-                <div class="prose">{!! $question->content ?? $question->title !!}</div>
-            @endif
+        <div class="flex items-center gap-3 mb-4">
+            <svg class="w-5 h-5 text-sky-500 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+
+            <div>
+                <h2 class="text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 leading-tight" style="color: black">
+                {!! $question->stem ?? $question->metadata['stem'] !!}
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Chú thích/ghi chú (nếu cần)</p>
+            </div>
         </div>
 
         @php

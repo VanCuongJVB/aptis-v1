@@ -136,6 +136,7 @@
                                 if (part == 1) url = '{{ route('admin.questions.part1.create') }}?reading_set_id=' + setOpt.value;
                                 else if (part == 2) url = '{{ route('admin.questions.part2.create') }}?reading_set_id=' + setOpt.value;
                                 else if (part == 3) url = '{{ route('admin.questions.part3.create') }}?reading_set_id=' + setOpt.value;
+                                else if (part == 4) url = '{{ route('admin.questions.part4.create') }}?reading_set_id=' + setOpt.value;
                                 else url = '{{ route('admin.questions.part1.create') }}?reading_set_id=' + setOpt.value;
                             } else {
                                 // Nếu có listening part sau này thì bổ sung

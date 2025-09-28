@@ -32,6 +32,10 @@
             $peopleMap[(string)$id] = $p;
         }
     }
+
+    // Chuẩn hóa audio path
+    $audio = $meta['audio'] ?? null;
+    $audioUrl = $audio ? asset($audio) : null;
 @endphp
 
 <div class="mt-3 text-sm">
@@ -40,6 +44,15 @@
     @endphp
     @if(!empty($qTitle))
         <div class="text-sm font-medium mb-2">{{ e($qTitle) }}</div>
+    @endif
+
+    @if($audioUrl)
+        <div class="mb-3">
+            <audio controls class="w-full sm:w-80">
+                <source src="{{ $audioUrl }}" type="audio/mpeg">
+                Trình duyệt không hỗ trợ audio.
+            </audio>
+        </div>
     @endif
 
     @if(empty($items))

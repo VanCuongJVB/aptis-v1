@@ -77,7 +77,7 @@
 
     $audioUrl = function($path) {
         if (!$path) return null;
-        try { return asset($path); } catch (\Throwable $e) { return $path; }
+        return asset($path);
     };
 
     static $__qCounter = 0;
@@ -124,7 +124,7 @@
                         @if(!empty($audio))
                             <div class="w-full sm:w-auto">
                                 <audio controls class="w-full sm:w-80">
-                                    <source src="{{ $audioUrl($audio) }}" type="audio/mpeg">
+                                    <source src="{{ asset($audio) }}" type="audio/mpeg">
                                     Trình duyệt không hỗ trợ audio.
                                 </audio>
                             </div>
