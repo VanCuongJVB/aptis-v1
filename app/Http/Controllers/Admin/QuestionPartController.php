@@ -151,8 +151,8 @@ class QuestionPartController extends Controller
         $data['type'] = 'reading_notice_matching';
         $displayOrder = array_map('intval', array_map('trim', explode(',', $data['display_order'])));
         $sentences = $data['sentences'];
-        $correctOrder = $displayOrder;
-        // Log debug
+        // correct_order luôn là thứ tự đúng: [0,1,2,...,N-1]
+        $correctOrder = array_map('intval', array_map('trim', explode(',', $data['correct_order'])));
         $metadata = [
             'sentences' => $sentences,
             'correct_order' => $correctOrder,
@@ -201,8 +201,8 @@ class QuestionPartController extends Controller
         $data['type'] = 'reading_notice_matching';
         $displayOrder = array_map('intval', array_map('trim', explode(',', $data['display_order'])));
         $sentences = $data['sentences'];
-        $correctOrder = $displayOrder;
-        // Log debug
+        // correct_order luôn là thứ tự đúng: [0,1,2,...,N-1]
+        $correctOrder = array_map('intval', array_map('trim', explode(',', $data['correct_order'])));
         $metadata = [
             'sentences' => $sentences,
             'correct_order' => $correctOrder,

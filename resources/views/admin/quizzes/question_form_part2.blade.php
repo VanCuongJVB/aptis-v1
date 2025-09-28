@@ -60,6 +60,20 @@
                     @error('stem')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
                 </div>
 
+                {{--
+                    Lưu ý cho backend:
+                    - Khi lưu, phải lấy đúng các trường:
+                        + sentences: mảng các câu đúng thứ tự
+                        + correct_order: mặc định là [0,1,2,3,...] hoặc lấy từ input hidden correct_order
+                        + display_order: lấy từ input hidden display_order, là thứ tự trộn
+                    - Lưu vào $question->metadata như sau:
+                        $meta = [
+                            'sentences' => $request->input('sentences', []),
+                            'correct_order' => array_map('intval', explode(',', $request->input('correct_order'))),
+                            'display_order' => array_map('intval', explode(',', $request->input('display_order'))),
+                        ];
+                        $question->metadata = $meta;
+                --}}
                 <div class="mb-10">
                     <label class="block text-base font-semibold text-slate-700 mb-2">Nhập các câu (thứ tự đúng, đáp án) <span class="text-red-500">*</span></label>
                     <div id="sentences-input-list" class="grid grid-cols-1 gap-2">
