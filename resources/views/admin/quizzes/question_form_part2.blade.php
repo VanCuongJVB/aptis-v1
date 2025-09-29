@@ -79,7 +79,7 @@
                     <div id="sentences-input-list" class="grid grid-cols-1 gap-2">
                         @php
                             $oldSentences = old('sentences', $question->metadata['sentences'] ?? []);
-                            $count = max(4, count($oldSentences));
+                            $count = max(5, count($oldSentences));
                         @endphp
                         @for($i = 0; $i < $count; $i++)
                             <div class="flex items-center gap-2">
