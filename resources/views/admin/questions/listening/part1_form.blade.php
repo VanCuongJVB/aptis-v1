@@ -3,36 +3,22 @@
 @section('title', $question->exists ? 'Edit Listening Part 1' : 'Create Listening Part 1')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-        {{-- Header --}}
-        <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h1 class="text-2xl font-bold flex items-center gap-3">
-                {{ $question->exists ? 'Edit' : 'Create' }} Listening Part 1 — Multiple Choice
-                <span class="inline-flex items-center rounded-full border px-3 py-1 text-sm font-medium bg-blue-50 border-blue-200 text-blue-700">
-                    Listening
-                </span>
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 border border-slate-200">
-                    Part 1
-                </span>
-            </h1>
-            @if(session('success'))
-                <div class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-emerald-700 border border-emerald-200">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
-                    <span>{{ session('success') }}</span>
-                </div>
-            @endif
-        </div>
 
-        <div class="text-sm text-gray-500 mb-4">
-            Các trường có dấu <span class="text-red-500">*</span> là bắt buộc.
-        </div>
+<div class="container mx-auto px-2 py-8">
+    <div class="max-w-7xl mx-auto bg-white rounded-3xl shadow-xl border border-slate-200 p-6 md:p-10">
+        <h1 class="text-3xl font-extrabold mb-6 flex items-center gap-3 text-blue-800 tracking-tight">
+            <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            {{ $question->exists ? 'Sửa' : 'Tạo' }} <span class="text-blue-600">Listening Part 1</span> <span class="text-slate-500 text-lg font-normal">— Multiple Choice</span>
+        </h1>
 
-        {{-- Errors --}}
+        <p class="text-base text-slate-600 mb-5">Form quản trị <span class="font-semibold text-blue-700">Aptis Listening Part 1</span> (Multiple Choice). Các trường có dấu <span class="text-red-500">*</span> là bắt buộc.</p>
+
+        @if(session('success'))
+            <div class="mb-4 p-3 bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200">{{ session('success') }}</div>
+        @endif
         @if($errors->any())
-            <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
-                <div class="font-semibold mb-1">Vui lòng kiểm tra lại:</div>
-                <ul class="list-disc pl-5 space-y-1">
+            <div class="mb-4 p-3 bg-rose-100 text-rose-800 rounded-lg border border-rose-200">
+                <ul class="list-disc pl-5">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -47,19 +33,16 @@
             @if($question->exists) @method('PUT') @endif
 
             @php
-                // Giữ lại selections cũ
                 $options = old('options', $question->metadata['options'] ?? []);
                 $correct = (int) old('correct_index', $question->metadata['correct_index'] ?? 0);
             @endphp
 
-            {{-- Quiz / Set --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Quiz <span class="text-red-500">*</span></label>
+                    <label class="block text-base font-semibold text-slate-700 mb-1">Quiz <span class="text-red-500">*</span></label>
                     @if(!$question->exists)
                         <select name="quiz_id" id="quiz_id_select"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition
-                                       focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40" required>
+                                class="w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-base text-blue-800 font-bold shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40" required>
                             <option value="">-- Chọn quiz --</option>
                             @foreach($quizzes as $quiz)
                                 <option value="{{ $quiz->id }}" {{ old('quiz_id', request('quiz_id')) == $quiz->id ? 'selected' : '' }}>
@@ -69,7 +52,7 @@
                         </select>
                         @error('quiz_id')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
                     @else
-                        <div class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 shadow-sm">
+                        <div class="w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-base text-blue-800 font-bold shadow-sm">
                             {{ optional($question->quiz)->title }}
                         </div>
                         <input type="hidden" name="quiz_id" value="{{ $question->quiz_id }}" />
@@ -77,11 +60,10 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Set <span class="text-red-500">*</span></label>
+                    <label class="block text-base font-semibold text-slate-700 mb-1">Set <span class="text-red-500">*</span></label>
                     @if(!$question->exists)
                         <select name="reading_set_id" id="set_id_select"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition
-                                       focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40" required>
+                                class="w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-800 font-bold shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40" required>
                             <option value="">-- Chọn set --</option>
                             @foreach($sets as $set)
                                 <option value="{{ $set->id }}" {{ old('reading_set_id', request('reading_set_id')) == $set->id ? 'selected' : '' }}>
@@ -91,7 +73,7 @@
                         </select>
                         @error('reading_set_id')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
                     @else
-                        <div class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 shadow-sm">
+                        <div class="w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base text-emerald-800 font-bold shadow-sm">
                             {{ optional($question->readingSet)->title }}
                         </div>
                         <input type="hidden" name="reading_set_id" value="{{ $question->reading_set_id }}" />
@@ -99,33 +81,26 @@
                 </div>
             </div>
 
-            {{-- Stem --}}
-            <div class="mb-5">
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Nội dung câu hỏi (stem) <span class="text-red-500">*</span></label>
-                <textarea name="stem" rows="4"
-                          class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition
-                                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+            <div class="mb-6">
+                <label class="block text-base font-semibold text-slate-700 mb-1">Nội dung câu hỏi (stem) <span class="text-red-500">*</span></label>
+                <textarea name="stem" rows="6"
+                          class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition"
                           placeholder="Nhập câu hỏi/đề bài…"
                           required>{{ old('stem', $question->stem) }}</textarea>
                 @error('stem')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
             </div>
 
-            {{-- Description (audio transcript/notes) --}}
-            <div class="mb-5">
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Mô tả / ghi chú audio</label>
-                <textarea name="description" rows="3"
-                          class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition
-                                 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40"
+            <div class="mb-6">
+                <label class="block text-base font-semibold text-slate-700 mb-1">Mô tả / ghi chú audio</label>
+                <textarea name="description" rows="6"
+                          class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition"
                           placeholder="Ghi chú ngắn về audio (không bắt buộc)">{{ old('description', $question->metadata['description'] ?? '') }}</textarea>
             </div>
 
-            {{-- Audio upload + preview --}}
             <div class="mb-6">
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Audio (mp3/wav)</label>
+                <label class="block text-base font-semibold text-slate-700 mb-1">Audio (mp3/wav)</label>
                 <input type="file" name="audio" accept="audio/mp3,audio/mpeg,audio/wav"
-                       class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition
-                              file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium
-                              hover:file:bg-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40" />
+                       class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-base file:font-medium hover:file:bg-slate-200" />
                 @error('audio')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
 
                 @if($question->audio_path)
@@ -137,17 +112,14 @@
                 @endif
             </div>
 
-            {{-- Options --}}
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Các lựa chọn đáp án <span class="text-red-500">*</span></label>
-
+            <div class="mb-10">
+                <label class="block text-base font-semibold text-slate-700 mb-2">Các lựa chọn đáp án <span class="text-red-500">*</span></label>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     @for($i = 0; $i < 3; $i++)
                         <div class="space-y-1">
                             <label class="block text-xs font-semibold text-slate-500">Đáp án {{ $i + 1 }}</label>
                             <input type="text" name="options[]" value="{{ $options[$i] ?? '' }}"
-                                   class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition
-                                          focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 option-input"
+                                   class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition option-input"
                                    placeholder="Nhập đáp án {{ $i + 1 }}" required />
                         </div>
                     @endfor
@@ -155,12 +127,10 @@
                 @error('options')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
             </div>
 
-            {{-- Correct answer --}}
-            <div class="mb-8">
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Đáp án đúng <span class="text-red-500">*</span></label>
+            <div class="mb-10">
+                <label class="block text-base font-semibold text-slate-700 mb-1">Đáp án đúng <span class="text-red-500">*</span></label>
                 <select name="correct_index" id="correct_index_select"
-                        class="w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition
-                               focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40" required>
+                        class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition" required>
                     @for($i = 0; $i < 3; $i++)
                         <option value="{{ $i }}" {{ (int)$correct === $i ? 'selected' : '' }}>
                             Đáp án {{ $i + 1 }}{{ isset($options[$i]) && $options[$i] !== '' ? ' — ' . $options[$i] : '' }}
@@ -170,20 +140,16 @@
                 @error('correct_index')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
             </div>
 
-            {{-- Hidden system fields (đảm bảo backend nhận dạng đúng) --}}
             <input type="hidden" name="skill" value="{{ old('skill', $question->skill ?? 'listening') }}">
             <input type="hidden" name="type"  value="{{ old('type',  $question->type  ?? 'listening_part1') }}">
 
-            {{-- Actions --}}
-            <div class="flex items-center justify-end gap-3 pt-2">
-                <a href="{{ route('admin.quizzes.questions') }}"
-                   class="inline-flex items-center px-5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-semibold text-blue-700
-                          shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/60">
-                    Quay lại
+            <div class="flex justify-end mt-8 gap-4">
+                <a href="{{ route('admin.quizzes.questions', ['part' => 1]) }}"
+                    class="inline-flex items-center px-8 py-3 bg-white border border-slate-300 rounded-2xl font-semibold text-base text-blue-700 shadow hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500/60 transition">
+                    <span class="px-2">Quay lại</span>
                 </a>
                 <button id="saveBtn" type="submit"
-                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow
-                               hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/60">
+                        class="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 border border-transparent rounded-2xl font-semibold text-base text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/60 transition">
                     <svg id="saveSpinner" class="hidden h-5 w-5 animate-spin" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"/>
