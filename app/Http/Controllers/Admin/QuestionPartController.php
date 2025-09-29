@@ -62,7 +62,10 @@ class QuestionPartController extends Controller
         $question->part = 1;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi thành công');
     }
 
     public function editReadingPart1(Question $question)
@@ -109,13 +112,19 @@ class QuestionPartController extends Controller
         $question->part = 1;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Cập nhật câu hỏi thành công');
     }
 
     public function destroyReadingPart1(Question $question)
     {
         $question->delete();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Question removed');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Question removed');
     }
 
     // TODO: Add more part methods (ReadingPart2, ListeningPart1, etc.)
@@ -168,7 +177,10 @@ class QuestionPartController extends Controller
         $question->part = 2;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi part 2 thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi part 2 thành công');
     }
 
     public function editReadingPart2(Question $question)
@@ -217,13 +229,22 @@ class QuestionPartController extends Controller
         $question->part = 2;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi part 2 thành công');
+        return redirect()->route(
+            'admin.quizzes.questions',
+            [
+                'reading_set_id' => $question->reading_set_id,
+                'part' => $question->part
+            ]
+        )->with('success', 'Cập nhật câu hỏi part 2 thành công');
     }
 
     public function destroyReadingPart2(Question $question)
     {
         $question->delete();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Xoá câu hỏi part 2 thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Xoá câu hỏi part 2 thành công');
     }
 
     public function createReadingPart3()
@@ -290,7 +311,10 @@ class QuestionPartController extends Controller
         $question->part = 3;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi part 3 thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi part 3 thành công');
     }
 
     public function editReadingPart3(Question $question)
@@ -356,13 +380,19 @@ class QuestionPartController extends Controller
         $question->part = 3;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi part 3 thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Cập nhật câu hỏi part 3 thành công');
     }
 
     public function destroyReadingPart3(Question $question)
     {
         $question->delete();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Xoá câu hỏi part 3 thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Xoá câu hỏi part 3 thành công');
     }
 
     // Reading Part 4
@@ -424,7 +454,10 @@ class QuestionPartController extends Controller
         $question->part = 4;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi part 4 thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi part 4 thành công');
     }
 
     public function editReadingPart4(Question $question)
@@ -483,7 +516,10 @@ class QuestionPartController extends Controller
         $question->part = 4;
         $question->metadata = $metadata;
         $question->save();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi part 4 thành công');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Cập nhật câu hỏi part 4 thành công');
     }
 
     // Listening Part 1
@@ -550,7 +586,10 @@ class QuestionPartController extends Controller
             'metadata' => $metadata,
         ]);
 
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi Listening Part 1 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi Listening Part 1 thành công!');
     }
 
     public function editListeningPart1(Question $question)
@@ -608,7 +647,10 @@ class QuestionPartController extends Controller
             'metadata' => $metadata,
         ]);
 
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi Listening Part 1 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Cập nhật câu hỏi Listening Part 1 thành công!');
     }
 
     public function destroyListeningPart1(Question $question)
@@ -617,7 +659,10 @@ class QuestionPartController extends Controller
             Storage::disk('public')->delete($question->audio_path);
         }
         $question->delete();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Đã xóa câu hỏi Listening Part 1!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Đã xóa câu hỏi Listening Part 1!');
     }
 
     // Listening Part 2
@@ -664,13 +709,13 @@ class QuestionPartController extends Controller
         }
 
         // Upload audio vào folder tạm, sau khi tạo xong sẽ move sang folder question_id
-    $tmpFolder = 'listening/part2/set1/tmp_' . uniqid();
+        $tmpFolder = 'listening/part2/set1/tmp_' . uniqid();
         $speakers = $data['speakers'];
         foreach ($speakers as $i => &$sp) {
             if ($request->hasFile("speakers.$i.audio_file")) {
                 $file = $request->file("speakers.$i.audio_file");
                 $ext = $file->getClientOriginalExtension();
-                $fileName = 'speaker' . ($i+1) . '.' . $ext;
+                $fileName = 'speaker' . ($i + 1) . '.' . $ext;
                 $sp['audio'] = $file->storeAs($tmpFolder, $fileName, 'public');
             }
         }
@@ -696,14 +741,14 @@ class QuestionPartController extends Controller
 
         // Nếu có file audio, move sang folder question_id
         $qid = $question->id;
-    $finalFolder = 'listening/part2/set1/' . $qid;
+        $finalFolder = 'listening/part2/set1/' . $qid;
         $newSpeakers = $speakers;
         $needUpdate = false;
         foreach ($speakers as $i => $sp) {
             if (!empty($sp['audio']) && strpos($sp['audio'], $tmpFolder) === 0) {
                 $oldPath = $sp['audio'];
                 $ext = pathinfo($oldPath, PATHINFO_EXTENSION);
-                $newPath = $finalFolder . '/speaker' . ($i+1) . '.' . $ext;
+                $newPath = $finalFolder . '/speaker' . ($i + 1) . '.' . $ext;
                 if (Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->move($oldPath, $newPath);
                     $newSpeakers[$i]['audio'] = $newPath;
@@ -716,7 +761,10 @@ class QuestionPartController extends Controller
             $question->save();
         }
 
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi Listening Part 2 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi Listening Part 2 thành công!');
     }
 
     public function editListeningPart2(Question $question)
@@ -753,13 +801,13 @@ class QuestionPartController extends Controller
         // Xử lý upload audio cho từng speaker
         $speakers = $data['speakers'];
         $qid = $question->id;
-    $finalFolder = 'listening/part2/set1/' . $qid;
+        $finalFolder = 'listening/part2/set1/' . $qid;
         $speakers = $data['speakers'];
         foreach ($speakers as $i => &$sp) {
             if ($request->hasFile("speakers.$i.audio_file")) {
                 $file = $request->file("speakers.$i.audio_file");
                 $ext = $file->getClientOriginalExtension();
-                $fileName = 'speaker' . ($i+1) . '.' . $ext;
+                $fileName = 'speaker' . ($i + 1) . '.' . $ext;
                 $sp['audio'] = $file->storeAs($finalFolder, $fileName, 'public');
             }
         }
@@ -778,19 +826,25 @@ class QuestionPartController extends Controller
             'metadata' => $metadata,
         ]);
 
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi Listening Part 2 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Cập nhật câu hỏi Listening Part 2 thành công!');
     }
 
     public function destroyListeningPart2(Question $question)
     {
         // Xóa folder audio speakers nếu có
         $qid = $question->id;
-    $finalFolder = 'listening/part2/set1/' . $qid;
+        $finalFolder = 'listening/part2/set1/' . $qid;
         if (Storage::disk('public')->exists($finalFolder)) {
             Storage::disk('public')->deleteDirectory($finalFolder);
         }
         $question->delete();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Đã xóa câu hỏi Listening Part 2!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Đã xóa câu hỏi Listening Part 2!');
     }
 
     // Listening Part 3
@@ -856,7 +910,10 @@ class QuestionPartController extends Controller
             'type' => 'multi_matching',
             'metadata' => $metadata,
         ]);
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi Listening Part 3 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi Listening Part 3 thành công!');
     }
 
     public function editListeningPart3(Question $question)
@@ -915,7 +972,10 @@ class QuestionPartController extends Controller
             'stem' => $data['title'],
             'metadata' => $metadata,
         ]);
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi Listening Part 3 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Cập nhật câu hỏi Listening Part 3 thành công!');
     }
 
     public function destroyListeningPart3(Question $question)
@@ -926,7 +986,10 @@ class QuestionPartController extends Controller
             Storage::disk('public')->delete($audioPath);
         }
         $question->delete();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Đã xóa câu hỏi Listening Part 3!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Đã xóa câu hỏi Listening Part 3!');
     }
 
     // Listening Part 4
@@ -993,7 +1056,10 @@ class QuestionPartController extends Controller
             'type' => 'single_choice',
             'metadata' => $metadata,
         ]);
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Tạo câu hỏi Listening Part 4 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Tạo câu hỏi Listening Part 4 thành công!');
     }
 
     public function editListeningPart4(Question $question)
@@ -1050,7 +1116,10 @@ class QuestionPartController extends Controller
             'metadata' => $metadata,
             'stem' => $request->input('title', $question->metadata['stem'] ?? ''),
         ]);
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Cập nhật câu hỏi Listening Part 4 thành công!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Cập nhật câu hỏi Listening Part 4 thành công!');
     }
 
     public function destroyListeningPart4(Question $question)
@@ -1061,6 +1130,9 @@ class QuestionPartController extends Controller
             Storage::disk('public')->delete($audioPath);
         }
         $question->delete();
-        return redirect()->route('admin.quizzes.questions')->with('success', 'Đã xóa câu hỏi Listening Part 4!');
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Đã xóa câu hỏi Listening Part 4!');
     }
 }

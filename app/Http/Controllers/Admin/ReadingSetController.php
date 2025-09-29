@@ -49,15 +49,25 @@ class ReadingSetController extends Controller
     }
 
     /**
-     * Hiển thị danh sách câu hỏi của 1 set (mọi part)
+     * Hiển thị danh sách câu hỏi của 1 set (mọi part), hỗ trợ lọc theo part và phân trang.
+     * Đảm bảo sử dụng đúng route: route('admin.sets.questions', ['set' => $set->id, ...])
+     * View sẽ nhận biến $questions (paginator), $set, $part.
      */
     public function questions($setId)
     {
         $part = request('part');
-        $set = ReadingSet::with(['quiz', 'questions' => function($q) use ($part) {
-            $q->orderBy('order');
-            if ($part) $q->where('part', $part);
-        }])->findOrFail($setId);
-        return view('admin.quizzes.set_questions', compact('set', 'part'));
+        $set = ReadingSet::with('quiz')->findOrFail($setId);
+        $questionsQuery = $set->questions()->orderBy('order');
+        if ($part) $questionsQuery->where('part', $part);
+        $q = request('q');
+        if ($q) {
+            $questionsQuery->where(function($query) use ($q) {
+                $query->where('stem', 'like', "%$q%")
+                      ->orWhere('title', 'like', "%$q%") ;
+            });
+        }
+        $questions = $questionsQuery->paginate(15);
+        // Trả về view với các biến cần thiết cho phân trang và lọc
+        return view('admin.quizzes.set_questions', compact('set', 'part', 'questions'));
     }
 }

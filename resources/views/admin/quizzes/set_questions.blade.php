@@ -70,10 +70,10 @@
 
     <div class="rounded-2xl bg-white shadow-sm border border-slate-200 p-4">
         {{-- Filter (chỉ còn q) --}}
-        <form id="filterForm" method="get"
-              class="mb-6 rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm backdrop-blur">
-            <input type="hidden" name="reading_set_id" value="{{ $set->id }}">
-            <input type="hidden" name="part" value="{{ $currentPart }}">
+                <form id="filterForm" method="get"
+                            action="{{ route('admin.sets.questions', ['set' => $set->id]) }}"
+                            class="mb-6 rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm backdrop-blur">
+                        <input type="hidden" name="part" value="{{ $currentPart }}">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
                 <div class="space-y-1 lg:col-span-3">
                     <label for="q" class="block text-xs font-semibold tracking-wide text-slate-600">Tìm kiếm</label>
@@ -105,7 +105,7 @@
                     </button>
 
                     @if ($hasFilter)
-                        <a href="{{ route('admin.quizzes.set_questions', ['reading_set_id' => $set->id, 'part' => $currentPart]) }}"
+                        <a href="{{ route('admin.sets.questions', ['set' => $set->id, 'part' => $currentPart]) }}"
                            class="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2.5
                                   text-sm font-semibold text-slate-700 hover:bg-slate-50">
                             Xoá bộ lọc
@@ -127,58 +127,54 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-100">
-                    @php $i = 0; @endphp
-                    @forelse($set->questions as $q)
-                        @php
-                            $matchPart = ($q->part == $currentPart);
-                            $matchQ    = empty($qInput) || Str::contains(Str::lower($q->stem ?? $q->title ?? '-'), Str::lower($qInput));
-                        @endphp
-                        @if($matchPart && $matchQ)
-                            @php $i++; @endphp
-                            <tr class="even:bg-slate-50/60">
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-700">{{ $i }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                                    {{ Str::limit($q->stem ?? $q->title ?? '-', 140) }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{{ $q->type ?? '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
-                                    @if($isListening)
-                                        {{-- Listening routes --}}
-                                        <a href="{{ route('admin.questions.listening.part' . $currentPart . '.edit', $q) }}"
-                                           class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-blue-700 hover:bg-blue-100 border border-blue-200">Edit</a>
-                                        <form action="{{ route('admin.questions.listening.part' . $currentPart . '.destroy', $q) }}" method="POST" class="inline">
-                                            @csrf @method('DELETE')
-                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2"
-                                                    onclick="return confirm('Delete this question?')">Delete</button>
-                                        </form>
-                                    @else
-                                        {{-- Reading routes --}}
-                                        <a href="{{ route('admin.questions.part' . $currentPart . '.edit', $q) }}"
-                                           class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
-                                        <form action="{{ route('admin.questions.part' . $currentPart . '.destroy', $q) }}" method="POST" class="inline">
-                                            @csrf @method('DELETE')
-                                            <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2"
-                                                    onclick="return confirm('Delete this question?')">Delete</button>
-                                        </form>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endif
+                    @forelse($questions as $q)
+                        <tr class="even:bg-slate-50/60">
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-700">
+                                @if(is_object($questions) && method_exists($questions, 'firstItem'))
+                                    {{ $questions->firstItem() + $loop->index }}
+                                @else
+                                    {{ $loop->iteration }}
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                {{ Str::limit($q->stem ?? $q->title ?? '-', 140) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{{ $q->type ?? '-' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                @if($isListening)
+                                    {{-- Listening routes --}}
+                                    <a href="{{ route('admin.questions.listening.part' . $currentPart . '.edit', $q) }}"
+                                       class="inline-flex items-center gap-1 rounded-md bg-blue-50 px-3 py-1.5 text-blue-700 hover:bg-blue-100 border border-blue-200">Edit</a>
+                                    <form action="{{ route('admin.questions.listening.part' . $currentPart . '.destroy', $q) }}" method="POST" class="inline">
+                                        @csrf @method('DELETE')
+                                        <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2"
+                                                onclick="return confirm('Delete this question?')">Delete</button>
+                                    </form>
+                                @else
+                                    {{-- Reading routes --}}
+                                    <a href="{{ route('admin.questions.part' . $currentPart . '.edit', $q) }}"
+                                       class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-3 py-1.5 text-indigo-700 hover:bg-indigo-100 border border-indigo-200">Edit</a>
+                                    <form action="{{ route('admin.questions.part' . $currentPart . '.destroy', $q) }}" method="POST" class="inline">
+                                        @csrf @method('DELETE')
+                                        <button class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-3 py-1.5 text-rose-700 hover:bg-rose-100 border border-rose-200 ml-2"
+                                                onclick="return confirm('Delete this question?')">Delete</button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
                     @empty
                         <tr>
                             <td colspan="4" class="px-6 py-8 text-center text-slate-500">Không có câu hỏi nào</td>
                         </tr>
                     @endforelse
-
-                    @if(($set->questions->where('part', $currentPart)->count() ?? 0) === 0)
-                        <tr>
-                            <td colspan="4" class="px-6 py-8 text-center text-slate-500">
-                                Chưa có câu hỏi cho Part {{ $currentPart }}
-                            </td>
-                        </tr>
-                    @endif
                 </tbody>
             </table>
+        </div>
+        {{-- Pagination --}}
+        <div class="mt-4">
+            @if(is_object($questions) && method_exists($questions, 'appends'))
+                {{ $questions->appends(request()->except('page'))->links() }}
+            @endif
         </div>
     </div>
 
