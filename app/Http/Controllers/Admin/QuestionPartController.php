@@ -1,7 +1,5 @@
 <?php
 
-
-
 namespace App\Http\Controllers\Admin;
 
 
@@ -520,6 +518,15 @@ class QuestionPartController extends Controller
             'reading_set_id' => $question->reading_set_id,
             'part' => $question->part
         ])->with('success', 'Cập nhật câu hỏi part 4 thành công');
+    }
+
+    public function destroyReadingPart4(Question $question)
+    {
+        $question->delete();
+        return redirect()->route('admin.quizzes.questions', [
+            'reading_set_id' => $question->reading_set_id,
+            'part' => $question->part
+        ])->with('success', 'Xoá câu hỏi part 4 thành công');
     }
 
     // Listening Part 1
