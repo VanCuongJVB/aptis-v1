@@ -73,7 +73,7 @@
                                     <div class="md:col-span-5">
                                         <label class="block text-sm font-medium text-slate-700 mb-1">Đoạn văn (Item {{ $i+1 }}) <span class="text-red-500">*</span></label>
                                         <textarea name="paragraphs[]" rows="3" class="para-input w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" placeholder="Nhập câu/chữ chứa token [BLANK1]" data-index="{{ $i }}">{{ $paragraphs[$i] ?? '' }}</textarea>
-                                        <div class="text-xs text-gray-400 mt-1">Sử dụng token <code class="bg-slate-100 px-1 rounded">[BLANK1]</code> để đánh dấu chỗ trống.</div>
+                                        <div class="text-xs text-gray-400 mt-1">Sử dụng token <code class="bg-slate-100 px-1 rounded">[BLANK1]</code>, <code class="bg-slate-100 px-1 rounded">[BLANK2]</code>, ... đến <code class="bg-slate-100 px-1 rounded">[BLANK5]</code> cho từng đoạn tương ứng để đánh dấu chỗ trống.</div>
                                     </div>
 
                                     <div class="md:col-span-3">
