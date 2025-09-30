@@ -43,6 +43,11 @@ Route::middleware(['auth', 'student.access'])->prefix('listening')->name('listen
         Route::get('attempt/{attempt}/finish', 'finishAttempt')->name('practice.finish');
         Route::get('attempt/{attempt}/result', 'showResult')->name('practice.result');
     });
+
+    // Route test full random đề đủ 4 part
+    Route::get('full-random', [\App\Http\Controllers\Listening\FullRandomController::class, 'index'])->name('full-random');
+    Route::post('full-random/submit', [\App\Http\Controllers\Listening\FullRandomResultController::class, 'store'])->name('full-random.submit');
+    Route::get('full-random/result/{attempt}', [\App\Http\Controllers\Listening\FullRandomResultController::class, 'result'])->name('full-random.result');
 });
 
 // Student Listening dashboard

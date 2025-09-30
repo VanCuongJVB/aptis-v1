@@ -104,6 +104,27 @@
                                 <div class="text-2xl text-blue-500">🎧</div>
                             </div>
                         </a>
+
+                        <a href="{{ route('reading.full-random') }}" class="block w-full p-4 border border-pink-300 rounded-lg bg-pink-50 hover:shadow-md transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-pink-700">{{ __('Full Test Reading') }}</h4>
+                                    <p class="text-sm text-pink-700">{{ __('Làm bài thi Reading đầy đủ (4 phần)') }}</p>
+                                </div>
+                                <div class="text-2xl text-pink-500">📝</div>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('listening.full-random') }}" class="block w-full p-4 border border-yellow-300 rounded-lg bg-yellow-50 hover:shadow-md transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-semibold text-yellow-700">{{ __('Full Test Listening') }}</h4>
+                                    <p class="text-sm text-yellow-700">{{ __('Làm bài thi Listening đầy đủ (4 phần)') }}</p>
+                                </div>
+                                <div class="text-2xl text-yellow-500">📝</div>
+                            </div>
+                        </a>
+                        
                     </div>
                 </div>
             </div>

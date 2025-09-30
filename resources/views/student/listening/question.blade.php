@@ -46,65 +46,7 @@
         </div>
 
         {{-- Audio / Description --}}
-        <div class="mb-4">
-            @if($isPart2)
-                <div class="mb-2">
-                    <button type="button" id="play-all-{{ $question->id }}" class="mb-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none text-sm">
-                        Phát tất cả
-                    </button>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        @foreach($speakers as $spIdx => $sp)
-                            @php
-                                $spAudioPath = data_get($sp, 'audio');
-                                $spAudioUrl = null;
-                                if ($spAudioPath) {
-                                    if (Str::startsWith($spAudioPath, ['http://','https://'])) {
-                                        $spAudioUrl = $spAudioPath;
-                                    } elseif (Str::startsWith($spAudioPath, ['/'])) {
-                                        $spAudioUrl = asset(ltrim($spAudioPath, '/'));
-                                    } else {
-                                        $spAudioUrl = Storage::url($spAudioPath);
-                                    }
-                                }
-                            @endphp
-                            <div class="border rounded p-2 flex flex-col">
-                                <div class="font-medium text-sm mb-1 flex items-center">
-                                    {{ $sp['label'] ?? 'Speaker '.chr(65+$spIdx) }}
-                                    @if(!empty($sp['description']))
-                                        <a href="#" id="desc-toggle-{{ $question->id }}-{{ $spIdx }}" data-qid="{{ $question->id }}" data-idx="{{ $spIdx }}" class="desc-toggle-link text-blue-600 underline text-xs ml-2">
-                                            Hiển thị mô tả
-                                        </a>
-                                    @endif
-                                </div>
-                                @if($spAudioUrl)
-                                    <audio controls preload="none" class="w-full mb-1 playall-audio" id="audio-{{ $question->id }}-{{ $spIdx }}">
-                                        <source src="{{ $spAudioUrl }}" type="audio/mpeg">
-                                        Trình duyệt của bạn không hỗ trợ phát audio.
-                                    </audio>
-                                @else
-                                    <div class="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                                        <span>🎧</span> Không có file âm thanh cho speaker này.
-                                    </div>
-                                @endif
-                                <div id="desc-box-{{ $question->id }}-{{ $spIdx }}" class="speaker-desc text-gray-600 text-sm mb-2 hidden mt-1 bg-yellow-50 border border-yellow-200 rounded p-2">
-                                    {{ $sp['description'] ?? '' }}
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @elseif($audioUrl)
-                <audio controls class="w-full mb-2">
-                    <source src="{{ $audioUrl }}" type="audio/mpeg">
-                    {{ __('Your browser does not support the audio element.') }}
-                </audio>
-            @else
-                <div class="flex items-center gap-3 p-3 border rounded bg-gray-50 mb-2">
-                    <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-lg">🎧</div>
-                    <div class="text-sm text-gray-600">Không có file âm thanh cho câu hỏi này.</div>
-                </div>
-            @endif
-        </div>
+        <div class="mb-4"></div>
 
         {{-- Answer Form --}}
         <form id="answer-form" method="POST" action="{{ route('listening.practice.answer', ['attempt' => $attempt->id, 'question' => $question->id]) }}" data-qid="{{ $question->id }}">

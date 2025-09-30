@@ -1,5 +1,15 @@
-<div class="w-full max-w-3xl mx-auto p-4 question-block" data-qid="{{ $question->id }}"
+<div class="w-full max-w-3xl mx-auto p-4 question-block mb-6" data-qid="{{ $question->id }}"
 	data-metadata="{{ htmlspecialchars(json_encode($question->metadata)) }}">
+
+	{{-- Audio area --}}
+	@if(!empty($audioUrl))
+		<div class="mb-4">
+			<audio controls preload="none" class="w-full">
+				<source src="{{ $audioUrl }}" type="audio/mpeg">
+				Trình duyệt của bạn không hỗ trợ audio.
+			</audio>
+		</div>
+	@endif
 	<div class="mb-4">
 		<h2 class="text-lg font-semibold text-gray-800">Câu hỏi {{ $question->order_no }}</h2>
 		@if(!empty($question->stem))
