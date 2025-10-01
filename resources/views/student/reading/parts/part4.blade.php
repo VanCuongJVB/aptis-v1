@@ -1,4 +1,4 @@
-<div>
+<div class="question-block" data-qid="{{ $question->id }}" data-part="{{ $question->part }}" data-metadata='@json($question->metadata)'>
     {{-- Part 4: long text with options pool --}}
     @php
         $meta = $question->metadata ?? [];

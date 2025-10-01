@@ -19,6 +19,10 @@ use Illuminate\Support\Facades\Route;
 
 // Student Reading Practice Routes
 Route::middleware(['auth', 'student.access'])->prefix('reading')->name('reading.')->group(function () {
+    // Full Test Reading
+    Route::get('full-random', [App\Http\Controllers\Reading\FullRandomController::class, 'index'])->name('full-random');
+    Route::post('full-random/result', [App\Http\Controllers\Reading\FullRandomResultController::class, 'store'])->name('full_random_result.store');
+    Route::get('full-random/result/{attempt}', [App\Http\Controllers\Reading\FullRandomResultController::class, 'show'])->name('full_random_result.show');
     Route::get('/', [PracticeController::class, 'index'])->name('practice.index');
     Route::get('dashboard', [ReadingSetController::class, 'index'])->name('dashboard');
     Route::get('part/{part}', [PracticeController::class, 'partDetail'])->name('practice.part');

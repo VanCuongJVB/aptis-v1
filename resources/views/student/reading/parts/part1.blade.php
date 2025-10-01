@@ -1,4 +1,4 @@
-<div>
+<div class="question-block" data-qid="{{ $question->id }}" data-part="{{ $question->part }}" data-metadata='@json($question->metadata)'>
     {{-- Part 1: gap-filling using paragraphs and a shared BLANK options list --}}
     @php
         $meta = $question->metadata ?? [];

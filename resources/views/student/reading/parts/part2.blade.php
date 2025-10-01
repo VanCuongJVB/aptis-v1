@@ -1,4 +1,4 @@
-<div>
+<div class="question-block" data-qid="{{ $question->id }}" data-part="{{ $question->part }}" data-metadata='@json($question->metadata)'>
     @php
     $meta = $question->metadata ?? [];
     $sentences = $meta['sentences'] ?? [];
@@ -86,11 +86,13 @@
         <script>
             (function () {
                 // Initialize function to set up drag and drop
-                function initPart2DragDrop() {
-                    let pool = document.getElementById('pool');
-                    const slots = document.getElementById('slot-container');
-                    const inputOrder = document.getElementById('part2_order');
-                    const inputTexts = document.getElementById('part2_selected_texts');
+                window.initPart2DragDrop = function initPart2DragDrop(context) {
+                    console.log('[part2] initPart2DragDrop called', context);
+                    if (!context) context = document;
+                    let pool = context.querySelector('#pool');
+                    const slots = context.querySelector('#slot-container');
+                    const inputOrder = context.querySelector('#part2_order');
+                    const inputTexts = context.querySelector('#part2_selected_texts');
                     const qid = @json($question->id);
 
                     if (!pool || !slots) return; // Guard against missing elements
@@ -148,7 +150,7 @@
                     }
 
                     // Remove any existing event listeners to prevent duplicates
-                    const oldItems = document.querySelectorAll('.draggable-item');
+                    const oldItems = context.querySelectorAll('.draggable-item');
                     oldItems.forEach(item => {
                         const newItem = item.cloneNode(true);
                         if (item.parentNode) {
@@ -169,7 +171,7 @@
                             e.preventDefault();
                             newSlot.classList.remove('ring-2', 'ring-blue-300');
                             const idx = e.dataTransfer.getData('text/plain');
-                            const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
+                            const src = context.querySelector(`.draggable-item[data-index="${idx}"]`);
                             if (src) {
                                 // Move any existing draggable in the slot back to the pool
                                 const existing = newSlot.querySelector('.draggable-item');
@@ -194,14 +196,14 @@
                         pool.addEventListener('drop', e => {
                             e.preventDefault();
                             const idx = e.dataTransfer.getData('text/plain');
-                            const src = document.querySelector(`.draggable-item[data-index="${idx}"]`);
+                            const src = context.querySelector(`.draggable-item[data-index="${idx}"]`);
                             if (src) pool.appendChild(src);
                             collect();
                         });
                     }
 
                     // init
-                    document.querySelectorAll('.draggable-item').forEach(addDrag);
+                    context.querySelectorAll('.draggable-item').forEach(addDrag);
                     restore();
                 }
 

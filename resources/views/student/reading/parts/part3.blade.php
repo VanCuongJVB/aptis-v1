@@ -77,7 +77,7 @@
         </div>
 
         {{-- Right: options with dropdowns --}}
-        <div>
+        <div class="question-block" data-qid="{{ $question->id }}" data-part="{{ $question->part }}" data-metadata='@json($question->metadata)'>
             <h4 class="text-lg font-semibold mb-2">Questions</h4>
             <div class="space-y-3">
                 @foreach($options as $i => $optText)
