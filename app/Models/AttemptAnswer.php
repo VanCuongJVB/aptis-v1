@@ -12,6 +12,7 @@ class AttemptAnswer extends Model
     protected $fillable = [
         'attempt_id',
         'question_id',
+        'sub_index',
         'selected_option_id',
         'is_correct',
         'time_spent_seconds',

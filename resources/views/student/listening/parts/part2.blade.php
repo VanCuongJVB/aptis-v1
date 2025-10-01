@@ -1,5 +1,6 @@
 <div class="w-full max-w-3xl mx-auto p-4 question-block mb-6" 
      data-qid="{{ $question->id }}" 
+     data-part="{{ $question->part ?? 2 }}"
      data-metadata='@json(array_merge($question->metadata, ["optionMapping" => array_keys($question->metadata['options'] ?? [])]))'>
     
     {{-- Audio area --}}

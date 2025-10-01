@@ -1,5 +1,6 @@
 <div class="w-full max-w-3xl mx-auto p-4 question-block mb-6" data-qid="{{ $question->id }}"
-	data-metadata="{{ htmlspecialchars(json_encode($question->metadata)) }}">
+	data-part="{{ $question->part ?? 3 }}"
+	data-metadata='@json($question->metadata)'>
 
 	{{-- Audio area --}}
 	@if(!empty($audioUrl))
