@@ -3,6 +3,33 @@
 @section('title', 'Kết quả Full Random Reading')
 
 @section('content')
+@php
+    // Simple calculation: 1 question = 1 point for all parts
+    $totalCorrectAnswers = 0;
+    $totalQuestions = 0;
+    $debugInfo = [];
+    
+    foreach($groupedQuestions as $part => $questions) {
+        foreach($questions as $question) {
+            $ans = $answers->get($question->id) ?? null;
+            $questionCorrect = 0;
+            $questionTotal = 1; // Always 1 question = 1 point
+            
+            // Simple check: is this question correct?
+            if ($ans && isset($ans->is_correct) && $ans->is_correct) {
+                $questionCorrect = 1;
+            }
+            
+            $totalCorrectAnswers += $questionCorrect;
+            $totalQuestions += $questionTotal;
+            
+            $debugInfo[] = "Part $part Q{$question->id}: $questionCorrect/$questionTotal";
+        }
+    }
+    
+    $calculatedPercentage = $totalQuestions > 0 ? round(($totalCorrectAnswers / $totalQuestions) * 100, 2) : 0;
+@endphp
+
 <div class="container mx-auto py-6">
     <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
         <div class="flex items-center justify-between mb-4">
@@ -11,11 +38,11 @@
                 <p class="text-sm text-gray-500">Results</p>
             </div>
             <div class="text-right">
-                <div class="text-xl font-bold {{ ($attempt->score_percentage ?? 0) > 0 ? 'text-green-600' : 'text-red-600' }}">
-                    {{ number_format($attempt->score_percentage ?? 0, 2) }}%
+                <div class="text-xl font-bold {{ $calculatedPercentage > 0 ? 'text-green-600' : 'text-red-600' }}">
+                    {{ number_format($calculatedPercentage, 2) }}%
                 </div>
                 <div class="text-sm font-medium">
-                    {{ $attempt->correct_answers ?? 0 }} / {{ $attempt->total_questions ?? count($questions) }}
+                    {{ $totalCorrectAnswers }} / {{ $totalQuestions }}
                 </div>
             </div>
         </div>
@@ -351,18 +378,32 @@
                         if (empty($sentences) && isset($meta['items']) && is_array($meta['items'])) {
                             $sentences = $meta['items'];
                         }
+                        
+                        // For Part 2 display badge: check if ALL positions are correct
+                        // (This is just for display - scoring remains 1 question = 1 point)
+                        $displayCorrect = $isCorrect; // Default to database value
+                        if (is_array($userAnswers) && is_array($correctAnswers) && count($userAnswers) > 0 && count($correctAnswers) > 0) {
+                            $allPositionsCorrect = true;
+                            foreach($userAnswers as $pos => $userAnswer) {
+                                if (!isset($correctAnswers[$pos]) || $correctAnswers[$pos] != $userAnswer) {
+                                    $allPositionsCorrect = false;
+                                    break;
+                                }
+                            }
+                            $displayCorrect = $allPositionsCorrect;
+                        }
                     @endphp
                     
                     <div class="mb-4 p-4 border rounded border-gray-200 bg-white question-block" data-qid="{{ $question->id }}">
                         <div class="flex items-start justify-between">
                             <div class="font-semibold flex items-center gap-2">
                                 <span class="text-sm font-medium">Question {{ $index + 1 }}</span>
-                                @if($isCorrect === true)
+                                @if($displayCorrect == true)
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-50 text-green-800 text-xs">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 00-1.414-1.414L8 11.172 4.707 7.879a1 1 0 10-1.414 1.414l4 4a1 1 0 001.414 0l8-8z" clip-rule="evenodd"/></svg>
                                         <span>Đúng</span>
                                     </span>
-                                @elseif($isCorrect === false)
+                                @elseif($displayCorrect == false)
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-800 text-xs">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 8.586l4.95-4.95a1 1 0 111.414 1.414L11.414 10l4.95 4.95a1 1 0 01-1.414 1.414L10 11.414l-4.95 4.95A1 1 0 013.636 14.95L8.586 10 3.636 5.05A1 1 0 015.05 3.636L10 8.586z" clip-rule="evenodd"/></svg>
                                         <span>Sai</span>
@@ -398,6 +439,9 @@
             </div>
         @endif
 
+<div class="container mx-auto py-6">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
+
         {{-- Part 3 Results --}}
         @if($groupedQuestions->has(3) && $groupedQuestions[3]->count() > 0)
             <div class="mb-6" data-result-part="3">
@@ -409,8 +453,6 @@
                     @php
                         $ans = $answers->get($question->id);
                         $isCorrect = $ans && isset($ans->is_correct) ? $ans->is_correct : null;
-                        
-                        // Get metadata
                         $meta = [];
                         if (is_string($question->metadata)) {
                             $meta = json_decode($question->metadata, true) ?: [];
@@ -418,11 +460,9 @@
                             $meta = $question->metadata;
                         }
                         
-                        // Get categories and options
                         $categories = isset($meta['categories']) ? $meta['categories'] : [];
                         $options = isset($meta['options']) ? $meta['options'] : [];
                         
-                        // Get user answers
                         $userAnswers = [];
                         if ($ans && isset($ans->metadata) && is_array($ans->metadata)) {
                             if (isset($ans->metadata['user_answer'])) {
@@ -558,6 +598,7 @@
                                         @endforeach
                                     </div>
                                 </div>
+                            </div>
                         </div>
                     </div>
                 @endforeach
