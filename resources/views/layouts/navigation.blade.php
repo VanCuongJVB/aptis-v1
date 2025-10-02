@@ -145,9 +145,9 @@
             <x-responsive-nav-link :href="route('reading.progress')" :active="request()->routeIs('reading.progress')">
                 {{ __('Tiến độ học tập') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('student.attempts.history')" :active="request()->routeIs('student.attempts.*')">
+            {{-- <x-responsive-nav-link :href="route('student.attempts.history')" :active="request()->routeIs('student.attempts.*')">
                 {{ __('Lịch sử làm bài') }}
-            </x-responsive-nav-link>
+            </x-responsive-nav-link> --}}
 
             <div class="mt-4 px-4 py-2 font-medium text-sm text-gray-700">{{ __('Admin') }}</div>
             @if(Auth::user()->is_admin)

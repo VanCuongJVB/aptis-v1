@@ -143,25 +143,6 @@
                                                     Sửa
                                                 </a>
 
-                                                {{-- +30 ngày --}}
-                                                <form method="POST" action="{{ route('admin.students.extend', $st) }}?days=30" class="inline">
-                                                    @csrf
-                                                    <button 
-                                                    style="background-color: oklch(70.7% 0.165 254.624);"
-                                                        class="px-3 py-1.5 rounded-md text-white hover:bg-blue-700 text-sm font-medium transition">
-                                                        +30 ngày
-                                                    </button>
-                                                </form>
-
-                                                {{-- +90 ngày --}}
-                                                <form method="POST" action="{{ route('admin.students.extend', $st) }}?days=90" class="inline">
-                                                    @csrf
-                                                    <button
-                                                        class="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium transition">
-                                                        +90 ngày
-                                                    </button>
-                                                </form>
-
                                                 {{-- Xoá --}}
                                                 <form method="POST" action="{{ route('admin.students.destroy', $st) }}"
                                                     onsubmit="return confirm('Bạn có chắc chắn muốn xoá học sinh này?')" class="inline">

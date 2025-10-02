@@ -33,7 +33,7 @@
      data-next-url="@if(isset($nextPosition) && $nextPosition){{ route('listening.practice.question', ['attempt' => $attempt->id, 'position' => $nextPosition]) }}@endif" 
      data-final-url="{{ route('listening.practice.result', $attempt) }}">
     
-    <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow" style="padding-bottom: 180px">
         {{-- Header --}}
         <div class="flex justify-between items-start mb-4">
             <div>
