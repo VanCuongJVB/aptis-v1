@@ -2,6 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent text selection and copying */
+* {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Hide audio download controls and prevent downloading */
+audio {
+    pointer-events: none !important;
+    user-select: none !important;
+}
+
+/* Customize audio controls */
+audio::-webkit-media-controls-panel {
+    background-color: #f3f4f6 !important;
+}
+
+/* Hide download button */
+audio::-webkit-media-controls-download-button,
+audio::-internal-media-controls-download-button {
+    display: none !important;
+}
+
+/* Only show essential controls */
+audio::-webkit-media-controls-timeline,
+audio::-webkit-media-controls-play-button,
+audio::-webkit-media-controls-volume-slider {
+    display: block !important;
+    pointer-events: auto !important;
+}
+
+/* Additional security */
+audio {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
 @layer components {
 	.btn-base {
 		@apply inline-flex items-center px-3 py-2 border rounded-md text-sm font-medium;

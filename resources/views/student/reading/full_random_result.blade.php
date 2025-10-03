@@ -452,12 +452,68 @@
                 @foreach($groupedQuestions[3] as $index => $question)
                     @php
                         $ans = $answers->get($question->id);
-                        $isCorrect = $ans && isset($ans->is_correct) ? $ans->is_correct : null;
                         $meta = [];
                         if (is_string($question->metadata)) {
                             $meta = json_decode($question->metadata, true) ?: [];
                         } elseif (is_array($question->metadata)) {
                             $meta = $question->metadata;
+                        }
+
+                        // Part 3: Kiểm tra tất cả các câu con có đúng không
+                        $isCorrect = false;
+                        if ($ans) {
+                            $userAnswers = [];
+                            $correctAnswers = [];
+                            
+                            // Get user answers
+                            if (isset($ans->metadata)) {
+                                if (is_string($ans->metadata)) {
+                                    try {
+                                        $ansMeta = json_decode($ans->metadata, true);
+                                        if (isset($ansMeta['user_answer'])) {
+                                            $userAnswers = is_array($ansMeta['user_answer']) ? $ansMeta['user_answer'] : [$ansMeta['user_answer']];
+                                        } elseif (isset($ansMeta['selected'])) {
+                                            $userAnswers = is_array($ansMeta['selected']) ? $ansMeta['selected'] : [$ansMeta['selected']];
+                                        }
+                                    } catch (\Exception $e) {}
+                                } elseif (is_array($ans->metadata)) {
+                                    if (isset($ans->metadata['user_answer'])) {
+                                        $userAnswers = is_array($ans->metadata['user_answer']) ? $ans->metadata['user_answer'] : [$ans->metadata['user_answer']];
+                                    } elseif (isset($ans->metadata['selected'])) {
+                                        $userAnswers = is_array($ans->metadata['selected']) ? $ans->metadata['selected'] : [$ans->metadata['selected']];
+                                    }
+                                }
+                            }
+
+                            // Get correct answers
+                            if (isset($ans->metadata)) {
+                                if (is_string($ans->metadata)) {
+                                    try {
+                                        $ansMeta = json_decode($ans->metadata, true);
+                                        if (isset($ansMeta['correct_answer'])) {
+                                            $correctAnswers = is_array($ansMeta['correct_answer']) ? $ansMeta['correct_answer'] : [$ansMeta['correct_answer']];
+                                        }
+                                    } catch (\Exception $e) {}
+                                } elseif (is_array($ans->metadata)) {
+                                    if (isset($ans->metadata['correct_answer'])) {
+                                        $correctAnswers = is_array($ans->metadata['correct_answer']) ? $ans->metadata['correct_answer'] : [$ans->metadata['correct_answer']];
+                                    }
+                                }
+                            }
+
+                            // Kiểm tra từng câu
+                            $allCorrect = true;
+                            foreach ($userAnswers as $index => $userAnswer) {
+                                if (!isset($correctAnswers[$index]) || 
+                                    (is_numeric($userAnswer) && is_numeric($correctAnswers[$index]) && 
+                                     intval($userAnswer) !== intval($correctAnswers[$index])) ||
+                                    (is_string($userAnswer) && is_string($correctAnswers[$index]) && 
+                                     strtoupper(trim($userAnswer)) !== strtoupper(trim($correctAnswers[$index])))) {
+                                    $allCorrect = false;
+                                    break;
+                                }
+                            }
+                            $isCorrect = $allCorrect && count($userAnswers) > 0 && count($userAnswers) === count($correctAnswers);
                         }
                         
                         $categories = isset($meta['categories']) ? $meta['categories'] : [];
@@ -567,25 +623,37 @@
                                                     $userAnswer = $selectedCategory === 'No Answer' ? '-' : chr(65 + (int)$ans->metadata['user_answer'][$index]);
                                                 @endphp
                                             
-                                            <div class="flex items-center p-3 {{ $isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' }} rounded-lg">
+                                            @php
+                                                // Chuyển numeric index thành chữ cái A/B/C/D
+                                                if (is_numeric($selectedCategory)) {
+                                                    $selectedCategory = chr(65 + intval($selectedCategory));
+                                                }
+
+                                                // So sánh chính xác (bỏ qua case)
+                                                $isAnswerCorrect = $selectedCategory !== 'No Answer' && 
+                                                                $correctCategory && 
+                                                                strtoupper($selectedCategory) === strtoupper($correctCategory);
+                                            @endphp
+
+                                            <div class="flex items-center p-3 {{ $isAnswerCorrect ? 'bg-green-50 border border-green-200' : 'bg-white border border-gray-200' }} rounded-lg">
                                                 {{-- Option number and text --}}
                                                 <div class="flex-grow">
                                                     <div class="flex items-center gap-2">
-                                                        <span class="font-medium {{ $isCorrect ? 'text-green-700' : 'text-red-700' }}">{{ chr(65 + $index) }}.</span>
+                                                        <span class="font-medium {{ $isAnswerCorrect ? 'text-green-700' : 'text-gray-700' }}">{{ chr(65 + $index) }}.</span>
                                                         <span class="text-gray-900">{{ $text }}</span>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {{-- Answer comparison --}}
                                                 <div class="flex items-center gap-4">
                                                     <div class="flex items-center gap-2">
-                                                        <span class="text-sm {{ $isCorrect ? 'text-green-600' : 'text-red-600' }}">Your answer:</span>
-                                                        <span class="font-medium {{ $isCorrect ? 'text-green-700' : 'text-red-700' }}">
-                                                            {{ $userAnswer }}
+                                                        <span class="text-sm {{ $isAnswerCorrect ? 'text-green-600' : 'text-gray-600' }}">Your answer:</span>
+                                                        <span class="font-medium {{ $isAnswerCorrect ? 'text-green-700' : 'text-gray-700' }}">
+                                                            {{ $selectedCategory === 'No Answer' ? '-' : $selectedCategory }}
                                                         </span>
                                                     </div>
                                                     
-                                                    @if(!$isCorrect)
+                                                    @if(!$isAnswerCorrect)
                                                         <div class="flex items-center gap-2">
                                                             <span class="text-sm text-green-600">Correct answer:</span>
                                                             <span class="font-medium text-green-700">

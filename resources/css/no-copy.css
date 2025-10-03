@@ -1,0 +1,25 @@
+/* Prevent text selection */
+* {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Prevent audio download */
+audio::-webkit-media-controls-download-button {
+    display: none;
+}
+
+audio::-webkit-media-controls-enclosure {
+    overflow: hidden;
+}
+
+audio::-webkit-media-controls-panel {
+    width: calc(100% + 33px);
+}
+
+/* Disable right click on audio elements */
+audio {
+    pointer-events: none;
+}

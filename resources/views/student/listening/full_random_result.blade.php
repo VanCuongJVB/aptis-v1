@@ -11,12 +11,74 @@
                     <p class="text-sm text-gray-500">Results</p>
                 </div>
                 <div class="text-right">
-                    <div
-                        class="text-xl font-bold {{ collect($answers)->where('correct', true)->count() > 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ number_format((collect($answers)->where('correct', true)->count() / count($answers)) * 100, 2) }}%
+                    @php
+                        $totalCorrect = 0;
+                        $totalQuestions = 0;
+                        
+                        foreach($answers as $ans) {
+                            if ($ans['part'] == 1) {
+                                // Part 1: mỗi câu tính 1 điểm
+                                if (isset($ans['correct']) && $ans['correct']) {
+                                    $totalCorrect++;
+                                }
+                                $totalQuestions++;
+                            }
+                            else if ($ans['part'] == 2) {
+                                // Part 2: Kiểm tra từng speaker mapping
+                                $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
+                                $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
+                                foreach ($userAnswers as $index => $userChoice) {
+                                    if (isset($correctAnswers[$index]) && 
+                                        ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
+                                          intval($userChoice) === intval($correctAnswers[$index])) ||
+                                         (is_string($userChoice) && is_string($correctAnswers[$index]) && 
+                                          strtoupper(trim($userChoice)) === strtoupper(trim($correctAnswers[$index]))))) {
+                                        $totalCorrect++;
+                                    }
+                                    $totalQuestions++;
+                                }
+                            }
+                            else if ($ans['part'] == 3) {
+                                // Part 3: Kiểm tra từng item
+                                $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
+                                $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
+                                foreach ($userAnswers as $index => $userChoice) {
+                                    if (isset($correctAnswers[$index])) {
+                                        if ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
+                                             intval($userChoice) === intval($correctAnswers[$index])) ||
+                                            (is_string($userChoice) && is_string($correctAnswers[$index]) && 
+                                             strtoupper(trim($userChoice)) === strtoupper(trim($correctAnswers[$index])))) {
+                                            $totalCorrect++;
+                                        }
+                                        $totalQuestions++;
+                                    }
+                                }
+                            }
+                            else if ($ans['part'] == 4) {
+                                // Part 4: Kiểm tra từng sub-question
+                                $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
+                                $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
+                                foreach ($userAnswers as $index => $userChoice) {
+                                    if (isset($correctAnswers[$index])) {
+                                        if ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
+                                             intval($userChoice) === intval($correctAnswers[$index])) ||
+                                            (is_string($userChoice) && is_string($correctAnswers[$index]) && 
+                                             strtoupper(trim($userChoice)) === strtoupper(trim($correctAnswers[$index])))) {
+                                            $totalCorrect++;
+                                        }
+                                        $totalQuestions++;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        $percentage = $totalQuestions > 0 ? ($totalCorrect / $totalQuestions) * 100 : 0;
+                    @endphp
+                    <div class="text-xl font-bold {{ $percentage > 0 ? 'text-green-600' : 'text-red-600' }}">
+                        {{ number_format($percentage, 2) }}%
                     </div>
                     <div class="text-sm font-medium">
-                        {{ collect($answers)->where('correct', true)->count() }} / {{ count($answers) }}
+                        {{ $totalCorrect }} / {{ $totalQuestions }}
                     </div>
                 </div>
             </div>
@@ -31,11 +93,54 @@
                         continue;
                 @endphp
                 <div class="mb-6" data-result-part="{{ $partNum }}">
-                    <h3 class="text-lg font-semibold mb-3 pb-2 border-b">Part {{ $partNum }} -
-                        @if($partNum == 1) Multiple Choice
-                        @elseif($partNum == 2) Matching
-                        @elseif($partNum == 3) Category Matching
-                        @elseif($partNum == 4) Multiple Choice (Reading)
+                    @php
+                        // Kiểm tra xem part có đúng hết không
+                        $isPartCorrect = false;
+                        
+                        if ($partNum == 1) {
+                            $isPartCorrect = $answer['correct'] ?? false;
+                        } else {
+                            $allCorrect = true;
+                            foreach ($partAnswers as $ans) {
+                                $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
+                                $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
+                                
+                                foreach ($userAnswers as $index => $userChoice) {
+                                    if (!isset($correctAnswers[$index]) || 
+                                        ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
+                                          intval($userChoice) !== intval($correctAnswers[$index])) ||
+                                         (is_string($userChoice) && is_string($correctAnswers[$index]) && 
+                                          strtoupper(trim($userChoice)) !== strtoupper(trim($correctAnswers[$index]))))) {
+                                        $allCorrect = false;
+                                        break 2;
+                                    }
+                                }
+                            }
+                            $isPartCorrect = $allCorrect;
+                        }
+                    @endphp
+                    <h3 class="text-lg font-semibold mb-3 pb-2 border-b flex justify-between items-center">
+                        <span>Part {{ $partNum }} -
+                            @if($partNum == 1) Multiple Choice
+                            @elseif($partNum == 2) Matching
+                            @elseif($partNum == 3) Category Matching
+                            @elseif($partNum == 4) Multiple Choice (Reading)
+                            @endif
+                        </span>
+                        @if($isPartCorrect)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-50 text-green-800 text-xs">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span>Đúng</span>
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-800 text-xs">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                <span>Sai</span>
+                            </span>
                         @endif
                     </h3>
                     @if($partNum == 1)
