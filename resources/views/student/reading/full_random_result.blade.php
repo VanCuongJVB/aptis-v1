@@ -4,31 +4,76 @@
 
 @section('content')
     @php
-        // Simple calculation: 1 question = 1 point for all parts
+        // Helper để ép metadata về array an toàn
+        function toArray($meta)
+        {
+            if (is_string($meta)) {
+                return json_decode($meta, true) ?: [];
+            }
+            if (is_array($meta)) {
+                return $meta;
+            }
+            if (is_object($meta)) {
+                return (array) $meta;
+            }
+            return [];
+        }
+
         $totalCorrectAnswers = 0;
         $totalQuestions = 0;
-        $debugInfo = [];
 
         foreach ($groupedQuestions as $part => $questions) {
             foreach ($questions as $question) {
                 $ans = $answers->get($question->id) ?? null;
+                $questionTotal = 1;
                 $questionCorrect = 0;
-                $questionTotal = 1; // Always 1 question = 1 point
 
-                // Simple check: is this question correct?
-                if ($ans && isset($ans->is_correct) && $ans->is_correct) {
-                    $questionCorrect = 1;
+                if ($part == 2) {
+                    // --- FE override logic cho Part 2 ---
+                    $meta = toArray($question->metadata); // <-- dùng helper, an toàn luôn
+                    $sentences = array_values($meta['sentences'] ?? ($meta['items'] ?? []));
+                    $correct = $meta['correct_order'] ?? ($meta['correct'] ?? []);
+
+                    $ansMeta = $ans ? toArray($ans->metadata) : [];
+                    $user = $ansMeta['user_answer'] ?? ($ansMeta['selected'] ?? ($ansMeta['answers'] ?? []));
+
+                    // Hàm convert chuỗi/index về dạng index array
+                    $toIdx = function ($arr, $sents) {
+                        $out = [];
+                        foreach ($arr as $v) {
+                            if (is_numeric($v) && isset($sents[$v])) {
+                                $out[] = (int) $v;
+                            } elseif (is_string($v)) {
+                                $f = array_search($v, $sents, true);
+                                if ($f !== false) {
+                                    $out[] = $f;
+                                }
+                            }
+                        }
+                        return $out;
+                    };
+
+                    $userIdx = $toIdx($user, $sentences);
+                    $correctIdx = $toIdx($correct, $sentences);
+
+                    if ($userIdx === $correctIdx && count($userIdx) > 0) {
+                        $questionCorrect = 1;
+                    }
+                } else {
+                    // --- Các part khác tin vào BE ---
+                    if ($ans && $ans->is_correct) {
+                        $questionCorrect = 1;
+                    }
                 }
 
                 $totalCorrectAnswers += $questionCorrect;
                 $totalQuestions += $questionTotal;
-
-                $debugInfo[] = "Part $part Q{$question->id}: $questionCorrect/$questionTotal";
             }
         }
 
         $calculatedPercentage = $totalQuestions > 0 ? round(($totalCorrectAnswers / $totalQuestions) * 100, 2) : 0;
     @endphp
+
 
     <div class="container mx-auto py-6">
         <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
