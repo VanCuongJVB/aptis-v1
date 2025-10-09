@@ -12,68 +12,92 @@
                 </div>
                 <div class="text-right">
                     @php
-                        $totalCorrect = 0;
-                        $totalQuestions = 0;
-                        
-                        foreach($answers as $ans) {
-                            if ($ans['part'] == 1) {
-                                // Part 1: mỗi câu tính 1 điểm
-                                if (isset($ans['correct']) && $ans['correct']) {
-                                    $totalCorrect++;
-                                }
-                                $totalQuestions++;
-                            }
-                            else if ($ans['part'] == 2) {
-                                // Part 2: Kiểm tra từng speaker mapping
-                                $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
-                                $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
-                                foreach ($userAnswers as $index => $userChoice) {
-                                    if (isset($correctAnswers[$index]) && 
-                                        ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
-                                          intval($userChoice) === intval($correctAnswers[$index])) ||
-                                         (is_string($userChoice) && is_string($correctAnswers[$index]) && 
-                                          strtoupper(trim($userChoice)) === strtoupper(trim($correctAnswers[$index]))))) {
-                                        $totalCorrect++;
-                                    }
-                                    $totalQuestions++;
-                                }
-                            }
-                            else if ($ans['part'] == 3) {
-                                // Part 3: Kiểm tra từng item
-                                $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
-                                $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
-                                foreach ($userAnswers as $index => $userChoice) {
-                                    if (isset($correctAnswers[$index])) {
-                                        if ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
-                                             intval($userChoice) === intval($correctAnswers[$index])) ||
-                                            (is_string($userChoice) && is_string($correctAnswers[$index]) && 
-                                             strtoupper(trim($userChoice)) === strtoupper(trim($correctAnswers[$index])))) {
-                                            $totalCorrect++;
-                                        }
-                                        $totalQuestions++;
-                                    }
-                                }
-                            }
-                            else if ($ans['part'] == 4) {
-                                // Part 4: Kiểm tra từng sub-question
-                                $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
-                                $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
-                                foreach ($userAnswers as $index => $userChoice) {
-                                    if (isset($correctAnswers[$index])) {
-                                        if ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
-                                             intval($userChoice) === intval($correctAnswers[$index])) ||
-                                            (is_string($userChoice) && is_string($correctAnswers[$index]) && 
-                                             strtoupper(trim($userChoice)) === strtoupper(trim($correctAnswers[$index])))) {
-                                            $totalCorrect++;
-                                        }
-                                        $totalQuestions++;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        $percentage = $totalQuestions > 0 ? ($totalCorrect / $totalQuestions) * 100 : 0;
-                    @endphp
+    $totalCorrect = 0;
+    $totalQuestions = 0;
+
+    foreach ($answers as $ans) {
+        if ($ans['part'] == 1) {
+            // Part 1: mỗi câu tính 1 điểm
+            if (isset($ans['correct']) && $ans['correct']) {
+                $totalCorrect++;
+            }
+            $totalQuestions++;
+        } else if ($ans['part'] == 2) {
+            // Part 2: Kiểm tra từng speaker mapping
+            $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
+            $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
+            $metadataAnswers = $ans['question']['metadata']['answers'] ?? [];
+            
+            // FIX: Sử dụng metadataAnswers nếu correctAnswers rỗng
+            $finalCorrectAnswers = !empty($correctAnswers) ? $correctAnswers : $metadataAnswers;
+            
+            foreach ($userAnswers as $index => $userChoice) {
+                if (isset($finalCorrectAnswers[$index])) {
+                    $correctChoice = $finalCorrectAnswers[$index];
+                    if (
+                        (is_numeric($userChoice) && is_numeric($correctChoice) &&
+                            intval($userChoice) === intval($correctChoice)) ||
+                        (is_string($userChoice) && is_string($correctChoice) &&
+                            strtoupper(trim($userChoice)) === strtoupper(trim($correctChoice)))
+                    ) {
+                        $totalCorrect++;
+                    }
+                    $totalQuestions++;
+                }
+            }
+        } else if ($ans['part'] == 3) {
+            // Part 3: Kiểm tra từng item
+            $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
+            $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
+            $items = $ans['question']['metadata']['items'] ?? [];
+            
+            // FIX: Đảm bảo chỉ đếm số items thực tế
+            $numItems = count($items);
+            for ($i = 0; $i < $numItems; $i++) {
+                $userChoice = $userAnswers[$i] ?? null;
+                $correctChoice = $correctAnswers[$i] ?? null;
+                
+                if ($userChoice !== null && $correctChoice !== null) {
+                    if (
+                        (is_numeric($userChoice) && is_numeric($correctChoice) &&
+                            intval($userChoice) === intval($correctChoice)) ||
+                        (is_string($userChoice) && is_string($correctChoice) &&
+                            strtoupper(trim($userChoice)) === strtoupper(trim($correctChoice)))
+                    ) {
+                        $totalCorrect++;
+                    }
+                    $totalQuestions++;
+                }
+            }
+        } else if ($ans['part'] == 4) {
+            // Part 4: Kiểm tra từng sub-question
+            $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
+            $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
+            $subQuestions = $ans['question']['metadata']['questions'] ?? [];
+            
+            // FIX: Đảm bảo chỉ đếm số sub-questions thực tế
+            $numSubs = count($subQuestions);
+            for ($i = 0; $i < $numSubs; $i++) {
+                $userChoice = $userAnswers[$i] ?? null;
+                $correctChoice = $correctAnswers[$i] ?? null;
+                
+                if ($userChoice !== null && $correctChoice !== null) {
+                    if (
+                        (is_numeric($userChoice) && is_numeric($correctChoice) &&
+                            intval($userChoice) === intval($correctChoice)) ||
+                        (is_string($userChoice) && is_string($correctChoice) &&
+                            strtoupper(trim($userChoice)) === strtoupper(trim($correctChoice)))
+                    ) {
+                        $totalCorrect++;
+                    }
+                    $totalQuestions++;
+                }
+            }
+        }
+    }
+
+    $percentage = $totalQuestions > 0 ? ($totalCorrect / $totalQuestions) * 100 : 0;
+@endphp
                     <div class="text-xl font-bold {{ $percentage > 0 ? 'text-green-600' : 'text-red-600' }}">
                         {{ number_format($percentage, 2) }}%
                     </div>
@@ -96,7 +120,7 @@
                     @php
                         // Kiểm tra xem part có đúng hết không
                         $isPartCorrect = false;
-                        
+
                         if ($partNum == 1) {
                             $isPartCorrect = $answer['correct'] ?? false;
                         } else {
@@ -104,13 +128,15 @@
                             foreach ($partAnswers as $ans) {
                                 $userAnswers = is_array($ans['userAnswer']) ? $ans['userAnswer'] : [];
                                 $correctAnswers = is_array($ans['correctAnswer']) ? $ans['correctAnswer'] : [];
-                                
+
                                 foreach ($userAnswers as $index => $userChoice) {
-                                    if (!isset($correctAnswers[$index]) || 
-                                        ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) && 
-                                          intval($userChoice) !== intval($correctAnswers[$index])) ||
-                                         (is_string($userChoice) && is_string($correctAnswers[$index]) && 
-                                          strtoupper(trim($userChoice)) !== strtoupper(trim($correctAnswers[$index]))))) {
+                                    if (
+                                        !isset($correctAnswers[$index]) ||
+                                        ((is_numeric($userChoice) && is_numeric($correctAnswers[$index]) &&
+                                            intval($userChoice) !== intval($correctAnswers[$index])) ||
+                                            (is_string($userChoice) && is_string($correctAnswers[$index]) &&
+                                                strtoupper(trim($userChoice)) !== strtoupper(trim($correctAnswers[$index]))))
+                                    ) {
                                         $allCorrect = false;
                                         break 2;
                                     }
@@ -119,30 +145,7 @@
                             $isPartCorrect = $allCorrect;
                         }
                     @endphp
-                    <h3 class="text-lg font-semibold mb-3 pb-2 border-b flex justify-between items-center">
-                        <span>Part {{ $partNum }} -
-                            @if($partNum == 1) Multiple Choice
-                            @elseif($partNum == 2) Matching
-                            @elseif($partNum == 3) Category Matching
-                            @elseif($partNum == 4) Multiple Choice (Reading)
-                            @endif
-                        </span>
-                        @if($isPartCorrect)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-50 text-green-800 text-xs">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                <span>Đúng</span>
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-800 text-xs">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                                <span>Sai</span>
-                            </span>
-                        @endif
-                    </h3>
+
                     @if($partNum == 1)
                         {{-- Standard Part 1 layout --}}
                         @foreach($partAnswers as $index => $answer)
@@ -226,10 +229,40 @@
                         @foreach($partAnswers as $index => $answer)
                             <div class="mb-4 p-4 border rounded border-gray-200 bg-white question-block"
                                 data-qid="{{ $answer['question']['id'] ?? '' }}">
+
                                 <div class="flex items-start justify-between">
                                     <div class="font-semibold flex items-center gap-2">
                                         <span class="text-sm font-medium">Question {{ $loop->iteration }}</span>
-                                        @if($answer['correct'])
+                                        @php
+                                            $userAnswers = $answer['userAnswer'] ?? [];
+                                            $correctAnswers = $answer['correctAnswer'] ?? [];
+                                            $metadataAnswers = $answer['question']['metadata']['answers'] ?? [];
+
+                                            // FIX: Nếu correctAnswers là null, sử dụng metadataAnswers
+                                            $finalCorrectAnswers = !empty($correctAnswers) ? $correctAnswers : $metadataAnswers;
+
+                                            $allCorrect = true;
+
+                                            foreach ([0, 1, 2, 3] as $speakerIndex) {
+                                                $userChoice = $userAnswers[$speakerIndex] ?? null;
+                                                $correctChoice = $finalCorrectAnswers[$speakerIndex] ?? null;
+
+                                                $isSubCorrect = false;
+                                                if ($userChoice !== null && $correctChoice !== null) {
+                                                    // Convert cả hai về số nguyên để so sánh
+                                                    $userInt = is_numeric($userChoice) ? intval($userChoice) : $userChoice;
+                                                    $correctInt = is_numeric($correctChoice) ? intval($correctChoice) : $correctChoice;
+                                                    $isSubCorrect = $userInt === $correctInt;
+                                                }
+
+                                                if (!$isSubCorrect) {
+                                                    $allCorrect = false;
+                                                    break;
+                                                }
+                                            }
+                                        @endphp
+
+                                        @if($allCorrect)
                                             <span
                                                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-50 text-green-800 text-xs">
                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,75 +283,53 @@
                                     </div>
                                 </div>
 
-                                @if($answer['question'])
-                                    @if($answer['question']['stem'])
-                                        <div class="prose mt-2 mb-3 text-base text-gray-800 font-medium leading-relaxed">
-                                            {{ $answer['question']['stem'] }}
-                                        </div>
-                                    @endif
-                                    @if($answer['question']['content'])
-                                        <div class="prose mt-2 mb-4 text-sm text-gray-600 leading-relaxed">
-                                            {{ $answer['question']['content'] }}
-                                        </div>
-                                    @endif
-                                @endif
-
                                 {{-- Display 4 speakers --}}
                                 <div class="grid gap-4">
                                     @php
-                                        // Normalize user answers
-                                        $userAnswers = [];
-                                        if (!empty($answer['userAnswer']) && is_array($answer['userAnswer'])) {
-                                            foreach ($answer['userAnswer'] as $k => $v) {
-                                                $userAnswers[intval($k)] = is_numeric($v) ? intval($v) : $v;
-                                            }
-                                        }
+                                        $userAnswers = $answer['userAnswer'] ?? [];
+                                        $correctAnswers = $answer['correctAnswer'] ?? [];
+                                        $metadataAnswers = $answer['question']['metadata']['answers'] ?? [];
+                                        $finalCorrectAnswers = !empty($correctAnswers) ? $correctAnswers : $metadataAnswers;
 
-                                        // Get correct answers: prefer top-level 'correctAnswer', fallback to question.metadata.answers
-                                        $possibleCorrect = [];
-                                        if (!empty($answer['correctAnswer']) && is_array($answer['correctAnswer'])) {
-                                            $possibleCorrect = $answer['correctAnswer'];
-                                        } elseif (!empty($answer['question']['metadata']['answers']) && is_array($answer['question']['metadata']['answers'])) {
-                                            $possibleCorrect = $answer['question']['metadata']['answers'];
-                                        }
-                                        $correctAnswers = [];
-                                        foreach ($possibleCorrect as $k => $v) {
-                                            $correctAnswers[intval($k)] = is_numeric($v) ? intval($v) : $v;
-                                        }
+                                        $userAnswerTexts = $answer['userAnswerText'] ?? [];
+                                        $correctAnswerTexts = $answer['correctAnswerText'] ?? [];
 
                                         $questionOptions = $answer['question']['metadata']['options'] ?? [];
+                                        $stem = $answer['question']['stem'] ?? ''; 
                                         $speakers = ['A', 'B', 'C', 'D'];
                                     @endphp
 
+                                       <div class="prose mt-2 mb-2 text-base text-gray-800 font-medium leading-relaxed">
+                                                {{ $stem }}
+                                            </div>
+
                                     @foreach($speakers as $speakerIndex => $speakerLetter)
                                         @php
-                                            $userChoice = array_key_exists($speakerIndex, $userAnswers) ? $userAnswers[$speakerIndex] : null;
-                                            $correctChoice = array_key_exists($speakerIndex, $correctAnswers) ? $correctAnswers[$speakerIndex] : null;
+                                            $userChoice = $userAnswers[$speakerIndex] ?? null;
+                                            $correctChoice = $finalCorrectAnswers[$speakerIndex] ?? null;
 
-                                            // Compare safely (handle numeric indices or string labels)
+                                            // Compare safely
                                             $isCorrect = false;
                                             if ($userChoice !== null && $correctChoice !== null) {
-                                                if (is_numeric($userChoice) && is_numeric($correctChoice)) {
-                                                    $isCorrect = intval($userChoice) === intval($correctChoice);
-                                                } else {
-                                                    $isCorrect = strval($userChoice) === strval($correctChoice);
-                                                }
+                                                $userInt = is_numeric($userChoice) ? intval($userChoice) : $userChoice;
+                                                $correctInt = is_numeric($correctChoice) ? intval($correctChoice) : $correctChoice;
+                                                $isCorrect = $userInt === $correctInt;
                                             }
 
                                             // Format user answer text
                                             $userAnswerText = 'Chưa trả lời';
-                                            if ($userChoice !== null && is_numeric($userChoice) && isset($questionOptions[intval($userChoice)])) {
+                                            if (isset($userAnswerTexts[$speakerIndex]) && !empty($userAnswerTexts[$speakerIndex])) {
+                                                $userAnswerText = $userAnswerTexts[$speakerIndex];
+                                            } elseif ($userChoice !== null && is_numeric($userChoice) && isset($questionOptions[intval($userChoice)])) {
                                                 $userAnswerText = chr(65 + intval($userChoice)) . ' - ' . $questionOptions[intval($userChoice)];
-                                            } elseif ($userChoice !== null && is_string($userChoice) && isset($questionOptions[$userChoice])) {
-                                                $userAnswerText = strtoupper($userChoice) . ' - ' . $questionOptions[$userChoice];
                                             }
 
                                             // Format correct answer text
                                             $correctAnswerText = '';
-                                            if ($correctChoice !== null && is_numeric($correctChoice) && isset($questionOptions[intval($correctChoice)])) {
+                                            if (isset($correctAnswerTexts[$speakerIndex]) && !empty($correctAnswerTexts[$speakerIndex])) {
+                                                $correctAnswerText = $correctAnswerTexts[$speakerIndex];
+                                            } elseif ($correctChoice !== null && is_numeric($correctChoice) && isset($questionOptions[intval($correctChoice)])) {
                                                 $correctAnswerText = chr(65 + intval($correctChoice)) . ' - ' . $questionOptions[intval($correctChoice)];
-                                            } elseif ($correctChoice !== null && is_string($correctChoice) && isset($questionOptions[$correctChoice])) {
-                                                $correctAnswerText = strtoupper($correctChoice) . ' - ' . $questionOptions[$correctChoice];
                                             }
                                         @endphp
 
@@ -381,147 +392,150 @@
                     @elseif($partNum == 3)
                         {{-- Part 3 layout - show 4 items --}}
                         @foreach($partAnswers as $index => $answer)
-    <div class="mb-4 p-4 border rounded border-gray-200 bg-white question-block"
-        data-qid="{{ $answer['question']['id'] ?? '' }}">
-        <div class="flex items-start justify-between">
-            <div class="font-semibold flex items-center gap-2">
-                <span class="text-sm font-medium">Question {{ $loop->iteration }}</span>
-                @if($answer['correct'])
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-50 text-green-800 text-xs">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Correct
-                    </span>
-                @else
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-800 text-xs">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                        Incorrect
-                    </span>
-                @endif
-            </div>
-        </div>
-
-        @if($answer['question'])
-            @if($answer['question']['stem'])
-                <div class="prose mt-2 mb-3 text-base text-gray-800 font-medium leading-relaxed">
-                    {{ $answer['question']['stem'] }}
-                </div>
-            @endif
-            @if($answer['question']['content'])
-                <div class="prose mt-2 mb-4 text-sm text-gray-600 leading-relaxed">
-                    {{ $answer['question']['content'] }}
-                </div>
-            @endif
-        @endif
-
-        {{-- Display 4 items --}}
-        <div class="grid gap-4">
-            @php
-                $userAnswers = is_array($answer['userAnswer']) ? $answer['userAnswer'] : [];
-                $correctAnswers = is_array($answer['correctAnswer']) ? $answer['correctAnswer'] : [];
-                $questionOptions = $answer['question']['metadata']['options'] ?? [];
-                $items = $answer['question']['metadata']['items'] ?? [];
-
-                // helper: lấy text từ choice (index hoặc string)
-                $getAnswerText = function($choice, $options) {
-                    if ($choice === null) return null;
-
-                    // nếu là số
-                    if (is_numeric($choice) && isset($options[intval($choice)])) {
-                        return chr(65 + intval($choice)) . ' - ' . $options[intval($choice)];
-                    }
-
-                    // nếu là chữ cái (A/B/C/D)
-                    if (preg_match('/^[A-Da-d]$/', (string)$choice)) {
-                        $idx = ord(strtoupper($choice)) - 65;
-                        return isset($options[$idx]) ? chr(65 + $idx) . ' - ' . $options[$idx] : strtoupper($choice);
-                    }
-
-                    // nếu là text -> tìm trong options
-                    foreach ($options as $i => $opt) {
-                        if (mb_strtolower(trim($opt)) === mb_strtolower(trim($choice))) {
-                            return chr(65 + $i) . ' - ' . $opt;
-                        }
-                    }
-
-                    // fallback: trả nguyên text
-                    return (string)$choice;
-                };
-            @endphp
-
-            @foreach($items as $itemIndex => $itemText)
-                @php
-                    $userChoice = $userAnswers[$itemIndex] ?? null;
-                    $correctChoice = $correctAnswers[$itemIndex] ?? null;
-
-                    $userAnswerText = $getAnswerText($userChoice, $questionOptions) ?? 'Chưa trả lời';
-                    $correctAnswerText = $getAnswerText($correctChoice, $questionOptions);
-
-                    $isCorrect = $userAnswerText && $correctAnswerText && ($userAnswerText === $correctAnswerText);
-                @endphp
-
-                <div class="bg-gray-50 rounded-lg p-4 border {{ $isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50' }}">
-                    <div class="flex items-center justify-between mb-3">
-                        <h4 class="font-semibold text-gray-800 text-sm leading-relaxed">{{ $itemText }}</h4>
-                        @if($isCorrect)
-                            <div class="flex items-center text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                <span class="text-xs font-medium">Đúng</span>
-                            </div>
-                        @else
-                            <div class="flex items-center text-red-600 bg-red-100 px-2 py-1 rounded-full">
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                                <span class="text-xs font-medium">Sai</span>
-                            </div>
-                        @endif
-                    </div>
-
-                    <div class="grid md:grid-cols-2 gap-3">
-                        <!-- User Answer -->
-                        <div class="bg-white rounded p-3 border">
-                            <div class="text-xs font-medium text-gray-600 mb-1 flex items-center">
-                                <svg class="w-3 h-3 mr-1 text-blue-500" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M16 7a4 4 0 11-8 0 4 4 0 18 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
-                                    </path>
-                                </svg>
-                                Đáp án của bạn
-                            </div>
-                            <div class="text-sm font-medium text-gray-800">{{ $userAnswerText }}</div>
-                        </div>
-
-                        <!-- Correct Answer (only show if wrong) -->
-                        @if(!$isCorrect && $correctAnswerText)
-                            <div class="bg-green-50 rounded p-3 border border-green-200">
-                                <div class="text-xs font-medium text-green-700 mb-1 flex items-center">
-                                    <svg class="w-3 h-3 mr-1 text-green-600" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Đáp án đúng
+                            <div class="mb-4 p-4 border rounded border-gray-200 bg-white question-block"
+                                data-qid="{{ $answer['question']['id'] ?? '' }}">
+                                <div class="flex items-start justify-between">
+                                    <div class="font-semibold flex items-center gap-2">
+                                        <span class="text-sm font-medium">Question {{ $loop->iteration }}</span>
+                                        @if($answer['correct'])
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-50 text-green-800 text-xs">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M5 13l4 4L19 7"></path>
+                                                </svg>
+                                                Correct
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-800 text-xs">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                                Incorrect
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
-                                <div class="text-sm font-medium text-green-800">{{ $correctAnswerText }}</div>
+
+                                @if($answer['question'])
+                                    @if($answer['question']['stem'])
+                                        <div class="prose mt-2 mb-3 text-base text-gray-800 font-medium leading-relaxed">
+                                            {{ $answer['question']['stem'] }}
+                                        </div>
+                                    @endif
+                                    @if($answer['question']['content'])
+                                        <div class="prose mt-2 mb-4 text-sm text-gray-600 leading-relaxed">
+                                            {{ $answer['question']['content'] }}
+                                        </div>
+                                    @endif
+                                @endif
+
+                                {{-- Display 4 items --}}
+                                <div class="grid gap-4">
+                                    @php
+                                        $userAnswers = is_array($answer['userAnswer']) ? $answer['userAnswer'] : [];
+                                        $correctAnswers = is_array($answer['correctAnswer']) ? $answer['correctAnswer'] : [];
+                                        $questionOptions = $answer['question']['metadata']['options'] ?? [];
+                                        $items = $answer['question']['metadata']['items'] ?? [];
+
+                                        // helper: lấy text từ choice (index hoặc string)
+                                        $getAnswerText = function ($choice, $options) {
+                                            if ($choice === null)
+                                                return null;
+
+                                            // nếu là số
+                                            if (is_numeric($choice) && isset($options[intval($choice)])) {
+                                                return chr(65 + intval($choice)) . ' - ' . $options[intval($choice)];
+                                            }
+
+                                            // nếu là chữ cái (A/B/C/D)
+                                            if (preg_match('/^[A-Da-d]$/', (string) $choice)) {
+                                                $idx = ord(strtoupper($choice)) - 65;
+                                                return isset($options[$idx]) ? chr(65 + $idx) . ' - ' . $options[$idx] : strtoupper($choice);
+                                            }
+
+                                            // nếu là text -> tìm trong options
+                                            foreach ($options as $i => $opt) {
+                                                if (mb_strtolower(trim($opt)) === mb_strtolower(trim($choice))) {
+                                                    return chr(65 + $i) . ' - ' . $opt;
+                                                }
+                                            }
+
+                                            // fallback: trả nguyên text
+                                            return (string) $choice;
+                                        };
+                                    @endphp
+
+                                    @foreach($items as $itemIndex => $itemText)
+                                        @php
+                                            $userChoice = $userAnswers[$itemIndex] ?? null;
+                                            $correctChoice = $correctAnswers[$itemIndex] ?? null;
+
+                                            $userAnswerText = $getAnswerText($userChoice, $questionOptions) ?? 'Chưa trả lời';
+                                            $correctAnswerText = $getAnswerText($correctChoice, $questionOptions);
+
+                                            $isCorrect = $userAnswerText && $correctAnswerText && ($userAnswerText === $correctAnswerText);
+                                        @endphp
+
+                                        <div
+                                            class="bg-gray-50 rounded-lg p-4 border {{ $isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50' }}">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <h4 class="font-semibold text-gray-800 text-sm leading-relaxed">{{ $itemText }}</h4>
+                                                @if($isCorrect)
+                                                    <div class="flex items-center text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M5 13l4 4L19 7"></path>
+                                                        </svg>
+                                                        <span class="text-xs font-medium">Đúng</span>
+                                                    </div>
+                                                @else
+                                                    <div class="flex items-center text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M6 18L18 6M6 6l12 12"></path>
+                                                        </svg>
+                                                        <span class="text-xs font-medium">Sai</span>
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <div class="grid md:grid-cols-2 gap-3">
+                                                <!-- User Answer -->
+                                                <div class="bg-white rounded p-3 border">
+                                                    <div class="text-xs font-medium text-gray-600 mb-1 flex items-center">
+                                                        <svg class="w-3 h-3 mr-1 text-blue-500" fill="none" stroke="currentColor"
+                                                            viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M16 7a4 4 0 11-8 0 4 4 0 18 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                                            </path>
+                                                        </svg>
+                                                        Đáp án của bạn
+                                                    </div>
+                                                    <div class="text-sm font-medium text-gray-800">{{ $userAnswerText }}</div>
+                                                </div>
+
+                                                <!-- Correct Answer (only show if wrong) -->
+                                                @if(!$isCorrect && $correctAnswerText)
+                                                    <div class="bg-green-50 rounded p-3 border border-green-200">
+                                                        <div class="text-xs font-medium text-green-700 mb-1 flex items-center">
+                                                            <svg class="w-3 h-3 mr-1 text-green-600" fill="none" stroke="currentColor"
+                                                                viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                            </svg>
+                                                            Đáp án đúng
+                                                        </div>
+                                                        <div class="text-sm font-medium text-green-800">{{ $correctAnswerText }}</div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
-                        @endif
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-@endforeach
+                        @endforeach
 
                     @elseif($partNum == 4)
                         {{-- Part 4 layout - show sub-questions --}}

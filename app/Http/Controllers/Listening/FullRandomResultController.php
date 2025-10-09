@@ -204,61 +204,73 @@ class FullRandomResultController extends Controller
     }
 
     private function reconstructMultiPartAnswer($questionAnswers, $firstAnswer, $question, $part)
-    {
-        $userAnswers = [];
-        $correctAnswers = [];
-        $userAnswerTexts = [];
-        $correctAnswerTexts = [];
-        $isCorrect = true;
+{
+    $userAnswers = [];
+    $correctAnswers = [];
+    $userAnswerTexts = [];
+    $correctAnswerTexts = [];
+    $isCorrect = true;
+    
+    foreach ($questionAnswers->sortBy('sub_index') as $subAnswer) {
+        $subMeta = $subAnswer->metadata;
+        $userAns = $subMeta['userAnswer'] ?? null;
+        $correctAns = $subMeta['correct'] ?? null;
         
-        foreach ($questionAnswers->sortBy('sub_index') as $subAnswer) {
-            $subMeta = $subAnswer->metadata;
-            $userAns = $subMeta['userAnswer'] ?? null;
-            $correctAns = $subMeta['correct'] ?? null;
+        $userAnswers[] = $userAns;
+        $correctAnswers[] = $correctAns;
+        
+        // Convert to text for display only
+        $userText = $userAns;
+        $correctText = $correctAns;
+        
+        if ($question && isset($question->metadata['options'])) {
+            $options = $question->metadata['options'];
             
-            $userAnswers[] = $userAns;
-            $correctAnswers[] = $correctAns;
-            
-            // Convert to text for certain parts
-            $userText = $userAns;
-            $correctText = $correctAns;
-            
-            if ($question && isset($question->metadata['options'])) {
-                $options = $question->metadata['options'];
-                
-                // Convert indices to text for parts that use option arrays
-                if (($part == 2 || $part == 3) && is_numeric($userAns) && isset($options[$userAns])) {
-                    $userText = $options[$userAns];
-                }
-                if (($part == 2 || $part == 3) && is_numeric($correctAns) && isset($options[$correctAns])) {
-                    $correctText = $options[$correctAns];
-                }
+            // Convert indices to text for display
+            if (($part == 2 || $part == 3) && is_numeric($userAns) && isset($options[$userAns])) {
+                $userText = $options[$userAns];
             }
-            
-            $userAnswerTexts[] = $userText;
-            $correctAnswerTexts[] = $correctText;
-            
-            if (!$subAnswer->is_correct) {
-                $isCorrect = false;
+            if (($part == 2 || $part == 3) && is_numeric($correctAns) && isset($options[$correctAns])) {
+                $correctText = $options[$correctAns];
             }
         }
         
-        return [
-            'qid' => $firstAnswer->question_id,
-            'part' => $part,
-            'correct' => $isCorrect,
-            'userAnswer' => $userAnswerTexts, // Use converted text instead of raw indices
-            'correctAnswer' => $correctAnswerTexts, // Use converted text instead of raw indices
-            'userAnswerRaw' => $userAnswers, // Keep raw indices for reference if needed
-            'correctAnswerRaw' => $correctAnswers, // Keep raw indices for reference if needed
-            'question' => $question ? [
-                'stem' => $question->stem,
-                'content' => $question->content,
-                'order_no' => $question->order_no,
-                'metadata' => $question->metadata
-            ] : null
-        ];
+        $userAnswerTexts[] = $userText;
+        $correctAnswerTexts[] = $correctText;
+        
+        // Check correctness using raw values
+        if ($userAns !== null && $correctAns !== null) {
+            $subIsCorrect = false;
+            if (is_numeric($userAns) && is_numeric($correctAns)) {
+                $subIsCorrect = intval($userAns) === intval($correctAns);
+            } else {
+                $subIsCorrect = strtoupper(trim($userAns)) === strtoupper(trim($correctAns));
+            }
+            
+            if (!$subIsCorrect) {
+                $isCorrect = false;
+            }
+        } else {
+            $isCorrect = false;
+        }
     }
+    
+    return [
+        'qid' => $firstAnswer->question_id,
+        'part' => $part,
+        'correct' => $isCorrect,
+        'userAnswer' => $userAnswers, // Keep raw indices for correct checking
+        'correctAnswer' => $correctAnswers, // Keep raw indices for correct checking
+        'userAnswerText' => $userAnswerTexts, // Use for display only
+        'correctAnswerText' => $correctAnswerTexts, // Use for display only
+        'question' => $question ? [
+            'stem' => $question->stem,
+            'content' => $question->content,
+            'order_no' => $question->order_no,
+            'metadata' => $question->metadata
+        ] : null
+    ];
+}
 
     private function reconstructSingleAnswer($firstAnswer, $metadata, $question, $part)
     {
