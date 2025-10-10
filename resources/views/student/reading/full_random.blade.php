@@ -68,7 +68,6 @@
                     if (partLabel && partLabel.textContent.includes('Part 2')) {
                         // Tìm script khởi tạo drag & drop trong part2
                         if (window.initPart2DragDrop) {
-                            console.log('[full_random] Init drag & drop part2', currentSlide);
                             setTimeout(function() { window.initPart2DragDrop(currentSlide); }, 10);
                         } else {
                             console.warn('[full_random] window.initPart2DragDrop not found');

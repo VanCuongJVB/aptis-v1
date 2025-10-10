@@ -2,8 +2,6 @@
 @push('scripts')
 <script>
     (function(){
-        console.log("📋 SIMPLIFIED DEBUG OUTPUT 📋");
-        
         try {
             // Get saved answers
             var attemptId = {{ $attempt->id }};
@@ -19,10 +17,6 @@
                 console.error("No answers found in any source!");
                 return;
             }
-            
-            // Create simplified debug view
-            console.log("ANSWER DATA SUMMARY:");
-            console.log("-------------------");
             
             Object.keys(answers).forEach(function(qid) {
                 var answer = answers[qid];
@@ -46,13 +40,6 @@
                     }
                 }
                 
-                console.log("Question " + qid + ":");
-                console.log("  Part: " + part);
-                console.log("  Has metadata: " + hasMetadata);
-                console.log("  Has selected option ID: " + hasSelectedOptionId);
-                console.log("  Has inline feedback container: " + hasInlineFeedback);
-                console.log("  User answer:", userAnswer);
-                console.log("-------------------");
             });
             
         } catch(e) {

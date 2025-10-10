@@ -3,7 +3,6 @@
 <script>
     // Helper function to ensure answers are loaded and accessible
     (function() {
-        console.log("🔄 INITIALIZING ANSWER DATA 🔄");
         
         // Check if we have PHP-rendered attempt data
         var attemptId = {{ $attempt->id }};
@@ -12,15 +11,12 @@
         // Create a backup of the PHP-rendered answers
         window.phpAnswers = @json($answers->keyBy('question_id')->toArray());
         
-        console.log("PHP-rendered answers:", window.phpAnswers);
-        
         // Check if we have answers in localStorage already
         var hasLocalStorage = false;
         try {
             var storedAnswers = localStorage.getItem(key);
             if (storedAnswers) {
                 hasLocalStorage = true;
-                console.log("Found existing localStorage data");
             }
         } catch (e) {
             console.log("Error reading localStorage:", e);
@@ -30,8 +26,6 @@
         // create a localStorage version from the PHP data
         if (!hasLocalStorage && window.phpAnswers) {
             try {
-                console.log("Creating localStorage answers from PHP data");
-                
                 var formattedAnswers = {};
                 Object.keys(window.phpAnswers).forEach(function(qid) {
                     var ans = window.phpAnswers[qid];
@@ -43,9 +37,7 @@
                     };
                 });
                 
-                console.log("Formatted answers for localStorage:", formattedAnswers);
                 localStorage.setItem(key, JSON.stringify(formattedAnswers));
-                console.log("Saved answers to localStorage");
             } catch (e) {
                 console.error("Error creating localStorage answers:", e);
             }

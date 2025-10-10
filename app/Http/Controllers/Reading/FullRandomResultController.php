@@ -208,7 +208,7 @@ class FullRandomResultController extends Controller
         $questions = collect($order)->map(function($id) use ($questionsCollection) {
             return $questionsCollection->get($id);
         })->filter()->values();
-            
+        
         // Get answers
         $answers = AttemptAnswer::where('attempt_id', $attempt->id)
             ->with('selectedOption')

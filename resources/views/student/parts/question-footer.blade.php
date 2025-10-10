@@ -858,7 +858,6 @@
                         meta = JSON.parse(questionBlock.dataset.metadata);
                     }
                     meta = meta || window.currentQuestionMeta || {};
-                    console.log('meta', meta);
                     // New structure: meta.questions is an array of sub-questions
                     const subQuestions = Array.isArray(meta.questions) ? meta.questions : [];
                     // User answers: try to map by question id if possible

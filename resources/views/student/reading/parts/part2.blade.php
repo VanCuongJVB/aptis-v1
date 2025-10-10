@@ -87,7 +87,6 @@
             (function () {
                 // Initialize function to set up drag and drop
                 window.initPart2DragDrop = function initPart2DragDrop(context) {
-                    console.log('[part2] initPart2DragDrop called', context);
                     if (!context) context = document;
                     let pool = context.querySelector('#pool');
                     const slots = context.querySelector('#slot-container');
