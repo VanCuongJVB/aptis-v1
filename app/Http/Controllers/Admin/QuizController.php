@@ -21,7 +21,9 @@ class QuizController extends Controller
         }
         // Filter: phần
         if ($part = request('part')) {
-            $query->where('part', $part);
+            if ($part != 0) {
+                $query->where('part', $part);
+            }
         }
         // Filter: trạng thái xuất bản
         if (request()->has('published') && in_array(request('published'), ['0', '1'], true)) {
@@ -32,7 +34,11 @@ class QuizController extends Controller
             $query->where('title', 'like', "%$q%");
         }
 
-        $quizzes = $query->orderByDesc('created_at')->paginate(20)->appends(request()->query());
+        $quizzes = $query
+            ->where('part', '>', 0) // loại part = 0
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->appends(request()->query());
 
         // Đếm tổng số quiz, set, question toàn hệ thống
         $totalQuizzes = Quiz::count();
