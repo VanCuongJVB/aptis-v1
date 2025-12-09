@@ -81,33 +81,20 @@
             </main>
         </div>
         
-        {{-- Global audio play handler for Safari compatibility --}}
+        {{-- Ensure audio can be interacted on Safari iOS --}}
         <script>
+            // Remove any blocking on audio elements
             document.addEventListener('DOMContentLoaded', function() {
-                // Enhance all audio elements for Safari compatibility
-                const audioElements = document.querySelectorAll('audio');
-                audioElements.forEach(audio => {
-                    // Ensure play() is handled as async promise
-                    const originalPlay = audio.play;
-                    audio.play = function() {
-                        const playPromise = originalPlay.call(this);
-                        if (playPromise !== undefined) {
-                            return playPromise.catch(error => {
-                                console.warn('Audio play failed:', error);
-                                // Attempt to resume audio context if needed
-                                if (audio.paused) {
-                                    setTimeout(() => {
-                                        const retryPromise = originalPlay.call(audio);
-                                        if (retryPromise !== undefined) {
-                                            retryPromise.catch(e => console.warn('Retry failed:', e));
-                                        }
-                                    }, 100);
-                                }
-                                throw error;
-                            });
-                        }
-                        return playPromise;
-                    };
+                const audios = document.querySelectorAll('audio');
+                audios.forEach(audio => {
+                    // Ensure pointer events work
+                    audio.style.pointerEvents = 'auto';
+                    audio.style.WebkitUserSelect = 'text';
+                    
+                    // Remove any click stopPropagation that might interfere
+                    audio.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                    }, false);
                 });
             });
         </script>
