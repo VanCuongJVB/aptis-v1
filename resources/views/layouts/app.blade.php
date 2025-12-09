@@ -110,8 +110,32 @@
                             // ignore
                         }
                     }
-                    audio.addEventListener('click', tryPlay, { passive: true });
-                    audio.addEventListener('touchend', tryPlay, { passive: true });
+                    // Use non-passive handlers on both the audio element and its immediate container
+                    // so taps on native controls (or nearby) are more likely to be treated as a user gesture.
+                    try {
+                        audio.addEventListener('click', tryPlay, false);
+                        audio.addEventListener('touchend', tryPlay, false);
+                        const parent = audio.parentElement;
+                        if (parent && parent !== document.body) {
+                            parent.addEventListener('click', function (ev) {
+                                // If the click originated inside the native controls area, toggle play
+                                if (ev.target && (ev.target === audio || audio.contains(ev.target) || parent.contains(ev.target))) tryPlay();
+                            }, false);
+                            parent.addEventListener('touchend', function (ev) {
+                                try {
+                                    if (ev.changedTouches && ev.changedTouches.length) {
+                                        const t = ev.changedTouches[0];
+                                        const rect = audio.getBoundingClientRect();
+                                        if (t.clientX >= rect.left && t.clientX <= rect.right && t.clientY >= rect.top && t.clientY <= rect.bottom) {
+                                            tryPlay();
+                                        }
+                                    } else {
+                                        tryPlay();
+                                    }
+                                } catch (e) {}
+                            }, false);
+                        }
+                    } catch (e) { /* ignore */ }
                     audio.dataset.userPlayBound = '1';
                 });
             }
