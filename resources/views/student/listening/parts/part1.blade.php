@@ -78,3 +78,22 @@
     <div id="feedback-{{ $question->id }}" class="mt-4 hidden"></div>
     <div class="inline-feedback mt-3 text-sm text-gray-700" data-qid-feedback="{{ $question->id }}"></div>
 </div>
+
+@push('scripts')
+<script>
+    // Audio play handler for Safari compatibility
+    document.addEventListener('DOMContentLoaded', function() {
+        const audios = document.querySelectorAll('audio');
+        audios.forEach(audio => {
+            audio.addEventListener('play', function(e) {
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error('Audio play error:', error);
+                    });
+                }
+            }, false);
+        });
+    });
+</script>
+@endpush

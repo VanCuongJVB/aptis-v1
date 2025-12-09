@@ -56,7 +56,8 @@
                 <div class="question-block" data-qid="{{ $question->id }}" data-metadata='@json($question->metadata ?? [])'>
                     @includeWhen(true, 'student.listening.parts.part' . $resolvedPart, [
                         'question' => $question,
-                        'answer' => $answer ?? null
+                        'answer' => $answer ?? null,
+                        'audioUrl' => $audioUrl
                     ])
                 </div>
             </div>

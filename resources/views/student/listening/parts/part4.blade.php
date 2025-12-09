@@ -159,4 +159,19 @@
         btn.textContent = willShow ? hideLabel : showLabel;
     }, false);
 })();
+
+// Audio play handler for Safari compatibility
+document.addEventListener('DOMContentLoaded', function() {
+    const audios = document.querySelectorAll('audio');
+    audios.forEach(audio => {
+        audio.addEventListener('play', function(e) {
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.error('Audio play error:', error);
+                });
+            }
+        }, false);
+    });
+});
 </script>
