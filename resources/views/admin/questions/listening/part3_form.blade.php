@@ -70,7 +70,7 @@
                     }
                 @endphp
                 @if($audioSrc)
-                    <audio controls class="w-full mb-1">
+                    <audio controls class="w-full mb-1" crossorigin="anonymous" playsinline>
                         <source src="{{ $audioSrc }}" type="audio/mpeg">
                         Trình duyệt của bạn không hỗ trợ phát audio.
                     </audio>

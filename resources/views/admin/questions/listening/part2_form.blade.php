@@ -137,7 +137,7 @@
                                 <label class="block text-base font-semibold mb-1">Audio (upload mp3, wav hoặc nhập đường dẫn)</label>
                                 <input type="file" name="speakers[{{ $i }}][audio_file]" accept="audio/mp3,audio/wav" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-base text-slate-800 shadow mb-1 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/40 transition">
                                 @if($audioSrc)
-                                    <audio controls class="w-full mb-1">
+                                    <audio controls class="w-full mb-1" crossorigin="anonymous" playsinline>
                                         <source src="{{ $audioSrc }}" type="audio/mpeg">
                                         Trình duyệt của bạn không hỗ trợ phát audio.
                                     </audio>

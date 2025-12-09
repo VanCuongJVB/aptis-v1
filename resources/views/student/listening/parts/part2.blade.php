@@ -49,8 +49,8 @@
                         </div>
 
                         @if($spAudioUrl)
-                            <audio controls preload="none" class="w-full mb-2 playall-audio"
-                                id="audio-{{ $question->id }}-{{ $spIdx }}">
+                            <audio controls preload="metadata" class="w-full mb-2 playall-audio"
+                                id="audio-{{ $question->id }}-{{ $spIdx }}" crossorigin="anonymous" playsinline>
                                 <source src="{{ $spAudioUrl }}" type="audio/mpeg">
                                 Trình duyệt của bạn không hỗ trợ phát audio.
                             </audio>

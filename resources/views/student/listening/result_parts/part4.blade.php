@@ -123,7 +123,7 @@
 
                         @if(!empty($audio))
                             <div class="w-full sm:w-auto">
-                                <audio controls class="w-full sm:w-80">
+                                <audio controls class="w-full sm:w-80" crossorigin="anonymous" playsinline>
                                     <source src="{{ asset($audio) }}" type="audio/mpeg">
                                     Trình duyệt không hỗ trợ audio.
                                 </audio>

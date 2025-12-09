@@ -104,7 +104,7 @@
                 @error('audio')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
 
                 @if($question->audio_path)
-                    <audio controls class="mt-3 w-full">
+                    <audio controls class="mt-3 w-full" crossorigin="anonymous" playsinline>
                         <source src="{{ asset('storage/' . $question->audio_path) }}" type="audio/mpeg">
                         Trình duyệt không hỗ trợ audio.
                     </audio>
