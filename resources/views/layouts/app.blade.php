@@ -83,8 +83,8 @@
         
         {{-- Ensure audio can be interacted on Safari iOS --}}
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('audio').forEach(function(audio) {
+            function bindInlineAudioHandlers(root) {
+                (root || document).querySelectorAll('audio').forEach(function(audio) {
                     // Ensure pointer events work and allow selection where needed
                     audio.style.pointerEvents = 'auto';
                     audio.style.WebkitUserSelect = 'text';
@@ -100,8 +100,12 @@
                     if (audio.dataset.userPlayBound) return;
                     function tryPlay() {
                         try {
-                            var p = audio.play();
-                            if (p && typeof p.catch === 'function') p.catch(function(){});
+                            // Only call play if the audio is currently paused. This avoids
+                            // forcing playback when the user attempts to pause.
+                            if (audio.paused) {
+                                var p = audio.play();
+                                if (p && typeof p.catch === 'function') p.catch(function(){});
+                            }
                         } catch (e) {
                             // ignore
                         }
@@ -110,6 +114,19 @@
                     audio.addEventListener('touchend', tryPlay, { passive: true });
                     audio.dataset.userPlayBound = '1';
                 });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                bindInlineAudioHandlers(document);
+            });
+
+            // Re-bind after SPA container replacements (app uses aptis container replacement events)
+            window.addEventListener('aptis:container:replace', function (e) {
+                // If event provides a container, bind within it; otherwise bind globally after a short delay
+                try {
+                    if (e && e.detail && e.detail.container) bindInlineAudioHandlers(e.detail.container);
+                    else setTimeout(function(){ bindInlineAudioHandlers(document); }, 50);
+                } catch (err) { setTimeout(function(){ bindInlineAudioHandlers(document); }, 50); }
             });
         </script>
         @stack('scripts')
