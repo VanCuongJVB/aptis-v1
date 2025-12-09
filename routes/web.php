@@ -36,7 +36,55 @@ Route::middleware(['auth', 'verified', 'account.active'])->group(function () {
 
 // Storage Routes
 Route::get('/storage/{path}', function ($path) {
-    return response()->file(storage_path('app/public/' . $path));
+    $fullPath = storage_path('app/public/' . $path);
+    if (!file_exists($fullPath)) {
+        abort(404);
+    }
+
+    $size = filesize($fullPath);
+    $fmimetype = @mime_content_type($fullPath) ?: 'application/octet-stream';
+
+    $start = 0;
+    $end = $size - 1;
+    $status = 200;
+    $length = $size;
+
+    $headers = [
+        'Content-Type' => $fmimetype,
+        'Accept-Ranges' => 'bytes',
+    ];
+
+    $range = request()->header('Range');
+    if ($range) {
+        // Parse the range header, e.g. "bytes=0-1023"
+        if (preg_match('/bytes=([0-9]*)-([0-9]*)/', $range, $matches)) {
+            if ($matches[1] !== '') $start = intval($matches[1]);
+            if ($matches[2] !== '') $end = intval($matches[2]);
+            if ($start > $end) {
+                return response('', 416);
+            }
+            $length = $end - $start + 1;
+            $status = 206; // Partial Content
+            $headers['Content-Range'] = "bytes {$start}-{$end}/{$size}";
+            $headers['Content-Length'] = $length;
+        }
+    } else {
+        $headers['Content-Length'] = $size;
+    }
+
+    return response()->stream(function() use ($fullPath, $start, $length) {
+        $fp = fopen($fullPath, 'rb');
+        if ($start > 0) fseek($fp, $start);
+        $bytesRemaining = $length;
+        $buffer = 1024 * 8;
+        while ($bytesRemaining > 0 && !feof($fp)) {
+            $read = ($bytesRemaining > $buffer) ? $buffer : $bytesRemaining;
+            echo fread($fp, $read);
+            flush();
+            $bytesRemaining -= $read;
+        }
+        fclose($fp);
+    }, $status, $headers);
 })->where('path', '.*')->name('storage.local');
 
 // Include Other Route Files
