@@ -84,31 +84,31 @@
         {{-- Ensure audio can be interacted on Safari iOS --}}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                const audios = document.querySelectorAll('audio');
-                audios.forEach(audio => {
-                    // Ensure pointer events work
+                document.querySelectorAll('audio').forEach(function(audio) {
+                    // Ensure pointer events work and allow selection where needed
                     audio.style.pointerEvents = 'auto';
                     audio.style.WebkitUserSelect = 'text';
-                    
-                    // Allow playing with user gesture
+
+                    // iOS requires playsinline to avoid fullscreen playback
                     audio.setAttribute('playsinline', '');
                     audio.setAttribute('webkit-playsinline', '');
-                    
-                    // Handle play attempts more gracefully
-                    const originalPlay = audio.play.bind(audio);
-                    audio.play = function() {
-                        const result = originalPlay();
-                        if (result && typeof result.catch === 'function') {
-                            return result.catch(err => {
-                                console.warn('Audio play rejected:', err);
-                                // Silently fail - let user retry
-                            });
-                        }
-                        return result;
-                    };
-                    
-                    // Ensure controls are visible and clickable
+
+                    // Make sure native controls are enabled
                     audio.controls = true;
+
+                    // Bind a minimal user-gesture handler so taps directly call .play()
+                    if (audio.dataset.userPlayBound) return;
+                    function tryPlay() {
+                        try {
+                            var p = audio.play();
+                            if (p && typeof p.catch === 'function') p.catch(function(){});
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                    audio.addEventListener('click', tryPlay, { passive: true });
+                    audio.addEventListener('touchend', tryPlay, { passive: true });
+                    audio.dataset.userPlayBound = '1';
                 });
             });
         </script>
