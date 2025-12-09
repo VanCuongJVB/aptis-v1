@@ -1,4 +1,16 @@
 <IfModule mod_rewrite.c>
+
+    # BEGIN: Fix Safari iOS không phát được audio
+    <IfModule mod_headers.c>
+        Header set Accept-Ranges bytes
+    </IfModule>
+
+    <FilesMatch "\.(mp3|m4a|aac)$">
+        Header set Accept-Ranges bytes
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+    # END: Fix Safari iOS không phát được audio
+
     <IfModule mod_headers.c>
         # Enable byte-range requests for Safari iOS audio playback
         Header set Accept-Ranges "bytes"
