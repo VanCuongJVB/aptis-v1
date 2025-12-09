@@ -123,7 +123,19 @@
                     if (!isPlayingAll || idx >= audios.length) { stopAll(); return; }
                     const audio = audios[idx];
                     audios.forEach((a, i) => { if (i !== idx) { a.pause(); a.currentTime = 0; } });
-                    audio.currentTime = 0; audio.play();
+                    audio.currentTime = 0;
+                    
+                    // Handle async play on Safari
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .catch(error => {
+                                console.error('Audio play error:', error);
+                                if (isPlayingAll && !userStopped) playNext(idx + 1);
+                                else stopAll();
+                            });
+                    }
+                    
                     audio.onended = function () { if (isPlayingAll && !userStopped) playNext(idx + 1); else stopAll(); }
                 }
                 newBtn.addEventListener('click', function () {

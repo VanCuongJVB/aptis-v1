@@ -80,6 +80,37 @@
                 @endif
             </main>
         </div>
+        
+        {{-- Global audio play handler for Safari compatibility --}}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Enhance all audio elements for Safari compatibility
+                const audioElements = document.querySelectorAll('audio');
+                audioElements.forEach(audio => {
+                    // Ensure play() is handled as async promise
+                    const originalPlay = audio.play;
+                    audio.play = function() {
+                        const playPromise = originalPlay.call(this);
+                        if (playPromise !== undefined) {
+                            return playPromise.catch(error => {
+                                console.warn('Audio play failed:', error);
+                                // Attempt to resume audio context if needed
+                                if (audio.paused) {
+                                    setTimeout(() => {
+                                        const retryPromise = originalPlay.call(audio);
+                                        if (retryPromise !== undefined) {
+                                            retryPromise.catch(e => console.warn('Retry failed:', e));
+                                        }
+                                    }, 100);
+                                }
+                                throw error;
+                            });
+                        }
+                        return playPromise;
+                    };
+                });
+            });
+        </script>
         @stack('scripts')
     </body>
 </html>

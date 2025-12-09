@@ -22,11 +22,17 @@ class AudioMediaHeaders
             
             // CORS headers
             $response->header('Access-Control-Allow-Origin', '*');
-            $response->header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+            $response->header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
             $response->header('Access-Control-Allow-Headers', 'Content-Type, Range');
+            $response->header('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
             
             // iOS compatibility
             $response->header('X-Content-Type-Options', 'nosniff');
+            
+            // For partial content support (streaming)
+            if ($response->getStatusCode() !== 206) {
+                $response->header('Content-Disposition', 'inline');
+            }
         }
 
         return $response;
