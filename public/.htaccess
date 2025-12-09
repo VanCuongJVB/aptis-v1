@@ -1,9 +1,7 @@
 <IfModule mod_rewrite.c>
-    # Ensure static media supports byte-range requests for Safari iOS audio playback
     <IfModule mod_headers.c>
+        # Enable byte-range requests for Safari iOS audio playback
         Header set Accept-Ranges "bytes"
-        Header set Access-Control-Allow-Origin "*"
-        Header set Access-Control-Expose-Headers "Content-Length"
     </IfModule>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
