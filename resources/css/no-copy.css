@@ -1,10 +1,11 @@
-/* Prevent text selection */
+/* DISABLED - Allow text selection and copy
 * {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
 }
+*/
 
 /* Prevent audio download */
 audio::-webkit-media-controls-download-button {
