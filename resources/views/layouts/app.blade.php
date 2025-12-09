@@ -83,7 +83,6 @@
         
         {{-- Ensure audio can be interacted on Safari iOS --}}
         <script>
-            // Remove any blocking on audio elements
             document.addEventListener('DOMContentLoaded', function() {
                 const audios = document.querySelectorAll('audio');
                 audios.forEach(audio => {
@@ -91,10 +90,25 @@
                     audio.style.pointerEvents = 'auto';
                     audio.style.WebkitUserSelect = 'text';
                     
-                    // Remove any click stopPropagation that might interfere
-                    audio.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                    }, false);
+                    // Allow playing with user gesture
+                    audio.setAttribute('playsinline', '');
+                    audio.setAttribute('webkit-playsinline', '');
+                    
+                    // Handle play attempts more gracefully
+                    const originalPlay = audio.play.bind(audio);
+                    audio.play = function() {
+                        const result = originalPlay();
+                        if (result && typeof result.catch === 'function') {
+                            return result.catch(err => {
+                                console.warn('Audio play rejected:', err);
+                                // Silently fail - let user retry
+                            });
+                        }
+                        return result;
+                    };
+                    
+                    // Ensure controls are visible and clickable
+                    audio.controls = true;
                 });
             });
         </script>

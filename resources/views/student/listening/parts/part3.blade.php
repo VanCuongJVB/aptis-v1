@@ -5,8 +5,9 @@
 	{{-- Audio area --}}
 	@if(!empty($audioUrl))
 		<div class="mb-4">
-			<audio controls preload="metadata" class="w-full" crossorigin="anonymous" playsinline>
+			<audio controls preload="metadata" class="w-full" crossorigin="anonymous" playsinline webkit-playsinline>
 				<source src="{{ $audioUrl }}" type="audio/mpeg">
+				<source src="{{ $audioUrl }}" type="audio/mp3">
 				Trình duyệt của bạn không hỗ trợ audio.
 			</audio>
 		</div>

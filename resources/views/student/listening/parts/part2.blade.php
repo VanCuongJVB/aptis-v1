@@ -50,8 +50,9 @@
 
                         @if($spAudioUrl)
                             <audio controls preload="metadata" class="w-full mb-2 playall-audio"
-                                id="audio-{{ $question->id }}-{{ $spIdx }}" crossorigin="anonymous" playsinline>
+                                id="audio-{{ $question->id }}-{{ $spIdx }}" crossorigin="anonymous" playsinline webkit-playsinline>
                                 <source src="{{ $spAudioUrl }}" type="audio/mpeg">
+                                <source src="{{ $spAudioUrl }}" type="audio/mp3">
                                 Trình duyệt của bạn không hỗ trợ phát audio.
                             </audio>
                         @else
